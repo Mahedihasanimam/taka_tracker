@@ -1,8 +1,16 @@
 import { LanguageProvider } from "@/context/LanguageContext";
+import { initDB } from "@/services/db";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 import { StatusBar } from "react-native";
 
 export default function RootLayout() {
+
+  useEffect(() => {
+    initDB()
+      .then(() => console.log('Database initialized successfully'))
+      .catch((err) => console.log('Database failed to connect', err));
+  }, []);
   return <LanguageProvider>
     <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
     <Stack screenOptions={{ headerShown: false }}>
