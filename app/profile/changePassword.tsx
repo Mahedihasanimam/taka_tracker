@@ -48,19 +48,19 @@ const ChangePasswordScreen = () => {
     const handleChangePassword = async () => {
         // Validation
         if (!currentPassword) {
-            Alert.alert(t('error'), t('currentPasswordRequired'));
+            Alert.alert(t('Opps'), t('currentPasswordRequired'));
             return;
         }
         if (!newPassword || newPassword.length < 6) {
-            Alert.alert(t('error'), t('passwordLength'));
+            Alert.alert(t('Opps'), t('passwordLength'));
             return;
         }
         if (newPassword !== confirmPassword) {
-            Alert.alert(t('error'), t('passwordMismatch'));
+            Alert.alert(t('Opps'), t('passwordMismatch'));
             return;
         }
         if (currentPassword === newPassword) {
-            Alert.alert(t('error'), t('samePasswordError'));
+            Alert.alert(t('Opps'), t('samePasswordError'));
             return;
         }
 
@@ -81,10 +81,10 @@ const ChangePasswordScreen = () => {
                     ]
                 );
             } else {
-                Alert.alert(t('error'), result.message || t('somethingWrong'));
+                Alert.alert(t('Opps'), result.message || t('somethingWrong'));
             }
         } catch (error) {
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsLoading(false);
         }

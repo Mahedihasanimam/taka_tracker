@@ -29,11 +29,11 @@ const ResetPasswordScreen = () => {
 
     const handleReset = async () => {
         if (password.length < 6) {
-            Alert.alert(t('error'), t('passwordLength'));
+            Alert.alert(t('Opps'), t('passwordLength'));
             return;
         }
         if (password !== confirmPassword) {
-            Alert.alert(t('error'), t('passwordMismatch'));
+            Alert.alert(t('Opps'), t('passwordMismatch'));
             return;
         }
 
@@ -47,10 +47,10 @@ const ResetPasswordScreen = () => {
                     [{ text: 'OK', onPress: () => router.replace('/auth/signIn') }]
                 );
             } else {
-                Alert.alert(t('error'), result.message || t('somethingWrong'));
+                Alert.alert(t('Opps'), result.message || t('somethingWrong'));
             }
         } catch (error) {
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsLoading(false);
         }

@@ -190,11 +190,11 @@ const BudgetScreen = () => {
     // Save budget
     const handleSave = async () => {
         if (!selectedCategory) {
-            Alert.alert(t('error'), t('selectCategory'));
+            Alert.alert(t('Opps'), t('selectCategory'));
             return;
         }
         if (!limitAmount || parseFloat(limitAmount) <= 0) {
-            Alert.alert(t('error'), t('enterValidAmount'));
+            Alert.alert(t('Opps'), t('enterValidAmount'));
             return;
         }
 
@@ -202,7 +202,7 @@ const BudgetScreen = () => {
         if (!isEditing) {
             const existing = budgets.find(b => b.category === selectedCategory.name);
             if (existing) {
-                Alert.alert(t('error'), t('budgetExists'));
+                Alert.alert(t('Opps'), t('budgetExists'));
                 return;
             }
         }
@@ -217,7 +217,7 @@ const BudgetScreen = () => {
             setModalVisible(false);
             fetchData();
         } catch (error) {
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsSaving(false);
         }
@@ -238,7 +238,7 @@ const BudgetScreen = () => {
                             await deleteBudget(budget.id);
                             fetchData();
                         } catch (error) {
-                            Alert.alert(t('error'), t('somethingWrong'));
+                            Alert.alert(t('Opps'), t('somethingWrong'));
                         }
                     }
                 }

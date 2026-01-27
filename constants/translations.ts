@@ -7,7 +7,7 @@ export const translations = {
     appSub: "টাকাট্র্যাক",
 
     // Common
-    error: "Error",
+    Opps: "Opps",
     success: "Success",
     cancel: "Cancel",
     delete: "Delete",
@@ -254,7 +254,7 @@ export const translations = {
     appSub: "TakaTrack",
 
     // Common
-    error: "ত্রুটি",
+    Opps: "অপস",
     success: "সফল",
     cancel: "বাতিল",
     delete: "মুছুন",

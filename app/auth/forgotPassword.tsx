@@ -24,7 +24,7 @@ const ForgotPasswordScreen = () => {
 
     const handleSubmit = async () => {
         if (!phone.trim() || phone.length < 11) {
-            Alert.alert(t('error'), t('validPhone'));
+            Alert.alert(t('Opps'), t('validPhone'));
             return;
         }
 
@@ -38,10 +38,10 @@ const ForgotPasswordScreen = () => {
                     params: { phone: phone.trim() }
                 });
             } else {
-                Alert.alert(t('error'), t('phoneNotFound'));
+                Alert.alert(t('Opps'), t('phoneNotFound'));
             }
         } catch (error) {
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsLoading(false);
         }

@@ -33,11 +33,11 @@ const LoginScreen = () => {
   // Handle Login
   const handleLogin = async () => {
     if (!phone.trim()) {
-      Alert.alert(t('error'), t('validPhone'));
+      Alert.alert(t('Opps'), t('validPhone'));
       return;
     }
     if (!password.trim()) {
-      Alert.alert(t('error'), t('passwordRequired'));
+      Alert.alert(t('Opps'), t('passwordRequired'));
       return;
     }
 

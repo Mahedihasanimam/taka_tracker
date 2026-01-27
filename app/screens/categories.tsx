@@ -157,7 +157,7 @@ const CategoryManagementScreen = () => {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert(t('error'), t('categoryNameRequired'));
+            Alert.alert(t('Opps'), t('categoryNameRequired'));
             return;
         }
 
@@ -172,7 +172,7 @@ const CategoryManagementScreen = () => {
             fetchCategories();
             Alert.alert(t('success'), isEditing ? t('categoryUpdated') : t('categoryAdded'));
         } catch (error) {
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsSaving(false);
         }
@@ -192,7 +192,7 @@ const CategoryManagementScreen = () => {
                             await deleteCategory(category.id);
                             fetchCategories();
                         } catch (error) {
-                            Alert.alert(t('error'), t('somethingWrong'));
+                            Alert.alert(t('Opps'), t('somethingWrong'));
                         }
                     }
                 }

@@ -72,7 +72,7 @@ const ProfileScreen = () => {
                             await logout();
                             // Navigation will be handled by _layout.tsx auth check
                         } catch (error) {
-                            Alert.alert(t('error'), t('somethingWrong'));
+                            Alert.alert(t('Opps'), t('somethingWrong'));
                         } finally {
                             setIsLoggingOut(false);
                         }

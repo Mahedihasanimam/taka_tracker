@@ -35,7 +35,7 @@ const EditProfileScreen = () => {
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
             if (permissionResult.granted === false) {
-                Alert.alert(t('error'), t('galleryPermissionRequired'));
+                Alert.alert(t('Opps'), t('galleryPermissionRequired'));
                 return;
             }
 
@@ -51,7 +51,7 @@ const EditProfileScreen = () => {
             }
         } catch (error) {
             console.error('Image picker error:', error);
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         }
     };
 
@@ -61,7 +61,7 @@ const EditProfileScreen = () => {
             const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
             if (permissionResult.granted === false) {
-                Alert.alert(t('error'), t('cameraPermissionRequired'));
+                Alert.alert(t('Opps'), t('cameraPermissionRequired'));
                 return;
             }
 
@@ -76,7 +76,7 @@ const EditProfileScreen = () => {
             }
         } catch (error) {
             console.error('Camera error:', error);
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         }
     };
 
@@ -95,7 +95,7 @@ const EditProfileScreen = () => {
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert(t('error'), t('nameRequired'));
+            Alert.alert(t('Opps'), t('nameRequired'));
             return;
         }
 
@@ -111,10 +111,10 @@ const EditProfileScreen = () => {
                     [{ text: 'OK', onPress: () => router.back() }]
                 );
             } else {
-                Alert.alert(t('error'), result.message || t('somethingWrong'));
+                Alert.alert(t('Opps'), result.message || t('somethingWrong'));
             }
         } catch (error) {
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsLoading(false);
         }

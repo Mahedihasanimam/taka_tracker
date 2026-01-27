@@ -147,11 +147,11 @@ const AddTransactionScreen = () => {
     const handleSave = async () => {
         // Validation
         if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert(t('error'), t('enterValidAmount'));
+            Alert.alert(t('Opps'), t('enterValidAmount'));
             return;
         }
         if (!selectedCategory) {
-            Alert.alert(t('error'), t('selectCategory'));
+            Alert.alert(t('Opps'), t('selectCategory'));
             return;
         }
 
@@ -189,7 +189,7 @@ const AddTransactionScreen = () => {
             );
         } catch (error) {
             console.error('Failed to save transaction:', error);
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsSaving(false);
         }

@@ -303,7 +303,7 @@ const TransactionsScreen = () => {
                             fetchData();
                             setShowActionModal(false);
                         } catch (error) {
-                            Alert.alert(t('error'), t('somethingWrong'));
+                            Alert.alert(t('Opps'), t('somethingWrong'));
                         }
                     }
                 }

@@ -82,11 +82,11 @@ const AddTransactionScreen = () => {
 
     const handleSave = async () => {
         if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert(t('error'), t('enterValidAmount'));
+            Alert.alert(t('Opps'), t('enterValidAmount'));
             return;
         }
         if (!selectedCategory) {
-            Alert.alert(t('error'), t('selectCategory'));
+            Alert.alert(t('Opps'), t('selectCategory'));
             return;
         }
 
@@ -108,7 +108,7 @@ const AddTransactionScreen = () => {
                 [{ text: 'OK', onPress: () => router.back() }]
             );
         } catch (error) {
-            Alert.alert(t('error'), t('somethingWrong'));
+            Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {
             setIsLoading(false);
         }

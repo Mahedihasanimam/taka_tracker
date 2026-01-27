@@ -35,19 +35,19 @@ const SignUpScreen = () => {
   const handleSignUp = async () => {
     // Validation
     if (!name.trim()) {
-      Alert.alert(t('error') || 'Error', t('nameRequired') || 'Name is required');
+      Alert.alert(t('Opps') || 'Opps', t('nameRequired') || 'Name is required');
       return;
     }
     if (!phone.trim() || phone.length < 11) {
-      Alert.alert(t('error') || 'Error', t('validPhone') || 'Enter a valid phone number');
+      Alert.alert(t('Opps') || 'Opps', t('validPhone') || 'Enter a valid phone number');
       return;
     }
     if (password.length < 6) {
-      Alert.alert(t('error') || 'Error', t('passwordLength') || 'Password must be at least 6 characters');
+      Alert.alert(t('Opps') || 'Opps', t('passwordLength') || 'Password must be at least 6 characters');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert(t('error') || 'Error', t('passwordMismatch') || 'Passwords do not match');
+      Alert.alert(t('Opps') || 'Opps', t('passwordMismatch') || 'Passwords do not match');
       return;
     }
 
@@ -68,12 +68,12 @@ const SignUpScreen = () => {
         );
       } else {
         Alert.alert(
-          t('error') || 'Error',
+          t('Opps') || 'Opps',
           result.message || t('registrationFailed') || 'Registration failed'
         );
       }
     } catch (error) {
-      Alert.alert(t('error') || 'Error', t('somethingWrong') || 'Something went wrong');
+      Alert.alert(t('Opps') || 'Opps', t('somethingWrong') || 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
