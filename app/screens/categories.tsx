@@ -1,19 +1,29 @@
+import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { addCategory, deleteCategory, getCategories, updateCategory } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
     ArrowLeft,
     Banknote,
+    Book,
     Briefcase,
     Car,
     Check,
     Coffee,
+    Dumbbell,
     Edit3,
+    Gamepad2,
     Gift,
+    GraduationCap,
     Heart,
     Home,
     MoreHorizontal,
+    Music,
+    Pill,
+    Plane,
     Plus,
+    Shirt,
     ShoppingBag,
     Smartphone,
     Trash2,
@@ -22,8 +32,10 @@ import {
     X,
     Zap
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     FlatList,
     KeyboardAvoidingView,
     Modal,
@@ -37,22 +49,39 @@ import {
 } from 'react-native';
 import tw from 'twrnc';
 
+// Category type
+interface Category {
+    id: number;
+    name: string;
+    type: string;
+    icon: string;
+    color: string;
+    user_id?: number;
+}
+
 const CategoryManagementScreen = () => {
     const { t } = useLanguage();
+    const { user } = useAuth();
     const router = useRouter();
 
     // --- STATE ---
     const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
     const [modalVisible, setModalVisible] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Form State
     const [name, setName] = useState('');
     const [selectedIconName, setSelectedIconName] = useState('MoreHorizontal');
-    const [selectedColor, setSelectedColor] = useState('#6b7280');
+    const [selectedColor, setSelectedColor] = useState('#e2136e');
 
-    // --- MOCK DATA ---
-    // In a real app, these icons would be mapped to string names
+    // Categories data
+    const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
+    const [incomeCategories, setIncomeCategories] = useState<Category[]>([]);
+
+    // --- ICONS & COLORS ---
     const availableIcons = [
         { name: 'Utensils', icon: Utensils },
         { name: 'Car', icon: Car },
@@ -65,48 +94,121 @@ const CategoryManagementScreen = () => {
         { name: 'Smartphone', icon: Smartphone },
         { name: 'Coffee', icon: Coffee },
         { name: 'Heart', icon: Heart },
+        { name: 'Plane', icon: Plane },
+        { name: 'Book', icon: Book },
+        { name: 'Music', icon: Music },
+        { name: 'Gamepad2', icon: Gamepad2 },
+        { name: 'Shirt', icon: Shirt },
+        { name: 'Pill', icon: Pill },
+        { name: 'GraduationCap', icon: GraduationCap },
+        { name: 'Dumbbell', icon: Dumbbell },
         { name: 'MoreHorizontal', icon: MoreHorizontal },
     ];
 
     const availableColors = [
         '#e2136e', '#f97316', '#eab308', '#10b981', '#06b6d4',
-        '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280', '#1f2937'
+        '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6',
+        '#f59e0b', '#84cc16', '#6366f1', '#d946ef', '#1f2937'
     ];
 
-    const [expenseCats, setExpenseCats] = useState([
-        { id: '1', name: 'Food', iconName: 'Utensils', color: '#f97316', bg: 'bg-orange-100' },
-        { id: '2', name: 'Transport', iconName: 'Car', color: '#a855f7', bg: 'bg-purple-100' },
-        { id: '3', name: 'Rent', iconName: 'Home', color: '#06b6d4', bg: 'bg-cyan-100' },
-    ]);
+    // --- FETCH CATEGORIES ---
+    const fetchCategories = useCallback(async () => {
+        try {
+            const expense = await getCategories('expense', user?.id);
+            const income = await getCategories('income', user?.id);
+            setExpenseCategories(expense as Category[]);
+            setIncomeCategories(income as Category[]);
+        } catch (error) {
+            console.error('Failed to fetch categories:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user?.id]);
 
-    const [incomeCats, setIncomeCats] = useState([
-        { id: '4', name: 'Salary', iconName: 'Briefcase', color: '#10b981', bg: 'bg-green-100' },
-        { id: '5', name: 'Gift', iconName: 'Gift', color: '#ef4444', bg: 'bg-red-100' },
-    ]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchCategories();
+        }, [fetchCategories])
+    );
 
-    // --- HELPER: Get Icon Component by Name ---
-    const getIconComponent = (name: string) => {
-        const found = availableIcons.find(i => i.name === name);
+    // --- HELPER: Get Icon Component ---
+    const getIconComponent = (iconName: string) => {
+        const found = availableIcons.find(i => i.name === iconName);
         return found ? found.icon : MoreHorizontal;
     };
 
     // --- HANDLERS ---
-    const handleOpenModal = (item?: any) => {
+    const handleOpenModal = (item?: Category) => {
         if (item) {
             setIsEditing(true);
+            setEditingId(item.id);
             setName(item.name);
-            setSelectedIconName(item.iconName);
+            setSelectedIconName(item.icon);
             setSelectedColor(item.color);
         } else {
             setIsEditing(false);
+            setEditingId(null);
             setName('');
             setSelectedIconName('MoreHorizontal');
-            setSelectedColor('#e2136e');
+            setSelectedColor(activeTab === 'expense' ? '#e2136e' : '#10b981');
         }
         setModalVisible(true);
     };
 
-    const currentList = activeTab === 'expense' ? expenseCats : incomeCats;
+    const handleSave = async () => {
+        if (!name.trim()) {
+            Alert.alert(t('error'), t('categoryNameRequired'));
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            if (isEditing && editingId) {
+                await updateCategory(editingId, name.trim(), activeTab, selectedIconName, selectedColor);
+            } else {
+                await addCategory(user?.id || 0, name.trim(), activeTab, selectedIconName, selectedColor);
+            }
+            setModalVisible(false);
+            fetchCategories();
+            Alert.alert(t('success'), isEditing ? t('categoryUpdated') : t('categoryAdded'));
+        } catch (error) {
+            Alert.alert(t('error'), t('somethingWrong'));
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDelete = (category: Category) => {
+        Alert.alert(
+            t('deleteCategory'),
+            t('deleteCategoryConfirm'),
+            [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                    text: t('delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteCategory(category.id);
+                            fetchCategories();
+                        } catch (error) {
+                            Alert.alert(t('error'), t('somethingWrong'));
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const currentList = activeTab === 'expense' ? expenseCategories : incomeCategories;
+
+    if (isLoading) {
+        return (
+            <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
+                <ActivityIndicator size="large" color="#e2136e" />
+            </View>
+        );
+    }
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
@@ -115,11 +217,11 @@ const CategoryManagementScreen = () => {
             {/* --- HEADER --- */}
             <LinearGradient
                 colors={['#e2136e', '#be125a']}
-                style={tw`h-60 px-6 pt-12 rounded-b-[36px] shadow-lg z-0 relative`}
+                style={tw`h-52 px-6 pt-12 rounded-b-[36px] shadow-lg`}
             >
                 <View style={tw`flex-row justify-between items-center mb-6`}>
-                    <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2 rounded-full`}>
-                        <ArrowLeft size={24} color="white" />
+                    <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2.5 rounded-full`}>
+                        <ArrowLeft size={22} color="white" />
                     </TouchableOpacity>
                     <Text style={tw`text-white text-xl font-extrabold tracking-wide`}>
                         {t('manageCategories')}
@@ -127,67 +229,99 @@ const CategoryManagementScreen = () => {
                     <View style={tw`w-10`} />
                 </View>
 
-                {/* --- TABS (Overlapping Header) --- */}
-                <View style={tw`bg-white rounded-2xl p-1 flex-row shadow-lg shadow-pink-900/20 -mb-10 mx-4`}>
+                {/* --- TABS --- */}
+                <View style={tw`bg-white rounded-2xl p-1.5 flex-row shadow-xl mx-2`}>
                     <TouchableOpacity
                         onPress={() => setActiveTab('expense')}
-                        style={tw`flex-1 py-3 rounded-xl items-center flex-row justify-center ${activeTab === 'expense' ? 'bg-[#e2136e]' : 'bg-transparent'}`}
+                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'expense' ? 'bg-[#e2136e]' : 'bg-transparent'}`}
                     >
                         <ShoppingBag size={18} color={activeTab === 'expense' ? 'white' : '#9ca3af'} style={tw`mr-2`} />
-                        <Text style={tw`font-bold ${activeTab === 'expense' ? 'text-white' : 'text-gray-500'}`}>{t('expense')}</Text>
+                        <Text style={tw`font-bold ${activeTab === 'expense' ? 'text-white' : 'text-gray-500'}`}>
+                            {t('expense')} ({expenseCategories.length})
+                        </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={() => setActiveTab('income')}
-                        style={tw`flex-1 py-3 rounded-xl items-center flex-row justify-center ${activeTab === 'income' ? 'bg-[#10b981]' : 'bg-transparent'}`}
+                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'income' ? 'bg-[#10b981]' : 'bg-transparent'}`}
                     >
                         <Banknote size={18} color={activeTab === 'income' ? 'white' : '#9ca3af'} style={tw`mr-2`} />
-                        <Text style={tw`font-bold ${activeTab === 'income' ? 'text-white' : 'text-gray-500'}`}>{t('income')}</Text>
+                        <Text style={tw`font-bold ${activeTab === 'income' ? 'text-white' : 'text-gray-500'}`}>
+                            {t('income')} ({incomeCategories.length})
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </LinearGradient>
 
             {/* --- LIST CONTENT --- */}
-            <View style={tw`flex-1 mt-12 px-6`}>
+            <View style={tw`flex-1 px-5 pt-6`}>
 
                 {/* Add Button */}
                 <TouchableOpacity
                     onPress={() => handleOpenModal()}
                     activeOpacity={0.8}
-                    style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed border-gray-300 mb-6 mt-4`}
+                    style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed ${activeTab === 'expense' ? 'border-pink-300' : 'border-green-300'} mb-5`}
                 >
-                    <Plus size={20} color="#9ca3af" />
-                    <Text style={tw`text-gray-500 font-bold ml-2`}>{t('addCategory')}</Text>
+                    <View style={tw`w-10 h-10 rounded-full ${activeTab === 'expense' ? 'bg-pink-100' : 'bg-green-100'} items-center justify-center mr-3`}>
+                        <Plus size={20} color={activeTab === 'expense' ? '#e2136e' : '#10b981'} />
+                    </View>
+                    <Text style={tw`${activeTab === 'expense' ? 'text-[#e2136e]' : 'text-[#10b981]'} font-bold text-base`}>
+                        {t('addNewCategory')}
+                    </Text>
                 </TouchableOpacity>
 
-                <FlatList
-                    data={currentList}
-                    keyExtractor={(item) => item.id}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={tw`pb-24`}
-                    renderItem={({ item }) => {
-                        const IconComp = getIconComponent(item.iconName);
-                        return (
-                            <View style={tw`bg-white rounded-2xl p-4 mb-3 shadow-sm shadow-gray-200 flex-row items-center justify-between`}>
-                                <View style={tw`flex-row items-center`}>
-                                    <View style={[tw`w-12 h-12 rounded-xl items-center justify-center mr-4`, { backgroundColor: item.color + '20' }]}>
-                                        <IconComp size={22} color={item.color} />
+                {currentList.length === 0 ? (
+                    <View style={tw`flex-1 justify-center items-center`}>
+                        <View style={tw`w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4`}>
+                            <ShoppingBag size={32} color="#9ca3af" />
+                        </View>
+                        <Text style={tw`text-gray-500 font-medium`}>{t('noCategories')}</Text>
+                        <Text style={tw`text-gray-400 text-sm mt-1`}>{t('addCategoryHint')}</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={currentList}
+                        keyExtractor={(item) => item.id.toString()}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={tw`pb-24`}
+                        renderItem={({ item }) => {
+                            const IconComp = getIconComponent(item.icon);
+                            return (
+                                <View style={tw`bg-white rounded-2xl p-4 mb-3 shadow-sm shadow-gray-200 flex-row items-center justify-between`}>
+                                    <View style={tw`flex-row items-center flex-1`}>
+                                        <View
+                                            style={[
+                                                tw`w-12 h-12 rounded-2xl items-center justify-center mr-4`,
+                                                { backgroundColor: item.color + '20' }
+                                            ]}
+                                        >
+                                            <IconComp size={22} color={item.color} />
+                                        </View>
+                                        <View style={tw`flex-1`}>
+                                            <Text style={tw`text-gray-800 font-bold text-base`}>{item.name}</Text>
+                                            <Text style={tw`text-gray-400 text-xs mt-0.5 capitalize`}>{item.type}</Text>
+                                        </View>
                                     </View>
-                                    <Text style={tw`text-gray-800 font-bold text-base`}>{item.name}</Text>
-                                </View>
 
-                                <View style={tw`flex-row`}>
-                                    <TouchableOpacity onPress={() => handleOpenModal(item)} style={tw`p-2 bg-gray-50 rounded-full mr-2`}>
-                                        <Edit3 size={16} color="#6b7280" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={tw`p-2 bg-red-50 rounded-full`}>
-                                        <Trash2 size={16} color="#ef4444" />
-                                    </TouchableOpacity>
+                                    <View style={tw`flex-row`}>
+                                        <TouchableOpacity
+                                            onPress={() => handleOpenModal(item)}
+                                            style={tw`p-2.5 bg-gray-50 rounded-xl mr-2`}
+                                        >
+                                            <Edit3 size={16} color="#6b7280" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => handleDelete(item)}
+                                            style={tw`p-2.5 bg-red-50 rounded-xl`}
+                                        >
+                                            <Trash2 size={16} color="#ef4444" />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                            </View>
-                        );
-                    }}
-                />
+                            );
+                        }}
+                    />
+                )}
             </View>
 
             {/* --- ADD/EDIT MODAL --- */}
@@ -201,39 +335,61 @@ const CategoryManagementScreen = () => {
                     behavior={Platform.OS === "ios" ? "padding" : "height"}
                     style={tw`flex-1 justify-end bg-black/50`}
                 >
-                    <View style={tw`bg-white rounded-t-[32px] h-[85%]`}>
-                        <View style={tw`p-6 border-b border-gray-100 flex-row justify-between items-center`}>
+                    <View style={tw`bg-white rounded-t-[32px] max-h-[90%]`}>
+                        {/* Modal Header */}
+                        <View style={tw`p-5 border-b border-gray-100 flex-row justify-between items-center`}>
                             <Text style={tw`text-xl font-bold text-gray-900`}>
                                 {isEditing ? t('editCategory') : t('addCategory')}
                             </Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)} style={tw`bg-gray-100 p-2 rounded-full`}>
+                            <TouchableOpacity
+                                onPress={() => setModalVisible(false)}
+                                style={tw`bg-gray-100 p-2 rounded-full`}
+                            >
                                 <X size={20} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView contentContainerStyle={tw`p-6 pb-20`}>
+                        <ScrollView contentContainerStyle={tw`p-5 pb-10`} showsVerticalScrollIndicator={false}>
 
-                            {/* 1. Name Input */}
+                            {/* Preview */}
+                            <View style={tw`items-center mb-6`}>
+                                <View
+                                    style={[
+                                        tw`w-20 h-20 rounded-3xl items-center justify-center mb-3`,
+                                        { backgroundColor: selectedColor }
+                                    ]}
+                                >
+                                    {React.createElement(getIconComponent(selectedIconName), { size: 36, color: 'white' })}
+                                </View>
+                                <Text style={tw`text-gray-800 font-bold text-lg`}>
+                                    {name || t('categoryName')}
+                                </Text>
+                            </View>
+
+                            {/* Name Input */}
                             <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>{t('categoryName')}</Text>
-                            <View style={tw`bg-gray-50 rounded-2xl px-4 py-3.5 mb-6 border border-gray-200 focus:border-[#e2136e]`}>
+                            <View style={tw`bg-gray-50 rounded-2xl px-4 py-3.5 mb-6 border border-gray-200`}>
                                 <TextInput
-                                    placeholder="e.g. Groceries"
+                                    placeholder={t('categoryNamePlaceholder')}
+                                    placeholderTextColor="#9ca3af"
                                     value={name}
                                     onChangeText={setName}
                                     style={tw`text-base font-bold text-gray-900`}
                                 />
                             </View>
 
-                            {/* 2. Icon Picker */}
+                            {/* Icon Picker */}
                             <Text style={tw`text-gray-600 text-sm font-bold mb-3 ml-1`}>{t('selectIcon')}</Text>
-                            <View style={tw`flex-row flex-wrap justify-between mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100`}>
+                            <View style={tw`flex-row flex-wrap mb-6 bg-gray-50 p-3 rounded-2xl`}>
                                 {availableIcons.map((item, index) => (
                                     <TouchableOpacity
                                         key={index}
                                         onPress={() => setSelectedIconName(item.name)}
                                         style={[
-                                            tw`w-12 h-12 rounded-xl items-center justify-center mb-2`,
-                                            selectedIconName === item.name ? { backgroundColor: selectedColor } : tw`bg-white border border-gray-200`
+                                            tw`w-11 h-11 rounded-xl items-center justify-center m-1`,
+                                            selectedIconName === item.name
+                                                ? { backgroundColor: selectedColor }
+                                                : tw`bg-white border border-gray-200`
                                         ]}
                                     >
                                         <item.icon size={20} color={selectedIconName === item.name ? 'white' : '#6b7280'} />
@@ -241,16 +397,17 @@ const CategoryManagementScreen = () => {
                                 ))}
                             </View>
 
-                            {/* 3. Color Picker */}
+                            {/* Color Picker */}
                             <Text style={tw`text-gray-600 text-sm font-bold mb-3 ml-1`}>{t('selectColor')}</Text>
-                            <View style={tw`flex-row flex-wrap gap-3 mb-8`}>
+                            <View style={tw`flex-row flex-wrap mb-8`}>
                                 {availableColors.map((color) => (
                                     <TouchableOpacity
                                         key={color}
                                         onPress={() => setSelectedColor(color)}
                                         style={[
-                                            tw`w-10 h-10 rounded-full items-center justify-center shadow-sm`,
-                                            { backgroundColor: color }
+                                            tw`w-10 h-10 rounded-full items-center justify-center m-1 shadow-sm`,
+                                            { backgroundColor: color },
+                                            selectedColor === color && tw`border-2 border-white shadow-lg`
                                         ]}
                                     >
                                         {selectedColor === color && <Check size={18} color="white" />}
@@ -260,21 +417,27 @@ const CategoryManagementScreen = () => {
 
                             {/* Save Button */}
                             <TouchableOpacity
-                                onPress={() => setModalVisible(false)}
+                                onPress={handleSave}
+                                disabled={isSaving}
                                 activeOpacity={0.9}
                                 style={[
-                                    tw`rounded-2xl py-4 items-center shadow-lg`,
-                                    { backgroundColor: selectedColor, shadowColor: selectedColor }
+                                    tw`rounded-2xl py-4 items-center shadow-lg ${isSaving ? 'opacity-70' : ''}`,
+                                    { backgroundColor: selectedColor }
                                 ]}
                             >
-                                <Text style={tw`text-white font-bold text-lg`}>{t('save')}</Text>
+                                {isSaving ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={tw`text-white font-bold text-lg`}>
+                                        {isEditing ? t('updateCategory') : t('saveCategory')}
+                                    </Text>
+                                )}
                             </TouchableOpacity>
 
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
-
         </View>
     );
 };

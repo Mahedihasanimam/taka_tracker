@@ -1,12 +1,13 @@
 // context/LanguageContext.tsx
 import React, { createContext, ReactNode, useContext, useState } from 'react';
-import { TranslationKeys, translations } from '../constants/translations';
+import { translations } from '../constants/translations';
 
 // Define the shape of our Context
+type TranslationKey = keyof (typeof translations)['en'] | keyof (typeof translations)['bn'];
 type LanguageContextType = {
     lang: 'bn' | 'en';
     switchLanguage: (lang: 'bn' | 'en') => void;
-    t: (key: TranslationKeys) => string;
+    t: (key: TranslationKey) => string;
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -16,11 +17,9 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
     const switchLanguage = (language: 'bn' | 'en') => {
         setLang(language);
-        // You can add AsyncStorage logic here to save preference
     };
 
-    // The 't' function gets the string based on the current language
-    const t = (key: TranslationKeys) => {
+    const t = (key: TranslationKey) => {
         return translations[lang][key] || key;
     };
 
@@ -31,7 +30,6 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     );
 };
 
-// Custom Hook
 export const useLanguage = () => {
     const context = useContext(LanguageContext);
     if (!context) {

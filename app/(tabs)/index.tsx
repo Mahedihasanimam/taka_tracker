@@ -1,119 +1,279 @@
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { getBalance, getBudgets, getCategories, getTransactions, getTransactionsByCategory } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router, useFocusEffect } from 'expo-router';
 import {
   AlertTriangle,
+  Briefcase,
   Calendar,
+  Car,
+  Coffee,
   Download,
   Folder,
+  Gift,
+  Home,
+  MoreHorizontal,
   PieChart as PieIcon,
   PlusCircle,
   Settings,
+  ShoppingBag,
   Utensils,
   Wallet
 } from 'lucide-react-native';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
+  RefreshControl,
   ScrollView,
   StatusBar,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
-// Import Charts
-import { router } from 'expo-router';
 import { BarChart, LineChart, PieChart } from "react-native-gifted-charts";
 import tw from 'twrnc';
-import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.90;
 
+// Icon mapping
+const iconMap: Record<string, any> = {
+  Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Coffee, MoreHorizontal
+};
+
+interface Transaction {
+  id: number;
+  amount: number;
+  type: string;
+  category: string;
+  date: string;
+  note?: string;
+  icon?: string;
+  color?: string;
+}
+
+interface Budget {
+  id: number;
+  category: string;
+  limit_amount: number;
+  spent?: number;
+  icon?: string;
+  color?: string;
+}
+
 const HomeScreen = () => {
   const { lang, switchLanguage, t } = useLanguage();
+  const { user } = useAuth();
   const primaryColor = '#e2136e';
 
-  // --- 1. DAILY: DETAILED BREAKDOWN ---
-  // Now split by actual categories instead of just "Spent vs Left"
-  const dailyPieData = [
-    { value: 450, color: primaryColor, text: '45%' },   // Food (Pink)
-    { value: 200, color: '#f59e0b', text: '20%' },      // Transport (Orange)
-    { value: 350, color: '#e5e7eb', text: '35%' }       // Remaining (Gray)
-  ];
+  // State
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [balance, setBalance] = useState({ totalIncome: 0, totalExpense: 0 });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [todayData, setTodayData] = useState({ spent: 0, categories: [] as any[] });
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
-  // Center Label Component for Donut Chart
+  // Fetch all data
+  const fetchData = useCallback(async () => {
+    try {
+      const [balanceData, txnData, budgetData, categoryData] = await Promise.all([
+        getBalance(user?.id),
+        getTransactions(user?.id),
+        getBudgets(user?.id),
+        getCategories('expense', user?.id)
+      ]);
+
+      setBalance(balanceData);
+      setTransactions(txnData as Transaction[]);
+
+      // Process budgets with spent amounts
+      const budgetsWithSpent = await Promise.all(
+        (budgetData as Budget[]).map(async (budget) => {
+          const spent = await getTransactionsByCategory(budget.category, 'expense', user?.id);
+          const category = (categoryData as any[]).find(c => c.name === budget.category);
+          return {
+            ...budget,
+            spent: spent || 0,
+            icon: category?.icon || 'MoreHorizontal',
+            color: category?.color || '#6b7280'
+          };
+        })
+      );
+      setBudgets(budgetsWithSpent);
+
+      // Process today's data
+      const today = new Date().toDateString();
+      const todayTxns = (txnData as Transaction[]).filter(
+        t => new Date(t.date).toDateString() === today && t.type === 'expense'
+      );
+      const todaySpent = todayTxns.reduce((sum, t) => sum + t.amount, 0);
+
+      // Group by category for today
+      const categorySpending: Record<string, { amount: number; color: string }> = {};
+      todayTxns.forEach(txn => {
+        if (!categorySpending[txn.category]) {
+          const cat = (categoryData as any[]).find(c => c.name === txn.category);
+          categorySpending[txn.category] = { amount: 0, color: cat?.color || '#6b7280' };
+        }
+        categorySpending[txn.category].amount += txn.amount;
+      });
+
+      const todayCategories = Object.entries(categorySpending).map(([name, data]) => ({
+        label: name,
+        value: data.amount,
+        color: data.color
+      }));
+
+      setTodayData({ spent: todaySpent, categories: todayCategories });
+
+      // Process weekly data (last 7 days)
+      const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      const weeklySpending = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dayTxns = (txnData as Transaction[]).filter(
+          t => new Date(t.date).toDateString() === date.toDateString() && t.type === 'expense'
+        );
+        const daySpent = dayTxns.reduce((sum, t) => sum + t.amount, 0);
+        weeklySpending.push({
+          value: daySpent,
+          label: weekDays[date.getDay()],
+          frontColor: primaryColor
+        });
+      }
+      setWeeklyData(weeklySpending);
+
+      // Process monthly data (trend)
+      const monthlyTrend = [];
+      const now = new Date();
+      for (let i = 7; i >= 0; i--) {
+        const weekStart = new Date(now);
+        weekStart.setDate(weekStart.getDate() - (i * 7));
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+
+        const weekTxns = (txnData as Transaction[]).filter(t => {
+          const txnDate = new Date(t.date);
+          return txnDate >= weekStart && txnDate < weekEnd && t.type === 'expense';
+        });
+        const weekSpent = weekTxns.reduce((sum, t) => sum + t.amount, 0);
+        monthlyTrend.push({ value: weekSpent / 1000 });
+      }
+      setMonthlyData(monthlyTrend);
+
+    } catch (error) {
+      console.error('Failed to fetch home data:', error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  // Calculate derived values
+  const totalBalance = balance.totalIncome - balance.totalExpense;
+  const weeklyTotal = weeklyData.reduce((sum, d) => sum + d.value, 0);
+  const highestDay = weeklyData.reduce((max, d) => d.value > max.value ? d : max, { value: 0, label: '' });
+
+  // Prepare pie chart data for today
+  const getDailyPieData = () => {
+    const dailyBudget = 1000;
+    if (todayData.categories.length === 0) {
+      return [{ value: 1, color: '#e5e7eb', text: '0%' }];
+    }
+
+    const remaining = Math.max(0, dailyBudget - todayData.spent);
+    const pieData = todayData.categories.map(cat => ({
+      value: cat.value,
+      color: cat.color,
+      text: `${Math.round((cat.value / dailyBudget) * 100)}%`
+    }));
+
+    if (remaining > 0) {
+      pieData.push({ value: remaining, color: '#e5e7eb', text: `${Math.round((remaining / dailyBudget) * 100)}%` });
+    }
+
+    return pieData;
+  };
+
+  // Center label for donut chart
   const renderCenterLabel = () => {
+    const dailyBudget = 1000;
+    const remaining = Math.max(0, dailyBudget - todayData.spent);
     return (
       <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={tw`text-xs text-gray-500 font-bold`}>Left</Text>
-        <Text style={tw`text-lg font-extrabold text-gray-800`}>৳350</Text>
+        <Text style={tw`text-xs text-gray-500 font-bold`}>{t('left')}</Text>
+        <Text style={tw`text-lg font-extrabold text-gray-800`}>৳{remaining.toLocaleString()}</Text>
       </View>
     );
   };
 
-  // --- 2. WEEKLY & MONTHLY DATA (Unchanged) ---
-  const weeklyBarData = [
-    { value: 250, label: 'S', frontColor: primaryColor },
-    { value: 500, label: 'M', frontColor: primaryColor },
-    { value: 745, label: 'T', frontColor: primaryColor },
-    { value: 320, label: 'W', frontColor: primaryColor },
-    { value: 600, label: 'T', frontColor: primaryColor },
-    { value: 256, label: 'F', frontColor: primaryColor },
-    { value: 300, label: 'S', frontColor: primaryColor },
+  // Get recent transactions
+  const recentTransactions = transactions.slice(0, 3);
+
+  // Get budget alerts (over 80%)
+  const budgetAlerts = budgets.filter(b => b.spent && b.limit_amount && (b.spent / b.limit_amount) >= 0.8);
+
+  // Quick Actions
+  const quickActions = [
+    { id: 1, onPress: () => router.push('/add'), label: t('addExpense'), icon: PlusCircle, color: '#ef4444', bg: 'bg-red-50' },
+    { id: 2, onPress: () => router.push('/budget'), label: t('setBudget'), icon: PieIcon, color: '#8b5cf6', bg: 'bg-purple-50' },
+    { id: 3, onPress: () => router.push('/screens/categories'), label: t('categories'), icon: Folder, color: '#10b981', bg: 'bg-green-50' },
+    { id: 4, onPress: () => router.push('/transactions'), label: t('export'), icon: Download, color: '#f59e0b', bg: 'bg-amber-50' },
   ];
 
-  const monthlyLineData = [
-    { value: 0 }, { value: 20 }, { value: 18 }, { value: 40 },
-    { value: 36 }, { value: 60 }, { value: 54 }, { value: 85 }
-  ];
-
-  // --- DASHBOARD CARDS DATA ---
+  // Dashboard cards data
   const dashboardData = [
     {
       id: 'daily',
       title: t('today'),
-      amountLabel: 'Spent Today',
-      amount: '৳ 650', // Total of Food + Transport
+      amountLabel: t('spentToday'),
+      amount: `৳ ${todayData.spent.toLocaleString()}`,
       type: 'donut',
-      subText: 'Budget: ৳1,000',
-      // New: Legend Data for Today Card
-      legend: [
-        { label: 'Food', color: primaryColor, value: '৳450' },
-        { label: 'Transport', color: '#f59e0b', value: '৳200' },
-      ]
+      subText: `${t('budget')}: ৳1,000`,
+      legend: todayData.categories.slice(0, 3)
     },
     {
       id: 'weekly',
       title: t('thisWeek'),
-      amountLabel: 'Weekly Spent',
-      amount: '৳ 8,500',
+      amountLabel: t('weeklySpent'),
+      amount: `৳ ${weeklyTotal.toLocaleString()}`,
       type: 'bar',
-      subText: 'Highest: Tuesday'
+      subText: `${t('highest')}: ${highestDay.label || '-'}`
     },
     {
       id: 'monthly',
       title: t('thisMonth'),
-      amountLabel: 'Total Savings',
-      amount: '৳ 15,500',
+      amountLabel: t('totalSavings'),
+      amount: `৳ ${totalBalance.toLocaleString()}`,
       type: 'line',
-      subText: 'Trending Up'
+      subText: totalBalance >= 0 ? t('trendingUp') : t('trendingDown')
     },
   ];
 
-  // Quick Actions & Lists (Same as before)
-  const quickActions = [
-    { id: 1, onPress: () => router.push('/add'), label: 'Add Expense', icon: PlusCircle, color: '#ef4444', bg: 'bg-red-50' },
-    { id: 3, onPress: () => router.push('/budget'), label: 'Set Budget', icon: PieIcon, color: '#8b5cf6', bg: 'bg-purple-50' },
-    { id: 2, onPress: () => router.push('/screens/categories'), label: 'Categories', icon: Folder, color: '#10b981', bg: 'bg-green-50' },
-    { id: 4, onPress: () => router.push('/screens/export'), label: 'Export PDF', icon: Download, color: '#f59e0b', bg: 'bg-amber-50' },
-  ];
-
-  const recentActivities = [
-    { id: 1, icon: Utensils, color: '#f97316', bg: 'bg-orange-100', label: t('food'), amount: '- ৳ 250', type: 'expense', date: 'Today, 10:30 AM' },
-  ];
-
-  const budgetItems = [
-    { id: 1, label: t('food'), progress: '70%', color: 'bg-[#10b981]' },
-  ];
+  if (isLoading) {
+    return (
+      <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
+        <ActivityIndicator size="large" color="#e2136e" />
+      </View>
+    );
+  }
 
   return (
     <View style={tw`flex-1 bg-slate-50`}>
@@ -122,7 +282,7 @@ const HomeScreen = () => {
       {/* --- HEADER --- */}
       <LinearGradient
         colors={['#e2136e', '#be125a']}
-        style={tw`h-60 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg relative z-10`}
+        style={tw`h-60 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg`}
       >
         <View style={tw`flex-row justify-between items-start`}>
           <View>
@@ -145,9 +305,11 @@ const HomeScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={tw`pb-32`}
-        style={tw`-mt-24 z-20`}
+        style={{ marginTop: -96 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e2136e']} />
+        }
       >
-
         {/* --- HORIZONTAL CARDS --- */}
         <ScrollView
           horizontal
@@ -160,8 +322,15 @@ const HomeScreen = () => {
             <View
               key={item.id}
               style={[
-                tw`bg-white rounded-[32px] p-6 shadow-xl shadow-gray-200 mr-4 mb-2 overflow-hidden`,
-                { width: CARD_WIDTH }
+                tw`bg-white rounded-[32px] p-6 mr-4 mb-2 overflow-hidden`,
+                {
+                  width: CARD_WIDTH,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 12,
+                  elevation: 8,
+                }
               ]}
             >
               {/* Card Header */}
@@ -179,7 +348,6 @@ const HomeScreen = () => {
               </View>
 
               <View style={tw`flex-row justify-between items-center`}>
-
                 {/* LEFT SIDE: Stats & Legend */}
                 <View style={tw`w-[40%]`}>
                   <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1 tracking-widest`}>
@@ -187,44 +355,42 @@ const HomeScreen = () => {
                   </Text>
                   <Text style={tw`text-2xl font-extrabold text-gray-900 mb-3`}>{item.amount}</Text>
 
-                  {/* Custom Legend for Daily Card */}
-                  {item.id === 'daily' && item.legend ? (
+                  {item.id === 'daily' && item.legend && item.legend.length > 0 ? (
                     <View>
-                      {item.legend.map((l, i) => (
+                      {item.legend.map((l: any, i: number) => (
                         <View key={i} style={tw`flex-row items-center mb-1`}>
                           <View style={[tw`w-2 h-2 rounded-full mr-1.5`, { backgroundColor: l.color }]} />
                           <Text style={tw`text-[10px] text-gray-500 font-medium`}>{l.label}: </Text>
-                          <Text style={tw`text-[10px] text-gray-800 font-bold`}>{l.value}</Text>
+                          <Text style={tw`text-[10px] text-gray-800 font-bold`}>৳{l.value.toLocaleString()}</Text>
                         </View>
                       ))}
                     </View>
                   ) : (
-                    <View style={tw`bg-green-50 self-start px-2 py-1 rounded-md`}>
-                      <Text style={tw`text-[10px] text-green-600 font-bold`}>+12% vs last</Text>
+                    <View style={tw`${totalBalance >= 0 ? 'bg-green-50' : 'bg-red-50'} self-start px-2 py-1 rounded-md`}>
+                      <Text style={tw`text-[10px] ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'} font-bold`}>
+                        {totalBalance >= 0 ? '+' : ''}{((totalBalance / (balance.totalIncome || 1)) * 100).toFixed(0)}% vs last
+                      </Text>
                     </View>
                   )}
                 </View>
 
                 {/* RIGHT SIDE: Charts */}
                 <View style={tw`flex-1 items-end justify-center`}>
-
-                  {/* 1. DAILY (Contextual Donut) */}
                   {item.type === 'donut' && (
                     <PieChart
-                      data={dailyPieData}
+                      data={getDailyPieData()}
                       donut
-                      radius={55} // Bigger radius
+                      radius={55}
                       innerRadius={42}
-                      centerLabelComponent={renderCenterLabel} // Shows "Left ৳350"
+                      centerLabelComponent={renderCenterLabel}
                       isAnimated
                       animationDuration={1500}
                     />
                   )}
 
-                  {/* 2. WEEKLY (Bar) */}
-                  {item.type === 'bar' && (
+                  {item.type === 'bar' && weeklyData.length > 0 && (
                     <BarChart
-                      data={weeklyBarData}
+                      data={weeklyData}
                       barWidth={12}
                       spacing={14}
                       roundedTop
@@ -234,7 +400,7 @@ const HomeScreen = () => {
                       yAxisThickness={0}
                       yAxisTextStyle={{ color: 'gray', fontSize: 10 }}
                       noOfSections={3}
-                      maxValue={900}
+                      maxValue={Math.max(...weeklyData.map(d => d.value), 100)}
                       isAnimated
                       animationDuration={1500}
                       height={90}
@@ -242,10 +408,9 @@ const HomeScreen = () => {
                     />
                   )}
 
-                  {/* 3. MONTHLY (Line) */}
-                  {item.type === 'line' && (
+                  {item.type === 'line' && monthlyData.length > 0 && (
                     <LineChart
-                      data={monthlyLineData}
+                      data={monthlyData}
                       areaChart
                       curved
                       color={primaryColor}
@@ -274,7 +439,7 @@ const HomeScreen = () => {
 
         {/* --- TRACKING QUICK ACTIONS --- */}
         <View style={tw`px-5 mb-8`}>
-          <Text style={tw`text-sm font-bold text-gray-800 mb-4 px-1`}>Fast Actions</Text>
+          <Text style={tw`text-sm font-bold text-gray-800 mb-4 px-1`}>{t('fastActions')}</Text>
           <View style={tw`flex-row justify-between`}>
             {quickActions.map((action) => (
               <TouchableOpacity onPress={action.onPress} key={action.id} style={tw`items-center w-[23%]`} activeOpacity={0.7}>
@@ -293,19 +458,30 @@ const HomeScreen = () => {
           <View style={tw`bg-white rounded-2xl p-4 shadow-sm shadow-gray-200 w-[48%]`}>
             <View style={tw`flex-row justify-between items-center mb-4 border-b border-gray-100 pb-2`}>
               <Text style={tw`text-sm font-bold text-gray-800`}>{t('recentActivity')}</Text>
-              <Settings size={14} color="#9ca3af" />
+              <TouchableOpacity onPress={() => router.push('/transactions')}>
+                <Settings size={14} color="#9ca3af" />
+              </TouchableOpacity>
             </View>
-            {recentActivities.map((item) => (
-              <View key={item.id} style={tw`flex-row items-center mb-5`}>
-                <View style={tw`w-8 h-8 rounded-full ${item.bg} items-center justify-center mr-2`}>
-                  <item.icon size={14} color={item.color} />
-                </View>
-                <View style={tw`flex-1`}>
-                  <Text style={tw`text-[11px] font-bold text-gray-800`} numberOfLines={1}>{item.label}</Text>
-                  <Text style={tw`text-[10px] font-bold ${item.type === 'expense' ? 'text-red-500' : 'text-green-500'}`}>{item.amount}</Text>
-                </View>
-              </View>
-            ))}
+            {recentTransactions.length === 0 ? (
+              <Text style={tw`text-xs text-gray-400 text-center py-4`}>{t('noRecentActivity')}</Text>
+            ) : (
+              recentTransactions.map((txn) => {
+                const IconComp = iconMap[txn.icon || ''] || Briefcase;
+                return (
+                  <View key={txn.id} style={tw`flex-row items-center mb-5`}>
+                    <View style={[tw`w-8 h-8 rounded-full items-center justify-center mr-2`, { backgroundColor: (txn.color || '#6b7280') + '20' }]}>
+                      <IconComp size={14} color={txn.color || '#6b7280'} />
+                    </View>
+                    <View style={tw`flex-1`}>
+                      <Text style={tw`text-[11px] font-bold text-gray-800`} numberOfLines={1}>{txn.category}</Text>
+                      <Text style={tw`text-[10px] font-bold ${txn.type === 'expense' ? 'text-red-500' : 'text-green-500'}`}>
+                        {txn.type === 'expense' ? '-' : '+'} ৳{txn.amount.toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </View>
 
           {/* Budget Status */}
@@ -313,30 +489,41 @@ const HomeScreen = () => {
             <Text style={tw`text-sm font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2`}>
               {t('budgetStatus')}
             </Text>
-            {budgetItems.map((item) => (
-              <View key={item.id} style={tw`mb-4`}>
-                <View style={tw`flex-row justify-between mb-1.5`}>
-                  <Text style={tw`text-[10px] font-bold text-gray-600`}>{item.label}</Text>
-                  <Text style={tw`text-[10px] font-bold text-gray-400`}>{item.progress}</Text>
-                </View>
-                <View style={tw`h-1.5 bg-gray-100 rounded-full overflow-hidden`}>
-                  <View style={tw`h-full ${item.color} w-[${item.progress}] rounded-full`} />
-                </View>
-              </View>
-            ))}
-            <View style={tw`flex-row items-center bg-orange-50 p-2 rounded-lg mt-1`}>
-              <AlertTriangle size={12} color="#f97316" style={tw`mr-1.5`} />
-              <View>
-                <Text style={tw`text-[10px] text-orange-700 font-bold`}>Shopping</Text>
-                <Text style={tw`text-[9px] text-orange-600`}>Over budget</Text>
-              </View>
-            </View>
+            {budgets.length === 0 ? (
+              <Text style={tw`text-xs text-gray-400 text-center py-4`}>{t('noBudgetsSet')}</Text>
+            ) : (
+              <>
+                {budgets.slice(0, 2).map((item) => {
+                  const percent = item.limit_amount > 0 ? Math.min((item.spent || 0) / item.limit_amount * 100, 100) : 0;
+                  const isOver = percent >= 100;
+                  return (
+                    <View key={item.id} style={tw`mb-4`}>
+                      <View style={tw`flex-row justify-between mb-1.5`}>
+                        <Text style={tw`text-[10px] font-bold text-gray-600`}>{item.category}</Text>
+                        <Text style={tw`text-[10px] font-bold text-gray-400`}>{percent.toFixed(0)}%</Text>
+                      </View>
+                      <View style={tw`h-1.5 bg-gray-100 rounded-full overflow-hidden`}>
+                        <View style={[tw`h-full rounded-full`, { width: `${percent}%`, backgroundColor: isOver ? '#ef4444' : percent >= 80 ? '#f59e0b' : '#10b981' }]} />
+                      </View>
+                    </View>
+                  );
+                })}
+                {budgetAlerts.length > 0 && (
+                  <View style={tw`flex-row items-center bg-orange-50 p-2 rounded-lg mt-1`}>
+                    <AlertTriangle size={12} color="#f97316" style={tw`mr-1.5`} />
+                    <View>
+                      <Text style={tw`text-[10px] text-orange-700 font-bold`}>{budgetAlerts[0].category}</Text>
+                      <Text style={tw`text-[9px] text-orange-600`}>{t('overBudget')}</Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
           </View>
         </View>
-
       </ScrollView>
     </View>
   );
-}
+};
 
 export default HomeScreen;

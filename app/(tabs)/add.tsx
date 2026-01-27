@@ -1,23 +1,41 @@
+import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { addTransaction, getCategories } from '@/services/db';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
     ArrowLeft,
     Banknote,
+    Book,
     Briefcase,
     Calendar,
     Car,
     CheckCircle,
+    Coffee,
+    Dumbbell,
     FileText,
+    Gamepad2,
     Gift,
+    GraduationCap,
+    Heart,
     Home,
     MoreHorizontal,
+    Music,
+    Pill,
+    Plane,
+    Plus,
+    Shirt,
     ShoppingBag,
+    Smartphone,
     Utensils,
+    Wifi,
     Zap
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -29,165 +47,360 @@ import {
 } from 'react-native';
 import tw from 'twrnc';
 
+// Icon mapping
+const iconMap: Record<string, any> = {
+    Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Wifi, Zap,
+    Smartphone, Coffee, Heart, Plane, Book, Music, Gamepad2,
+    Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal, Banknote
+};
+
+// Default categories (fallback)
+const defaultExpenseCategories = [
+    { id: 'd1', name: 'Food', icon: 'Utensils', color: '#f97316' },
+    { id: 'd2', name: 'Transport', icon: 'Car', color: '#a855f7' },
+    { id: 'd3', name: 'Rent', icon: 'Home', color: '#06b6d4' },
+    { id: 'd4', name: 'Shopping', icon: 'ShoppingBag', color: '#ec4899' },
+    { id: 'd5', name: 'Bills', icon: 'Zap', color: '#eab308' },
+    { id: 'd6', name: 'Others', icon: 'MoreHorizontal', color: '#6b7280' },
+];
+
+const defaultIncomeCategories = [
+    { id: 'i1', name: 'Salary', icon: 'Briefcase', color: '#10b981' },
+    { id: 'i2', name: 'Gift', icon: 'Gift', color: '#ef4444' },
+    { id: 'i3', name: 'Investment', icon: 'Banknote', color: '#3b82f6' },
+    { id: 'i4', name: 'Others', icon: 'MoreHorizontal', color: '#6b7280' },
+];
+
+interface Category {
+    id: number | string;
+    name: string;
+    icon: string;
+    color: string;
+    type?: string;
+}
+
 const AddTransactionScreen = () => {
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
+    const { user } = useAuth();
     const router = useRouter();
 
     // State
     const [type, setType] = useState<'expense' | 'income'>('expense');
     const [amount, setAmount] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [note, setNote] = useState('');
-    const [date, setDate] = useState(new Date().toLocaleDateString());
+    const [date, setDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
-    // Categories Data
-    const categories = [
-        { id: '1', name: 'Food', icon: Utensils, color: '#f97316', bg: 'bg-orange-100' },
-        { id: '2', name: 'Transport', icon: Car, color: '#a855f7', bg: 'bg-purple-100' },
-        { id: '3', name: 'Rent', icon: Home, color: '#06b6d4', bg: 'bg-cyan-100' },
-        { id: '4', name: 'Shopping', icon: ShoppingBag, color: '#ec4899', bg: 'bg-pink-100' },
-        { id: '5', name: 'Bills', icon: Zap, color: '#eab308', bg: 'bg-yellow-100' },
-        { id: '6', name: 'Salary', icon: Briefcase, color: '#10b981', bg: 'bg-green-100' },
-        { id: '7', name: 'Gift', icon: Gift, color: '#ef4444', bg: 'bg-red-100' },
-        { id: '8', name: 'Others', icon: MoreHorizontal, color: '#6b7280', bg: 'bg-gray-100' },
-    ];
+    // Categories
+    const [expenseCategories, setExpenseCategories] = useState<Category[]>(defaultExpenseCategories);
+    const [incomeCategories, setIncomeCategories] = useState<Category[]>(defaultIncomeCategories);
+
+    // Fetch categories
+    const fetchCategories = useCallback(async () => {
+        setIsLoadingCategories(true);
+        try {
+            const [expenseCats, incomeCats] = await Promise.all([
+                getCategories('expense', user?.id),
+                getCategories('income', user?.id)
+            ]);
+
+            if (expenseCats && expenseCats.length > 0) {
+                setExpenseCategories(expenseCats as Category[]);
+            }
+            if (incomeCats && incomeCats.length > 0) {
+                setIncomeCategories(incomeCats as Category[]);
+            }
+        } catch (error) {
+            console.error('Failed to fetch categories:', error);
+        } finally {
+            setIsLoadingCategories(false);
+        }
+    }, [user?.id]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchCategories();
+            // Reset form on focus
+            setAmount('');
+            setSelectedCategory(null);
+            setNote('');
+            setDate(new Date());
+        }, [fetchCategories])
+    );
+
+    // Get current categories based on type
+    const currentCategories = type === 'expense' ? expenseCategories : incomeCategories;
+
+    // Get icon component
+    const getIconComponent = (iconName: string) => iconMap[iconName] || MoreHorizontal;
+
+    // Handle type change
+    const handleTypeChange = (newType: 'expense' | 'income') => {
+        setType(newType);
+        setSelectedCategory(null);
+    };
+
+    // Handle save
+    const handleSave = async () => {
+        // Validation
+        if (!amount || parseFloat(amount) <= 0) {
+            Alert.alert(t('error'), t('enterValidAmount'));
+            return;
+        }
+        if (!selectedCategory) {
+            Alert.alert(t('error'), t('selectCategory'));
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await addTransaction(
+                user?.id || 0,
+                parseFloat(amount),
+                type,
+                selectedCategory.name,
+                date.toISOString(),
+                note.trim(),
+                selectedCategory.icon,
+                selectedCategory.color
+            );
+
+            Alert.alert(
+                t('success'),
+                t('transactionAdded'),
+                [
+                    {
+                        text: t('addAnother'),
+                        onPress: () => {
+                            setAmount('');
+                            setSelectedCategory(null);
+                            setNote('');
+                            setDate(new Date());
+                        }
+                    },
+                    {
+                        text: t('done'),
+                        onPress: () => router.push('/(tabs)/transactions')
+                    }
+                ]
+            );
+        } catch (error) {
+            console.error('Failed to save transaction:', error);
+            Alert.alert(t('error'), t('somethingWrong'));
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Format date for display
+    const formatDate = (d: Date) => {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (d.toDateString() === today.toDateString()) {
+            return t('today');
+        } else if (d.toDateString() === yesterday.toDateString()) {
+            return t('yesterday');
+        }
+        return d.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
 
     return (
         <View style={tw`flex-1 bg-white`}>
             <StatusBar backgroundColor={type === 'expense' ? '#e2136e' : '#10b981'} barStyle="light-content" />
 
-
+            {/* Header with Amount Input */}
             <LinearGradient
                 colors={type === 'expense' ? ['#e2136e', '#be125a'] : ['#10b981', '#059669']}
                 style={tw`h-64 px-6 pt-12 rounded-b-[36px] shadow-lg z-10`}
             >
-
                 <View style={tw`flex-row justify-between items-center mb-6`}>
-                    <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2 rounded-full`}>
-                        <ArrowLeft size={24} color="white" />
+                    <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2.5 rounded-full`}>
+                        <ArrowLeft size={22} color="white" />
                     </TouchableOpacity>
-                    <Text style={tw`text-white text-lg font-bold`}>Add Transaction</Text>
+                    <Text style={tw`text-white text-lg font-bold`}>{t('addTransaction')}</Text>
                     <View style={tw`w-10`} />
                 </View>
 
-
                 <View style={tw`items-center mt-2`}>
-                    <Text style={tw`text-white/70 text-sm font-bold uppercase mb-2 tracking-widest`}>
-                        Enter Amount
+                    <Text style={tw`text-white/70 text-xs font-bold uppercase mb-2 tracking-widest`}>
+                        {t('enterAmount')}
                     </Text>
                     <View style={tw`flex-row items-center`}>
-                        <Text style={tw`text-white text-4xl font-bold mr-2`}>৳</Text>
+                        <Text style={tw`text-white text-4xl font-bold mr-1`}>৳</Text>
                         <TextInput
                             value={amount}
-                            onChangeText={setAmount}
+                            onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
                             placeholder="0"
                             placeholderTextColor="rgba(255,255,255,0.5)"
-                            keyboardType="numeric"
-                            style={tw`text-white text-6xl font-extrabold w-64 text-center`}
-                            autoFocus
+                            keyboardType="decimal-pad"
+                            style={tw`text-white text-5xl font-extrabold min-w-20 text-center`}
+                            maxLength={10}
                         />
                     </View>
                 </View>
             </LinearGradient>
 
-
-            <View style={tw`flex-1  px-6`}>
+            {/* Form Content */}
+            <View style={tw`flex-1 `}>
                 <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={tw`flex-1`}>
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw`pb-20`}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw`px-5 pb-24`}>
+                        <View style={tw`bg-white rounded-3xl p-5 shadow-xl shadow-gray-200/80`}>
 
-
-                        <View style={tw`bg-white rounded-[32px] p-6 shadow-xl shadow-gray-200`}>
-
-
-                            <View style={tw`bg-gray-100 p-1 rounded-2xl flex-row mb-8`}>
+                            {/* Type Toggle */}
+                            <View style={tw`bg-gray-100 p-1.5 rounded-2xl flex-row mb-6`}>
                                 <TouchableOpacity
-                                    onPress={() => setType('expense')}
+                                    onPress={() => handleTypeChange('expense')}
                                     style={tw`flex-1 py-3 rounded-xl items-center flex-row justify-center ${type === 'expense' ? 'bg-white shadow-sm' : ''}`}
                                 >
                                     <ShoppingBag size={18} color={type === 'expense' ? '#e2136e' : '#9ca3af'} style={tw`mr-2`} />
-                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-[#e2136e]' : 'text-gray-500'}`}>Expense</Text>
+                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-[#e2136e]' : 'text-gray-500'}`}>
+                                        {t('expense')}
+                                    </Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    onPress={() => setType('income')}
+                                    onPress={() => handleTypeChange('income')}
                                     style={tw`flex-1 py-3 rounded-xl items-center flex-row justify-center ${type === 'income' ? 'bg-white shadow-sm' : ''}`}
                                 >
                                     <Banknote size={18} color={type === 'income' ? '#10b981' : '#9ca3af'} style={tw`mr-2`} />
-                                    <Text style={tw`font-bold ${type === 'income' ? 'text-[#10b981]' : 'text-gray-500'}`}>Income</Text>
+                                    <Text style={tw`font-bold ${type === 'income' ? 'text-[#10b981]' : 'text-gray-500'}`}>
+                                        {t('income')}
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
 
-                            {/* 2. Category Selection */}
-                            <Text style={tw`text-gray-600 text-sm font-bold mb-4 ml-1`}>Category</Text>
-                            <View style={tw`flex-row flex-wrap justify-between mb-6`}>
-                                {categories.map((cat) => (
-                                    <TouchableOpacity
-                                        key={cat.id}
-                                        onPress={() => setSelectedCategory(cat.id)}
-                                        style={tw`w-[23%] items-center mb-4`}
-                                    >
-                                        <View
-                                            style={tw`w-14 h-14 rounded-2xl items-center justify-center mb-2 
-                      ${selectedCategory === cat.id ? (type === 'expense' ? 'bg-[#e2136e]' : 'bg-[#10b981]') : cat.bg}`}
-                                        >
-                                            <cat.icon
-                                                size={22}
-                                                color={selectedCategory === cat.id ? 'white' : cat.color}
-                                            />
-                                        </View>
-                                        <Text
-                                            style={tw`text-[10px] font-bold text-center 
-                      ${selectedCategory === cat.id ? 'text-gray-900' : 'text-gray-500'}`}
-                                        >
-                                            {cat.name}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                            {/* Category Selection */}
+                            <View style={tw`flex-row justify-between items-center mb-4`}>
+                                <Text style={tw`text-gray-600 text-sm font-bold ml-1`}>{t('category')}</Text>
+                                <TouchableOpacity
+                                    onPress={() => router.push('/screens/categories')}
+                                    style={tw`flex-row items-center`}
+                                >
+                                    <Plus size={14} color="#e2136e" />
+                                    <Text style={tw`text-[#e2136e] text-xs font-bold ml-1`}>{t('manage')}</Text>
+                                </TouchableOpacity>
                             </View>
 
+                            {isLoadingCategories ? (
+                                <View style={tw`h-32 items-center justify-center`}>
+                                    <ActivityIndicator size="small" color="#e2136e" />
+                                </View>
+                            ) : (
+                                <View style={tw`flex-row flex-wrap mb-6`}>
+                                    {currentCategories.map((cat) => {
+                                        const IconComp = getIconComponent(cat.icon);
+                                        const isSelected = selectedCategory?.name === cat.name;
+                                        return (
+                                            <TouchableOpacity
+                                                key={cat.id}
+                                                onPress={() => setSelectedCategory(cat)}
+                                                style={tw`w-[23%] items-center mb-4 mr-[2%]`}
+                                            >
+                                                <View
+                                                    style={[
+                                                        tw`w-14 h-14 rounded-2xl items-center justify-center mb-2`,
+                                                        {
+                                                            backgroundColor: isSelected
+                                                                ? (type === 'expense' ? '#e2136e' : '#10b981')
+                                                                : cat.color + '20'
+                                                        }
+                                                    ]}
+                                                >
+                                                    <IconComp
+                                                        size={22}
+                                                        color={isSelected ? 'white' : cat.color}
+                                                    />
+                                                </View>
+                                                <Text
+                                                    style={tw`text-[10px] font-bold text-center ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}
+                                                    numberOfLines={1}
+                                                >
+                                                    {cat.name}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            )}
 
+                            {/* Date Picker */}
                             <View style={tw`mb-4`}>
-                                <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>Date</Text>
-                                <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
+                                <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>{t('date')}</Text>
+                                <TouchableOpacity
+                                    onPress={() => setShowDatePicker(true)}
+                                    style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}
+                                >
                                     <Calendar size={20} color="#9ca3af" />
                                     <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
-                                    <Text style={tw`text-gray-800 font-medium`}>{date}</Text>
-                                </View>
+                                    <Text style={tw`text-gray-800 font-medium flex-1`}>{formatDate(date)}</Text>
+                                </TouchableOpacity>
                             </View>
 
-
-                            <View style={tw`mb-8`}>
-                                <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>Note</Text>
+                            {/* Note Input */}
+                            <View style={tw`mb-6`}>
+                                <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>{t('note')}</Text>
                                 <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
                                     <FileText size={20} color="#9ca3af" />
                                     <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                     <TextInput
-                                        placeholder="Add a note..."
+                                        placeholder={t('addNote')}
                                         placeholderTextColor="#9ca3af"
                                         value={note}
                                         onChangeText={setNote}
                                         style={tw`flex-1 text-gray-800 font-medium`}
+                                        maxLength={100}
                                     />
                                 </View>
                             </View>
 
-
+                            {/* Save Button */}
                             <TouchableOpacity
                                 activeOpacity={0.8}
-                                style={tw`rounded-2xl py-4 items-center shadow-lg 
-                ${type === 'expense' ? 'bg-[#e2136e] shadow-pink-200' : 'bg-[#10b981] shadow-green-200'}`}
-                                onPress={() => router.back()}
+                                disabled={isSaving}
+                                style={tw`rounded-2xl py-4 items-center shadow-lg ${isSaving ? 'opacity-70' : ''}
+                                    ${type === 'expense' ? 'bg-[#e2136e]' : 'bg-[#10b981]'}`}
+                                onPress={handleSave}
                             >
-                                <View style={tw`flex-row items-center`}>
-                                    <CheckCircle size={20} color="white" style={tw`mr-2`} />
-                                    <Text style={tw`text-white font-bold text-lg tracking-wide`}>Save Transaction</Text>
-                                </View>
+                                {isSaving ? (
+                                    <ActivityIndicator color="white" />
+                                ) : (
+                                    <View style={tw`flex-row items-center`}>
+                                        <CheckCircle size={20} color="white" style={tw`mr-2`} />
+                                        <Text style={tw`text-white font-bold text-lg tracking-wide`}>
+                                            {t('saveTransaction')}
+                                        </Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
-
                         </View>
                     </ScrollView>
                 </KeyboardAvoidingView>
             </View>
+
+            {/* Date Picker Modal */}
+            {showDatePicker && (
+                <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    maximumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                        setShowDatePicker(false);
+                        if (selectedDate) {
+                            setDate(selectedDate);
+                        }
+                    }}
+                />
+            )}
         </View>
     );
 };

@@ -1,8 +1,11 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { registerUser } from '@/services/db';
 import { router } from 'expo-router';
-import { Eye, EyeOff, Lock, Phone, User } from 'lucide-react-native'; // Added User Icon
+import { Eye, EyeOff, Lock, Phone, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -22,10 +25,59 @@ const SignUpScreen = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Toggles for password visibility
   const [secureText, setSecureText] = useState(true);
   const [secureConfirmText, setSecureConfirmText] = useState(true);
+
+  // Validation and Registration Handler
+  const handleSignUp = async () => {
+    // Validation
+    if (!name.trim()) {
+      Alert.alert(t('error') || 'Error', t('nameRequired') || 'Name is required');
+      return;
+    }
+    if (!phone.trim() || phone.length < 11) {
+      Alert.alert(t('error') || 'Error', t('validPhone') || 'Enter a valid phone number');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert(t('error') || 'Error', t('passwordLength') || 'Password must be at least 6 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert(t('error') || 'Error', t('passwordMismatch') || 'Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await registerUser(name.trim(), phone.trim(), password);
+
+      if (result.success && result.userId) {
+        Alert.alert(
+          t('success') || 'Success',
+          t('registrationSuccess') || 'Registration successful!',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/auth/signIn'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          t('error') || 'Error',
+          result.message || t('registrationFailed') || 'Registration failed'
+        );
+      }
+    } catch (error) {
+      Alert.alert(t('error') || 'Error', t('somethingWrong') || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={tw`flex-1 bg-white`}>
@@ -155,11 +207,17 @@ const SignUpScreen = () => {
             {/* Sign Up Button */}
             <TouchableOpacity
               activeOpacity={0.8}
-              style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg shadow-[#e2136e]/40 mb-4`}
+              onPress={handleSignUp}
+              disabled={isLoading}
+              style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg shadow-[#e2136e]/40 mb-4 ${isLoading ? 'opacity-70' : ''}`}
             >
-              <Text style={tw`text-white text-center font-bold text-lg tracking-wide`}>
-                {t('signUpBtn')}
-              </Text>
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={tw`text-white text-center font-bold text-lg tracking-wide`}>
+                  {t('signUpBtn')}
+                </Text>
+              )}
             </TouchableOpacity>
 
             {/* Footer */}

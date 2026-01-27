@@ -1,3 +1,4 @@
+import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+    Alert,
     ScrollView,
     Switch,
     Text,
@@ -26,18 +28,67 @@ import tw from 'twrnc';
 
 const ProfileScreen = () => {
     const { lang, switchLanguage, t } = useLanguage();
+    const { user, logout } = useAuth();
     const router = useRouter();
 
     // Toggles State
     const [isNotifEnabled, setIsNotifEnabled] = useState(true);
     const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    // Format date
+    const formatMemberSince = (dateString?: string) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    };
+
+    // Format phone number
+    const formatPhone = (phone?: string) => {
+        if (!phone) return '';
+        // Format: +880 1712 345 678
+        if (phone.length === 11) {
+            return `+880 ${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`;
+        }
+        return phone;
+    };
+
+    // Handle Logout
+    const handleLogout = () => {
+        Alert.alert(
+            t('logoutConfirmTitle'),
+            t('logoutConfirmMessage'),
+            [
+                {
+                    text: t('cancel'),
+                    style: 'cancel',
+                },
+                {
+                    text: t('logout'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        setIsLoggingOut(true);
+                        try {
+                            await logout();
+                            // Navigation will be handled by _layout.tsx auth check
+                        } catch (error) {
+                            Alert.alert(t('error'), t('somethingWrong'));
+                        } finally {
+                            setIsLoggingOut(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     // --- REUSABLE MENU ITEM COMPONENT ---
-    const MenuItem = ({ icon: Icon, label, value, onPress, isDestructive = false, showChevron = true, showSwitch = false, switchValue, onSwitchChange }: any) => (
+    const MenuItem = ({ icon: Icon, label, value, onPress, isDestructive = false, showChevron = true, showSwitch = false, switchValue, onSwitchChange, isLoading = false }: any) => (
         <TouchableOpacity
             activeOpacity={onPress ? 0.7 : 1}
             onPress={onPress}
-            style={tw`flex-row items-center justify-between py-4 border-b border-gray-50 last:border-0`}
+            disabled={isLoading}
+            style={tw`flex-row items-center justify-between py-4 border-b border-gray-50 last:border-0 ${isLoading ? 'opacity-50' : ''}`}
         >
             <View style={tw`flex-row items-center`}>
                 <View style={tw`w-10 h-10 rounded-full ${isDestructive ? 'bg-red-50' : 'bg-gray-50'} items-center justify-center mr-4`}>
@@ -79,37 +130,44 @@ const ProfileScreen = () => {
                 {/* Profile Image Wrapper */}
                 <View style={tw`relative`}>
                     <View style={tw`w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-white/30 shadow-xl`}>
-                        {/* Placeholder or Image */}
                         <User size={40} color="#e2136e" />
-                        {/* <Image source={{ uri: '...' }} style={tw`w-full h-full rounded-full`} /> */}
                     </View>
-                    <TouchableOpacity style={tw`absolute bottom-0 right-0 bg-gray-900 p-2 rounded-full border-2 border-white`}>
+                    <TouchableOpacity
+                        style={tw`absolute bottom-0 right-0 bg-gray-900 p-2 rounded-full border-2 border-white`}
+                        onPress={() => router.push('/profile/edit')}
+                    >
                         <Edit3 size={12} color="white" />
                     </TouchableOpacity>
                 </View>
 
-                <Text style={tw`text-white text-xl font-bold mt-4`}>Mahedi Hassan</Text>
-                <Text style={tw`text-white/80 text-sm font-medium`}>+880 1712 345 678</Text>
+                <Text style={tw`text-white text-xl font-bold mt-4`}>
+                    {user?.name || t('guest')}
+                </Text>
+                <Text style={tw`text-white/80 text-sm font-medium`}>
+                    {formatPhone(user?.phone)}
+                </Text>
             </LinearGradient>
 
             {/* --- BODY CONTENT --- */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={tw`pb-24 px-5 pt-4`}
-                style={tw` z-10`}
+                style={tw`z-10`}
             >
 
                 {/* --- STATS ROW --- */}
                 <View style={tw`flex-row justify-between mb-6`}>
                     <View style={tw`flex-1 bg-white p-4 rounded-2xl shadow-sm shadow-gray-200 mr-2 items-center`}>
                         <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1`}>{t('memberSince')}</Text>
-                        <Text style={tw`text-gray-800 font-bold`}>Jan 2024</Text>
+                        <Text style={tw`text-gray-800 font-bold`}>
+                            {formatMemberSince(user?.created_at)}
+                        </Text>
                     </View>
                     <View style={tw`flex-1 bg-white p-4 rounded-2xl shadow-sm shadow-gray-200 ml-2 items-center`}>
-                        <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1`}>Status</Text>
+                        <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1`}>{t('status')}</Text>
                         <View style={tw`flex-row items-center`}>
                             <ShieldCheck size={14} color="#10b981" style={tw`mr-1`} />
-                            <Text style={tw`text-green-600 font-bold`}>Verified</Text>
+                            <Text style={tw`text-green-600 font-bold`}>{t('verified')}</Text>
                         </View>
                     </View>
                 </View>
@@ -121,19 +179,19 @@ const ProfileScreen = () => {
                     <MenuItem
                         icon={User}
                         label={t('editProfile')}
-                        onPress={() => { }}
+                        onPress={() => router.push('/profile/edit')}
                     />
                     <MenuItem
                         icon={CreditCard}
-                        label="Payment Methods"
-                        value="2 Cards"
-                        onPress={() => { }}
+                        label={t('paymentMethods')}
+                        value={t('comingSoon')}
+                        onPress={() => Alert.alert(t('comingSoon'), t('featureComingSoon'))}
                     />
                     <MenuItem
                         icon={Globe}
                         label={t('language')}
                         value={lang === 'bn' ? 'বাংলা' : 'English'}
-                        onPress={() => switchLanguage(lang === 'bn' ? 'en' : 'bn')} // Simple Toggle
+                        onPress={() => switchLanguage(lang === 'bn' ? 'en' : 'bn')}
                     />
                     <MenuItem
                         icon={Bell}
@@ -151,12 +209,12 @@ const ProfileScreen = () => {
 
                     <MenuItem
                         icon={Lock}
-                        label="Change Password"
-                        onPress={() => router.push('/auth/forgotPasswrod')}
+                        label={t('changePassword')}
+                        onPress={() => router.push('/profile/changePassword')}
                     />
                     <MenuItem
                         icon={Smartphone}
-                        label="Biometric ID"
+                        label={t('biometricId')}
                         showSwitch
                         showChevron={false}
                         switchValue={isBiometricEnabled}
@@ -171,19 +229,20 @@ const ProfileScreen = () => {
                     <MenuItem
                         icon={HelpCircle}
                         label={t('helpCenter')}
-                        onPress={() => { }}
+                        onPress={() => Alert.alert(t('helpCenter'), t('contactSupport'))}
                     />
                     <MenuItem
                         icon={ShieldCheck}
                         label={t('privacy')}
-                        onPress={() => { }}
+                        onPress={() => Alert.alert(t('privacy'), t('privacyInfo'))}
                     />
                     <MenuItem
                         icon={LogOut}
                         label={t('logout')}
                         isDestructive
                         showChevron={false}
-                        onPress={() => router.replace('/')} // Logout Action
+                        isLoading={isLoggingOut}
+                        onPress={handleLogout}
                     />
                 </View>
 

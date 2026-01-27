@@ -1,8 +1,12 @@
+import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { loginUser } from '@/services/db';
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff, Lock, Phone } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,12 +21,43 @@ import tw from 'twrnc';
 
 const LoginScreen = () => {
   const { lang, switchLanguage, t } = useLanguage();
+  const { login } = useAuth();
   const router = useRouter();
 
   // Local state
   const [secureText, setSecureText] = useState(true);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Handle Login
+  const handleLogin = async () => {
+    if (!phone.trim()) {
+      Alert.alert(t('error'), t('validPhone'));
+      return;
+    }
+    if (!password.trim()) {
+      Alert.alert(t('error'), t('passwordRequired'));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await loginUser(phone.trim(), password);
+
+      if (result.success && result.user && result.token) {
+        Alert.alert(t('success'), t('loginSuccess'));
+        await login(result.user, result.token);
+
+      } else {
+        Alert.alert(t('Opps'), result.message || t('loginFailed'));
+      }
+    } catch (error) {
+      Alert.alert(t('Opps'), t('somethingWrong'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={tw`flex-1 bg-white`}>
@@ -135,7 +170,7 @@ const LoginScreen = () => {
             </View>
 
             {/* Forgot Password Link */}
-            <TouchableOpacity onPress={() => router.push('/auth/forgotPasswrod')} style={tw`items-end mb-10`}>
+            <TouchableOpacity onPress={() => router.push('/auth/forgotPassword')} style={tw`items-end mb-10`}>
               <Text style={tw`text-gray-500 text-sm font-medium`}>
                 {t('forgotPass')}
               </Text>
@@ -143,13 +178,18 @@ const LoginScreen = () => {
 
             {/* Login Button */}
             <TouchableOpacity
-              onPress={() => router.push('/(tabs)')}
+              onPress={handleLogin}
+              disabled={isLoading}
               activeOpacity={0.8}
-              style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg shadow-[#e2136e]/40`}
+              style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg shadow-[#e2136e]/40 ${isLoading ? 'opacity-70' : ''}`}
             >
-              <Text style={tw`text-white text-center font-bold text-lg tracking-wide`}>
-                {t('loginBtn')}
-              </Text>
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={tw`text-white text-center font-bold text-lg tracking-wide`}>
+                  {t('loginBtn')}
+                </Text>
+              )}
             </TouchableOpacity>
 
             {/* Footer Sign Up Link */}
