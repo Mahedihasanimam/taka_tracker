@@ -1,5 +1,5 @@
-import { theme } from '@/constants/theme';
 import EmptyStateMascot from '@/components/EmptyStateMascot';
+import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { getBalance, getBudgets, getCategories, getTransactions, getTransactionsByCategory } from '@/services/db';
@@ -532,3 +532,112 @@ const HomeScreen = () => {
 };
 
 export default HomeScreen;
+
+
+
+// import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+// import { LinearGradient } from 'expo-linear-gradient';
+// import React from 'react';
+// import { Image, SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+// import tw from 'twrnc';
+
+// const Home = () => {
+//   return (
+//     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
+//       <StatusBar barStyle="dark-content" />
+
+//       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw`pb-32`}>
+//         {/* Header Section */}
+//         <View style={tw`px-6 pt-4 flex-row justify-between items-center`}>
+//           <View style={tw`flex-row items-center`}>
+//             <View style={tw`w-12 h-12 rounded-full bg-purple-200 overflow-hidden border-2 border-white`}>
+//               <Image
+//                 source={{ uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
+//                 style={tw`w-full h-full`}
+//               />
+//             </View>
+//             <View style={tw`ml-3`}>
+//               <Text style={tw`text-xl font-bold text-slate-800`}>WALLET BUDDY</Text>
+//               <Text style={tw`text-xs text-slate-500`}>Localized Malaysian title</Text>
+//             </View>
+//           </View>
+//           <TouchableOpacity style={tw`p-2 bg-white rounded-full shadow-sm`}>
+//             <Ionicons name="settings-outline" size={24} color="#64748b" />
+//           </TouchableOpacity>
+//         </View>
+
+//         {/* Main Balance Card */}
+//         <View style={tw`px-6 mt-6`}>
+//           <LinearGradient
+//             colors={['#4ade80', '#3b82f6', '#8b5cf6']}
+//             start={{ x: 0, y: 0 }}
+//             end={{ x: 1, y: 1 }}
+//             style={tw`rounded-3xl p-6 shadow-xl relative overflow-hidden`}
+//           >
+//             <View style={tw`flex-row justify-between`}>
+//               <Text style={tw`text-white text-opacity-80 font-medium`}>Main Balance</Text>
+//               <View style={tw`bg-white bg-opacity-20 px-2 py-1 rounded-lg`}>
+//                 <Text style={tw`text-white text-xs font-bold`}>RM</Text>
+//               </View>
+//             </View>
+//             <Text style={tw`text-white text-3xl font-bold mt-2`}>RM 24,567.89</Text>
+
+//             {/* Decorative Stars/Icons */}
+//             <MaterialCommunityIcons name="star-four-points" size={20} color="rgba(255,255,255,0.4)" style={tw`absolute right-10 top-20`} />
+//             <View style={tw`bg-yellow-400 w-8 h-8 rounded-full items-center justify-center absolute left-10 -bottom-2 border-2 border-white shadow-sm`}>
+//               <Text style={tw`text-white font-bold`}>$</Text>
+//             </View>
+//           </LinearGradient>
+//         </View>
+
+//         {/* Mascot Area */}
+//         <View style={tw`items-center -mt-8 z-10`}>
+//           <Image
+//             source={require('../../assets/images/homecat.png')} // Placeholder Cat Mascot
+//             style={tw`w-48 h-48`}
+//             resizeMode="cover"
+//           />
+//         </View>
+
+//         {/* Transactions List */}
+//         <View style={tw`px-6 -mt-4`}>
+//           <View style={tw`bg-white rounded-3xl p-6 shadow-sm`}>
+//             <Text style={tw`text-lg font-bold text-slate-800 mb-4`}>Recent Transactions</Text>
+
+//             {/* Transaction Item 1 */}
+//             <View style={tw`flex-row items-center justify-between mb-6`}>
+//               <View style={tw`flex-row items-center`}>
+//                 <View style={tw`w-12 h-12 bg-green-50 rounded-2xl items-center justify-center`}>
+//                   <Ionicons name="fast-food" size={24} color="#22c55e" />
+//                 </View>
+//                 <View style={tw`ml-4`}>
+//                   <Text style={tw`font-bold text-slate-800`}>Groceries</Text>
+//                   <Text style={tw`text-xs text-slate-400`}>Groceries</Text>
+//                 </View>
+//               </View>
+//               <Text style={tw`font-bold text-red-500`}>-$85.50</Text>
+//             </View>
+
+//             {/* Transaction Item 2 */}
+//             <View style={tw`flex-row items-center justify-between mb-2`}>
+//               <View style={tw`flex-row items-center`}>
+//                 <View style={tw`w-12 h-12 bg-red-50 rounded-2xl items-center justify-center`}>
+//                   <Ionicons name="home" size={24} color="#ef4444" />
+//                 </View>
+//                 <View style={tw`ml-4`}>
+//                   <Text style={tw`font-bold text-slate-800`}>Rent</Text>
+//                   <Text style={tw`text-xs text-slate-400`}>$11,200.00</Text>
+//                 </View>
+//               </View>
+//               <Text style={tw`font-bold text-red-500`}>-$1,200.00</Text>
+//             </View>
+//           </View>
+//         </View>
+//       </ScrollView>
+
+
+//     </SafeAreaView>
+//   );
+// };
+
+// export default Home;
