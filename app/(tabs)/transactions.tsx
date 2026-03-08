@@ -666,10 +666,7 @@ const TransactionsScreen = () => {
                         <TouchableOpacity
                             onPress={() => {
                                 setShowActionModal(false);
-                                router.push({
-                                    pathname: '/transaction/edit',
-                                    params: { id: selectedTransaction?.id }
-                                });
+
                             }}
                             style={tw`flex-row items-center p-4 bg-gray-50 rounded-xl mb-3`}
                         >
