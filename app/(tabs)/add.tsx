@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import { addTransaction, getCategories } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -56,19 +57,19 @@ const iconMap: Record<string, any> = {
 
 // Default categories (fallback)
 const defaultExpenseCategories = [
-    { id: 'd1', name: 'Food', icon: 'Utensils', color: '#f97316' },
-    { id: 'd2', name: 'Transport', icon: 'Car', color: '#a855f7' },
-    { id: 'd3', name: 'Rent', icon: 'Home', color: '#06b6d4' },
-    { id: 'd4', name: 'Shopping', icon: 'ShoppingBag', color: '#ec4899' },
-    { id: 'd5', name: 'Bills', icon: 'Zap', color: '#eab308' },
-    { id: 'd6', name: 'Others', icon: 'MoreHorizontal', color: '#6b7280' },
+    { id: 'd1', name: 'Food', icon: 'Utensils', color: theme.colors.categoryFood },
+    { id: 'd2', name: 'Transport', icon: 'Car', color: theme.colors.categoryPurple },
+    { id: 'd3', name: 'Rent', icon: 'Home', color: theme.colors.categoryRent },
+    { id: 'd4', name: 'Shopping', icon: 'ShoppingBag', color: theme.colors.categoryShopping },
+    { id: 'd5', name: 'Bills', icon: 'Zap', color: theme.colors.categoryBills },
+    { id: 'd6', name: 'Others', icon: 'MoreHorizontal', color: theme.colors.mutedText },
 ];
 
 const defaultIncomeCategories = [
-    { id: 'i1', name: 'Salary', icon: 'Briefcase', color: '#10b981' },
-    { id: 'i2', name: 'Gift', icon: 'Gift', color: '#ef4444' },
-    { id: 'i3', name: 'Investment', icon: 'Banknote', color: '#3b82f6' },
-    { id: 'i4', name: 'Others', icon: 'MoreHorizontal', color: '#6b7280' },
+    { id: 'i1', name: 'Salary', icon: 'Briefcase', color: theme.colors.success },
+    { id: 'i2', name: 'Gift', icon: 'Gift', color: theme.colors.danger },
+    { id: 'i3', name: 'Investment', icon: 'Banknote', color: theme.colors.secondary },
+    { id: 'i4', name: 'Others', icon: 'MoreHorizontal', color: theme.colors.mutedText },
 ];
 
 interface Category {
@@ -221,11 +222,11 @@ const AddTransactionScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor={type === 'expense' ? '#0D9488' : '#10b981'} barStyle="light-content" />
+            <StatusBar backgroundColor={type === 'expense' ? theme.colors.primary : theme.colors.success} barStyle="light-content" />
 
             {/* Header with Amount Input */}
             <LinearGradient
-                colors={type === 'expense' ? ['#0D9488', '#0F766E'] : ['#10b981', '#059669']}
+                colors={type === 'expense' ? [theme.colors.primary, theme.colors.primaryDark] : [theme.colors.success, theme.colors.successDark]}
                 style={tw`h-64 px-6 pt-12 rounded-b-[36px] shadow-lg z-10`}
             >
                 <View style={tw`flex-row justify-between items-center mb-6`}>
@@ -267,8 +268,8 @@ const AddTransactionScreen = () => {
                                     onPress={() => handleTypeChange('expense')}
                                     style={tw`flex-1 py-3 rounded-xl items-center flex-row justify-center ${type === 'expense' ? 'bg-white shadow-sm' : ''}`}
                                 >
-                                    <ShoppingBag size={18} color={type === 'expense' ? '#0D9488' : '#9ca3af'} style={tw`mr-2`} />
-                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-[#0D9488]' : 'text-gray-500'}`}>
+                                    <ShoppingBag size={18} color={type === 'expense' ? theme.colors.primary : theme.colors.gray400} style={tw`mr-2`} />
+                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-teal-600' : 'text-gray-500'}`}>
                                         {t('expense')}
                                     </Text>
                                 </TouchableOpacity>
@@ -277,8 +278,8 @@ const AddTransactionScreen = () => {
                                     onPress={() => handleTypeChange('income')}
                                     style={tw`flex-1 py-3 rounded-xl items-center flex-row justify-center ${type === 'income' ? 'bg-white shadow-sm' : ''}`}
                                 >
-                                    <Banknote size={18} color={type === 'income' ? '#10b981' : '#9ca3af'} style={tw`mr-2`} />
-                                    <Text style={tw`font-bold ${type === 'income' ? 'text-[#10b981]' : 'text-gray-500'}`}>
+                                    <Banknote size={18} color={type === 'income' ? theme.colors.success : theme.colors.gray400} style={tw`mr-2`} />
+                                    <Text style={tw`font-bold ${type === 'income' ? 'text-green-600' : 'text-gray-500'}`}>
                                         {t('income')}
                                     </Text>
                                 </TouchableOpacity>
@@ -291,14 +292,14 @@ const AddTransactionScreen = () => {
                                     onPress={() => router.push('/screens/categories')}
                                     style={tw`flex-row items-center`}
                                 >
-                                    <Plus size={14} color="#0D9488" />
-                                    <Text style={tw`text-[#0D9488] text-xs font-bold ml-1`}>{t('manage')}</Text>
+                                    <Plus size={14} color={theme.colors.primary} />
+                                    <Text style={tw`text-teal-600 text-xs font-bold ml-1`}>{t('manage')}</Text>
                                 </TouchableOpacity>
                             </View>
 
                             {isLoadingCategories ? (
                                 <View style={tw`h-32 items-center justify-center`}>
-                                    <ActivityIndicator size="small" color="#0D9488" />
+                                    <ActivityIndicator size="small" color={theme.colors.primary} />
                                 </View>
                             ) : (
                                 <View style={tw`flex-row flex-wrap mb-6`}>
@@ -316,7 +317,7 @@ const AddTransactionScreen = () => {
                                                         tw`w-14 h-14 rounded-2xl items-center justify-center mb-2`,
                                                         {
                                                             backgroundColor: isSelected
-                                                                ? (type === 'expense' ? '#0D9488' : '#10b981')
+                                                                ? (type === 'expense' ? theme.colors.primary : theme.colors.success)
                                                                 : cat.color + '20'
                                                         }
                                                     ]}
@@ -345,7 +346,7 @@ const AddTransactionScreen = () => {
                                     onPress={() => setShowDatePicker(true)}
                                     style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}
                                 >
-                                    <Calendar size={20} color="#9ca3af" />
+                                    <Calendar size={20} color={theme.colors.gray400} />
                                     <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                     <Text style={tw`text-gray-800 font-medium flex-1`}>{formatDate(date)}</Text>
                                 </TouchableOpacity>
@@ -355,11 +356,11 @@ const AddTransactionScreen = () => {
                             <View style={tw`mb-6`}>
                                 <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>{t('note')}</Text>
                                 <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                    <FileText size={20} color="#9ca3af" />
+                                    <FileText size={20} color={theme.colors.gray400} />
                                     <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                     <TextInput
                                         placeholder={t('addNote')}
-                                        placeholderTextColor="#9ca3af"
+                                        placeholderTextColor={theme.colors.gray400}
                                         value={note}
                                         onChangeText={setNote}
                                         style={tw`flex-1 text-gray-800 font-medium`}
@@ -373,7 +374,7 @@ const AddTransactionScreen = () => {
                                 activeOpacity={0.8}
                                 disabled={isSaving}
                                 style={tw`rounded-2xl py-4 items-center shadow-lg ${isSaving ? 'opacity-70' : ''}
-                                    ${type === 'expense' ? 'bg-[#0D9488]' : 'bg-[#10b981]'}`}
+                                    ${type === 'expense' ? 'bg-teal-600' : 'bg-green-600'}`}
                                 onPress={handleSave}
                             >
                                 {isSaving ? (

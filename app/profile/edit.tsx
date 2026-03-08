@@ -129,7 +129,7 @@ const EditProfileScreen = () => {
             {/* Header */}
             <View style={[tw`h-28 px-6 pt-12`, { backgroundColor: theme.colors.primary }]}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
-                    <ArrowLeft size={24} color="#fff" />
+                    <ArrowLeft size={24} color={theme.colors.white} />
                     <Text style={tw`text-white text-lg font-bold ml-2`}>{t('editProfile')}</Text>
                 </TouchableOpacity>
             </View>
@@ -176,11 +176,11 @@ const EditProfileScreen = () => {
                                 {t('nameLabel')}
                             </Text>
                             <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                <User size={20} color="#9ca3af" />
+                                <User size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     placeholder={t('namePlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     value={name}
                                     onChangeText={setName}
                                     style={tw`flex-1 text-gray-800 text-base font-medium`}
@@ -194,7 +194,7 @@ const EditProfileScreen = () => {
                                 {t('phoneLabel')}
                             </Text>
                             <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-100`}>
-                                <Phone size={20} color="#9ca3af" />
+                                <Phone size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     value={phone}
@@ -218,7 +218,7 @@ const EditProfileScreen = () => {
                             ]}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={theme.colors.white} />
                             ) : (
                                 <Text style={tw`text-white text-center font-bold text-lg`}>
                                     {t('saveChanges')}

@@ -1,4 +1,5 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { theme } from "@/constants/theme";
 import { checkPhoneExists } from '@/services/db';
 import { router } from 'expo-router';
 import { ArrowLeft, Phone } from 'lucide-react-native';
@@ -49,12 +50,12 @@ const ForgotPasswordScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#0D9488] h-44 px-6 pt-12`}>
+            <View style={tw`bg-teal-600 h-44 px-6 pt-12`}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
-                    <ArrowLeft size={24} color="#fff" />
+                    <ArrowLeft size={24} color={theme.colors.white} />
                     <Text style={tw`text-white text-lg font-medium ml-2`}>{t('back')}</Text>
                 </TouchableOpacity>
                 <Text style={tw`text-white text-2xl font-bold mt-4`}>
@@ -82,11 +83,11 @@ const ForgotPasswordScreen = () => {
                                 {t('phoneLabel')}
                             </Text>
                             <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                <Phone size={20} color="#9ca3af" />
+                                <Phone size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     placeholder={t('phonePlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     keyboardType="phone-pad"
                                     value={phone}
                                     onChangeText={setPhone}
@@ -100,10 +101,10 @@ const ForgotPasswordScreen = () => {
                             onPress={handleSubmit}
                             disabled={isLoading}
                             activeOpacity={0.8}
-                            style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                            style={tw`bg-teal-600 rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={theme.colors.white} />
                             ) : (
                                 <Text style={tw`text-white text-center font-bold text-lg`}>
                                     {t('continueBtn')}
@@ -113,7 +114,7 @@ const ForgotPasswordScreen = () => {
 
                         {/* Back to Login */}
                         <TouchableOpacity onPress={() => router.back()} style={tw`mt-6`}>
-                            <Text style={tw`text-center text-[#0D9488] font-semibold`}>
+                            <Text style={tw`text-center text-teal-600 font-semibold`}>
                                 {t('backToLogin')}
                             </Text>
                         </TouchableOpacity>

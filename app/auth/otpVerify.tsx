@@ -1,4 +1,5 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { theme } from "@/constants/theme";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, MessageCircle } from 'lucide-react-native';
@@ -63,12 +64,12 @@ const OtpVerify = () => {
 
   return (
     <View style={tw`flex-1 bg-slate-50`}>
-      <StatusBar backgroundColor="#0F766E" barStyle="light-content" />
+      <StatusBar backgroundColor={theme.colors.primaryDark} barStyle="light-content" />
 
       {/* --- HEADER --- */}
       {/* Increased height to prevent text overlap */}
       <LinearGradient
-        colors={['#0D9488', '#0F766E']}
+        colors={[theme.colors.primary, theme.colors.primaryDark]}
         style={tw`h-80 px-6 pt-12 pb-12 rounded-b-[36px] shadow-lg relative z-0 justify-start`}
       >
         <TouchableOpacity
@@ -106,7 +107,7 @@ const OtpVerify = () => {
               {/* Icon */}
               <View style={tw`items-center mb-8`}>
                 <View style={tw`w-20 h-20 bg-teal-50 rounded-full items-center justify-center border-4 border-white shadow-sm mb-4`}>
-                  <MessageCircle size={32} color="#0D9488" />
+                  <MessageCircle size={32} color={theme.colors.primary} />
                 </View>
                 <Text style={tw`text-gray-500 text-sm font-bold uppercase tracking-widest`}>
                   {t('otpLabel')}
@@ -120,7 +121,7 @@ const OtpVerify = () => {
                     key={index}
                     ref={(ref) => (inputs.current[index] = ref)}
                     style={tw`w-11 h-14 border-2 rounded-xl text-center text-xl font-bold text-gray-800 
-                    ${focusedIndex === index || digit ? 'border-[#0D9488] bg-teal-50/20' : 'border-gray-200 bg-gray-50'}`}
+                    ${focusedIndex === index || digit ? 'border-teal-600 bg-teal-50/20' : 'border-gray-200 bg-gray-50'}`}
                     maxLength={1}
                     keyboardType="number-pad"
                     value={digit}
@@ -138,7 +139,7 @@ const OtpVerify = () => {
                 onPress={() => router.push('/auth/CreateNewPassword')}
                 activeOpacity={0.8}
                 style={tw`rounded-2xl py-4 items-center mb-6 
-                ${isButtonDisabled ? 'bg-gray-200' : 'bg-[#10b981] shadow-lg shadow-green-200'}`}
+                ${isButtonDisabled ? 'bg-gray-200' : 'bg-green-600 shadow-lg shadow-green-200'}`}
               >
                 <Text style={tw`font-bold text-lg tracking-wide ${isButtonDisabled ? 'text-gray-400' : 'text-white'}`}>
                   {t('otpVerifyBtn')}
@@ -151,12 +152,12 @@ const OtpVerify = () => {
                   {t('otpResend')}
                 </Text>
                 {timer > 0 ? (
-                  <Text style={tw`text-[#0D9488] font-bold text-sm`}>
+                  <Text style={tw`text-teal-600 font-bold text-sm`}>
                     00:{timer < 10 ? `0${timer}` : timer}
                   </Text>
                 ) : (
                   <TouchableOpacity onPress={() => setTimer(30)}>
-                    <Text style={tw`text-[#0D9488] font-bold text-sm underline`}>
+                    <Text style={tw`text-teal-600 font-bold text-sm underline`}>
                       {t('otpResendLink')}
                     </Text>
                   </TouchableOpacity>

@@ -1,4 +1,5 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { theme } from "@/constants/theme";
 import { resetPassword } from '@/services/db';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react-native';
@@ -58,12 +59,12 @@ const ResetPasswordScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#0D9488] h-44 px-6 pt-12`}>
+            <View style={tw`bg-teal-600 h-44 px-6 pt-12`}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
-                    <ArrowLeft size={24} color="#fff" />
+                    <ArrowLeft size={24} color={theme.colors.white} />
                     <Text style={tw`text-white text-lg font-medium ml-2`}>{t('back')}</Text>
                 </TouchableOpacity>
                 <Text style={tw`text-white text-2xl font-bold mt-4`}>
@@ -91,18 +92,18 @@ const ResetPasswordScreen = () => {
                                 {t('newPassword')}
                             </Text>
                             <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                <Lock size={20} color="#9ca3af" />
+                                <Lock size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     placeholder={t('newPasswordPlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     secureTextEntry={secureText}
                                     value={password}
                                     onChangeText={setPassword}
                                     style={tw`flex-1 text-gray-800 text-base font-medium`}
                                 />
                                 <TouchableOpacity onPress={() => setSecureText(!secureText)}>
-                                    {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
+                                    {secureText ? <EyeOff size={20} color={theme.colors.gray400} /> : <Eye size={20} color={theme.colors.primary} />}
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -113,18 +114,18 @@ const ResetPasswordScreen = () => {
                                 {t('confirmPassLabel')}
                             </Text>
                             <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                <Lock size={20} color="#9ca3af" />
+                                <Lock size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     placeholder={t('confirmPassPlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     secureTextEntry={secureConfirmText}
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
                                     style={tw`flex-1 text-gray-800 text-base font-medium`}
                                 />
                                 <TouchableOpacity onPress={() => setSecureConfirmText(!secureConfirmText)}>
-                                    {secureConfirmText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
+                                    {secureConfirmText ? <EyeOff size={20} color={theme.colors.gray400} /> : <Eye size={20} color={theme.colors.primary} />}
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -134,10 +135,10 @@ const ResetPasswordScreen = () => {
                             onPress={handleReset}
                             disabled={isLoading}
                             activeOpacity={0.8}
-                            style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                            style={tw`bg-teal-600 rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={theme.colors.white} />
                             ) : (
                                 <Text style={tw`text-white text-center font-bold text-lg`}>
                                     {t('resetPasswordBtn')}

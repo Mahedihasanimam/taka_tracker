@@ -103,7 +103,7 @@ const HomeScreen = () => {
             ...budget,
             spent: spent || 0,
             icon: category?.icon || 'MoreHorizontal',
-            color: category?.color || '#6b7280'
+            color: category?.color || theme.colors.mutedText
           };
         })
       );
@@ -121,7 +121,7 @@ const HomeScreen = () => {
       todayTxns.forEach(txn => {
         if (!categorySpending[txn.category]) {
           const cat = (categoryData as any[]).find(c => c.name === txn.category);
-          categorySpending[txn.category] = { amount: 0, color: cat?.color || '#6b7280' };
+          categorySpending[txn.category] = { amount: 0, color: cat?.color || theme.colors.mutedText };
         }
         categorySpending[txn.category].amount += txn.amount;
       });
@@ -201,7 +201,7 @@ const HomeScreen = () => {
 
   const getDailyPieData = () => {
     if (dailyBudget === 0 || todayData.categories.length === 0) {
-      return [{ value: 1, color: '#e5e7eb', text: '0%' }];
+      return [{ value: 1, color: theme.colors.gray200, text: '0%' }];
     }
 
     const remaining = Math.max(0, dailyBudget - todayData.spent);
@@ -212,7 +212,7 @@ const HomeScreen = () => {
     }));
 
     if (remaining > 0) {
-      pieData.push({ value: remaining, color: '#e5e7eb', text: `${Math.round((remaining / dailyBudget) * 100)}%` });
+      pieData.push({ value: remaining, color: theme.colors.gray200, text: `${Math.round((remaining / dailyBudget) * 100)}%` });
     }
 
     return pieData;
@@ -237,10 +237,10 @@ const HomeScreen = () => {
 
   // Quick Actions
   const quickActions = [
-    { id: 1, onPress: () => router.push('/add'), label: t('addExpense'), icon: PlusCircle, color: '#ef4444', bg: 'bg-red-50' },
-    { id: 2, onPress: () => router.push('/budget'), label: t('setBudget'), icon: PieIcon, color: '#8b5cf6', bg: 'bg-purple-50' },
-    { id: 3, onPress: () => router.push('/screens/categories'), label: t('categories'), icon: Folder, color: '#10b981', bg: 'bg-green-50' },
-    { id: 4, onPress: () => router.push('/screens/export'), label: t('export'), icon: Download, color: '#f59e0b', bg: 'bg-amber-50' },
+    { id: 1, onPress: () => router.push('/add'), label: t('addExpense'), icon: PlusCircle, color: theme.colors.danger, bg: 'bg-red-50' },
+    { id: 2, onPress: () => router.push('/budget'), label: t('setBudget'), icon: PieIcon, color: theme.colors.purple, bg: 'bg-purple-50' },
+    { id: 3, onPress: () => router.push('/screens/categories'), label: t('categories'), icon: Folder, color: theme.colors.success, bg: 'bg-green-50' },
+    { id: 4, onPress: () => router.push('/screens/export'), label: t('export'), icon: Download, color: theme.colors.warning, bg: 'bg-amber-50' },
   ];
 
   // Dashboard cards data
@@ -275,7 +275,7 @@ const HomeScreen = () => {
   if (isLoading) {
     return (
       <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-        <ActivityIndicator size="large" color="#0D9488" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -286,7 +286,7 @@ const HomeScreen = () => {
 
       {/* --- HEADER --- */}
       <LinearGradient
-        colors={['#0D9488', '#0F766E']}
+        colors={[theme.colors.primary, theme.colors.primaryDark]}
         style={tw`h-60 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg`}
       >
         <View style={tw`flex-row justify-between items-start`}>
@@ -297,10 +297,10 @@ const HomeScreen = () => {
           {/* Language Toggle */}
           <View style={tw`flex-row bg-white/20 rounded-full p-1 border border-white/30`}>
             <TouchableOpacity onPress={() => switchLanguage('bn')} style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white' : 'bg-transparent'}`}>
-              <Text style={tw`text-[10px] font-bold ${lang === 'bn' ? 'text-[#0D9488]' : 'text-white'}`}>বাংলা</Text>
+              <Text style={tw`text-[10px] font-bold ${lang === 'bn' ? 'text-teal-600' : 'text-white'}`}>বাংলা</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => switchLanguage('en')} style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white' : 'bg-transparent'}`}>
-              <Text style={tw`text-[10px] font-bold ${lang === 'en' ? 'text-[#0D9488]' : 'text-white'}`}>ENG</Text>
+              <Text style={tw`text-[10px] font-bold ${lang === 'en' ? 'text-teal-600' : 'text-white'}`}>ENG</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -312,7 +312,7 @@ const HomeScreen = () => {
         contentContainerStyle={tw`pb-32`}
         style={{ marginTop: -96 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0D9488']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
         }
       >
         {/* --- HORIZONTAL CARDS --- */}
@@ -330,7 +330,7 @@ const HomeScreen = () => {
                 tw`bg-white rounded-[32px] p-6 mr-4 mb-2 overflow-hidden`,
                 {
                   width: CARD_WIDTH,
-                  shadowColor: '#000',
+                  shadowColor: theme.colors.black,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.15,
                   shadowRadius: 12,
@@ -342,12 +342,12 @@ const HomeScreen = () => {
               <View style={tw`flex-row justify-between items-center mb-4 border-b border-gray-100 pb-3`}>
                 <View style={tw`flex-row items-center`}>
                   <View style={tw`bg-teal-50 p-2 rounded-full mr-2`}>
-                    <Wallet size={18} color="#0D9488" />
+                    <Wallet size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={tw`text-lg font-bold text-gray-800`}>{item.title}</Text>
                 </View>
                 <View style={tw`bg-gray-50 px-2 py-1 rounded-md flex-row items-center`}>
-                  <Calendar size={12} color="#9ca3af" style={tw`mr-1`} />
+                  <Calendar size={12} color={theme.colors.gray400} style={tw`mr-1`} />
                   <Text style={tw`text-[10px] font-bold text-gray-500`}>{item.subText}</Text>
                 </View>
               </View>
@@ -420,7 +420,7 @@ const HomeScreen = () => {
                       curved
                       color={primaryColor}
                       startFillColor={primaryColor}
-                      endFillColor="#ffffff"
+                      endFillColor={theme.colors.white}
                       startOpacity={0.4}
                       endOpacity={0.0}
                       hideRules
@@ -464,7 +464,7 @@ const HomeScreen = () => {
             <View style={tw`flex-row justify-between items-center mb-4 border-b border-gray-100 pb-2`}>
               <Text style={tw`text-sm font-bold text-gray-800`}>{t('recentActivity')}</Text>
               <TouchableOpacity onPress={() => router.push('/transactions')}>
-                <Settings size={14} color="#9ca3af" />
+                <Settings size={14} color={theme.colors.gray400} />
               </TouchableOpacity>
             </View>
             {recentTransactions.length === 0 ? (
@@ -474,8 +474,8 @@ const HomeScreen = () => {
                 const IconComp = iconMap[txn.icon || ''] || Briefcase;
                 return (
                   <View key={txn.id} style={tw`flex-row items-center mb-5`}>
-                    <View style={[tw`w-8 h-8 rounded-full items-center justify-center mr-2`, { backgroundColor: (txn.color || '#6b7280') + '20' }]}>
-                      <IconComp size={14} color={txn.color || '#6b7280'} />
+                    <View style={[tw`w-8 h-8 rounded-full items-center justify-center mr-2`, { backgroundColor: (txn.color || theme.colors.mutedText) + '20' }]}>
+                      <IconComp size={14} color={txn.color || theme.colors.mutedText} />
                     </View>
                     <View style={tw`flex-1`}>
                       <Text style={tw`text-[11px] font-bold text-gray-800`} numberOfLines={1}>{txn.category}</Text>
@@ -508,14 +508,14 @@ const HomeScreen = () => {
                         <Text style={tw`text-[10px] font-bold text-gray-400`}>{percent.toFixed(0)}%</Text>
                       </View>
                       <View style={tw`h-1.5 bg-gray-100 rounded-full overflow-hidden`}>
-                        <View style={[tw`h-full rounded-full`, { width: `${percent}%`, backgroundColor: isOver ? '#ef4444' : percent >= 80 ? '#f59e0b' : '#10b981' }]} />
+                        <View style={[tw`h-full rounded-full`, { width: `${percent}%`, backgroundColor: isOver ? theme.colors.danger : percent >= 80 ? theme.colors.warning : theme.colors.success }]} />
                       </View>
                     </View>
                   );
                 })}
                 {budgetAlerts.length > 0 && (
                   <View style={tw`flex-row items-center bg-orange-50 p-2 rounded-lg mt-1`}>
-                    <AlertTriangle size={12} color="#f97316" style={tw`mr-1.5`} />
+                    <AlertTriangle size={12} color={theme.colors.categoryFood} style={tw`mr-1.5`} />
                     <View>
                       <Text style={tw`text-[10px] text-orange-700 font-bold`}>{budgetAlerts[0].category}</Text>
                       <Text style={tw`text-[9px] text-orange-600`}>{t('overBudget')}</Text>

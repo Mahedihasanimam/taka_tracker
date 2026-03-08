@@ -1,6 +1,7 @@
 
 
 import { useLanguage } from '@/context/LanguageContext';
+import { theme } from "@/constants/theme";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, KeyRound, Phone } from 'lucide-react-native';
@@ -33,12 +34,12 @@ const ForgotPasswordScreen = () => {
 
   return (
     <View style={tw`flex-1 bg-slate-50`}>
-      <StatusBar backgroundColor="#0F766E" barStyle="light-content" />
+      <StatusBar backgroundColor={theme.colors.primaryDark} barStyle="light-content" />
 
       {/* --- HEADER --- */}
       {/* FIXED: Increased height to h-80 so text doesn't get covered */}
       <LinearGradient
-        colors={['#0D9488', '#0F766E']}
+        colors={[theme.colors.primary, theme.colors.primaryDark]}
         style={tw`h-80 px-6 pt-12 pb-12 rounded-b-[36px] shadow-lg relative z-0 justify-start`}
       >
         <TouchableOpacity
@@ -74,7 +75,7 @@ const ForgotPasswordScreen = () => {
               {/* Icon */}
               <View style={tw`items-center mb-8`}>
                 <View style={tw`w-20 h-20 bg-teal-50 rounded-full items-center justify-center border-4 border-white shadow-sm`}>
-                  <KeyRound size={32} color="#0D9488" />
+                  <KeyRound size={32} color={theme.colors.primary} />
                 </View>
               </View>
 
@@ -85,16 +86,16 @@ const ForgotPasswordScreen = () => {
                 </Text>
                 <View
                   style={tw`flex-row items-center border rounded-2xl px-4 py-4 bg-gray-50 
-                  ${isFocused ? 'border-[#0D9488] bg-teal-50/30' : 'border-gray-200'}`}
+                  ${isFocused ? 'border-teal-600 bg-teal-50/30' : 'border-gray-200'}`}
                 >
                   <Phone
                     size={20}
-                    color={isFocused ? '#0D9488' : '#9ca3af'}
+                    color={isFocused ? theme.colors.primary : theme.colors.gray400}
                   />
                   <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                   <TextInput
                     placeholder={t('phonePlaceholder')}
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={theme.colors.gray400}
                     keyboardType="phone-pad"
                     value={phone}
                     onChangeText={setPhone}
@@ -111,7 +112,7 @@ const ForgotPasswordScreen = () => {
                 disabled={isButtonDisabled}
                 activeOpacity={0.8}
                 style={tw`rounded-2xl py-4 items-center mb-6 
-                ${isButtonDisabled ? 'bg-gray-200' : 'bg-[#0D9488] shadow-lg shadow-teal-200'}`}
+                ${isButtonDisabled ? 'bg-gray-200' : 'bg-teal-600 shadow-lg shadow-teal-200'}`}
               >
                 <Text style={tw`font-bold text-lg tracking-wide ${isButtonDisabled ? 'text-gray-400' : 'text-white'}`}>
                   {t('sendCodeBtn')}

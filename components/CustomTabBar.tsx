@@ -40,32 +40,32 @@ export default function CustomTabBar() {
                 key: 'expense',
                 label: t('createExpense'),
                 icon: ArrowDownCircle,
-                color: '#ef4444',
-                bg: '#fef2f2',
+                color: theme.colors.expense,
+                bg: theme.colors.redSoft,
                 onPress: () => router.push({ pathname: '/add', params: { type: 'expense' } }),
             },
             {
                 key: 'income',
                 label: t('createIncome'),
                 icon: ArrowUpCircle,
-                color: '#16a34a',
-                bg: '#f0fdf4',
+                color: theme.colors.income,
+                bg: theme.colors.greenSoft,
                 onPress: () => router.push({ pathname: '/add', params: { type: 'income' } }),
             },
             {
                 key: 'category',
                 label: t('createCategory'),
                 icon: FolderPlus,
-                color: '#0ea5e9',
-                bg: '#f0f9ff',
+                color: theme.colors.categoryBlue,
+                bg: theme.colors.blueSoft,
                 onPress: () => router.push('/screens/categories'),
             },
             {
                 key: 'budget',
                 label: t('createBudget'),
                 icon: Target,
-                color: '#a855f7',
-                bg: '#faf5ff',
+                color: theme.colors.categoryPurple,
+                bg: theme.colors.purpleSoft,
                 onPress: () => router.push('/budget'),
             },
         ],
@@ -113,8 +113,8 @@ export default function CustomTabBar() {
                         onPress={() => goTo(tab.name)}
                         style={tw`items-center justify-center w-16 h-full pt-2`}
                     >
-                        <tab.icon size={22} color={isActive(tab.name) ? theme.colors.primary : '#9ca3af'} />
-                        <Text style={[tw`text-[10px] mt-1`, { color: isActive(tab.name) ? theme.colors.primary : '#9ca3af' }]}>
+                        <tab.icon size={22} color={isActive(tab.name) ? theme.colors.primary : theme.colors.gray400} />
+                        <Text style={[tw`text-[10px] mt-1`, { color: isActive(tab.name) ? theme.colors.primary : theme.colors.gray400 }]}>
                             {tab.label}
                         </Text>
                     </TouchableOpacity>
@@ -140,8 +140,8 @@ export default function CustomTabBar() {
                         onPress={() => goTo(tab.name)}
                         style={tw`items-center justify-center w-16 h-full pt-2`}
                     >
-                        <tab.icon size={22} color={isActive(tab.name) ? theme.colors.primary : '#9ca3af'} />
-                        <Text style={[tw`text-[10px] mt-1`, { color: isActive(tab.name) ? theme.colors.primary : '#9ca3af' }]}>
+                        <tab.icon size={22} color={isActive(tab.name) ? theme.colors.primary : theme.colors.gray400} />
+                        <Text style={[tw`text-[10px] mt-1`, { color: isActive(tab.name) ? theme.colors.primary : theme.colors.gray400 }]}>
                             {tab.label}
                         </Text>
                     </TouchableOpacity>
@@ -150,7 +150,7 @@ export default function CustomTabBar() {
 
             <Modal transparent visible={showCreateModal} animationType="none" onRequestClose={() => setShowCreateModal(false)}>
                 <Pressable style={tw`flex-1`} onPress={() => setShowCreateModal(false)}>
-                    <Animated.View style={[tw`absolute inset-0 bg-black/20`, { opacity: overlayOpacity }]} />
+                    <Animated.View style={[tw`absolute inset-0`, { backgroundColor: theme.colors.panelOverlay, opacity: overlayOpacity }]} />
                     <Animated.View
                         style={[
                             tw`absolute right-4 bottom-28 w-72 bg-white/90 rounded-3xl p-4 border border-white`,
@@ -163,7 +163,7 @@ export default function CustomTabBar() {
                                 <Text style={[tw`ml-1 text-base font-bold`, { color: theme.colors.text }]}>{t('quickCreate')}</Text>
                             </View>
                             <TouchableOpacity onPress={() => setShowCreateModal(false)} style={tw`w-7 h-7 rounded-full bg-gray-100 items-center justify-center`}>
-                                <X size={14} color="#6b7280" />
+                                <X size={14} color={theme.colors.mutedText} />
                             </TouchableOpacity>
                         </View>
                         <Text style={[tw`text-xs mb-3`, { color: theme.colors.mutedText }]}>{t('quickCreateSub')}</Text>

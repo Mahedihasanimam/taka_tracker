@@ -62,7 +62,7 @@ function RootLayoutNav() {
 
   if (isLoading || !onboardingChecked) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.card }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -134,16 +134,16 @@ export default function RootLayout() {
 
   if (!dbReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.card }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 16, color: '#666' }}>Loading...</Text>
+        <Text style={{ marginTop: 16, color: theme.colors.mutedText }}>Loading...</Text>
       </View>
     );
   }
 
   if (dbError) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 20 }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.card, padding: 20 }}>
         <Text style={{ color: theme.colors.primary, fontSize: 16, textAlign: 'center' }}>{dbError}</Text>
       </View>
     );

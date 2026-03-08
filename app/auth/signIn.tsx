@@ -78,7 +78,7 @@ const LoginScreen = () => {
           </View>
 
           {/* Language Toggle */}
-          <View style={[tw`flex-row rounded-full p-1 border`, { backgroundColor: theme.colors.primaryDark, borderColor: '#0F766E' }]}>
+          <View style={[tw`flex-row rounded-full p-1 border`, { backgroundColor: theme.colors.primaryDark, borderColor: theme.colors.primaryDark }]}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => switchLanguage('bn')}
@@ -134,12 +134,12 @@ const LoginScreen = () => {
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>
                 {t('phoneLabel')}
               </Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
-                <Phone size={20} color="#9ca3af" />
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-teal-600`}>
+                <Phone size={20} color={theme.colors.gray400} />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
                   placeholder={t('phonePlaceholder')}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={theme.colors.gray400}
                   keyboardType="phone-pad"
                   value={phone}
                   onChangeText={setPhone}
@@ -153,19 +153,19 @@ const LoginScreen = () => {
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>
                 {t('passLabel')}
               </Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
-                <Lock size={20} color="#9ca3af" />
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-teal-600`}>
+                <Lock size={20} color={theme.colors.gray400} />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
                   placeholder={t('passPlaceholder')}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={theme.colors.gray400}
                   secureTextEntry={secureText}
                   value={password}
                   onChangeText={setPassword}
                   style={tw`flex-1 text-gray-800 text-base font-medium`}
                 />
                 <TouchableOpacity onPress={() => setSecureText(!secureText)}>
-                  {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color={theme.colors.primary} />}
+                  {secureText ? <EyeOff size={20} color={theme.colors.gray400} /> : <Eye size={20} color={theme.colors.primary} />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -188,7 +188,7 @@ const LoginScreen = () => {
               ]}
             >
               {isLoading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.colors.white} />
               ) : (
                 <Text style={tw`text-white text-center font-bold text-lg tracking-wide`}>
                   {t('loginBtn')}

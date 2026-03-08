@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import { addTransaction, getCategories } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -33,15 +34,15 @@ import tw from 'twrnc';
 // Default categories
 const defaultCategories = {
     expense: [
-        { name: 'Food', icon: 'Utensils', color: '#f97316' },
-        { name: 'Transport', icon: 'Car', color: '#a855f7' },
-        { name: 'Shopping', icon: 'ShoppingBag', color: '#ec4899' },
-        { name: 'Rent', icon: 'Home', color: '#06b6d4' },
+        { name: 'Food', icon: 'Utensils', color: theme.colors.categoryFood },
+        { name: 'Transport', icon: 'Car', color: theme.colors.categoryPurple },
+        { name: 'Shopping', icon: 'ShoppingBag', color: theme.colors.categoryShopping },
+        { name: 'Rent', icon: 'Home', color: theme.colors.categoryRent },
     ],
     income: [
-        { name: 'Salary', icon: 'Briefcase', color: '#10b981' },
-        { name: 'Gift', icon: 'Gift', color: '#ef4444' },
-        { name: 'Other', icon: 'Briefcase', color: '#6b7280' },
+        { name: 'Salary', icon: 'Briefcase', color: theme.colors.success },
+        { name: 'Gift', icon: 'Gift', color: theme.colors.danger },
+        { name: 'Other', icon: 'Briefcase', color: theme.colors.mutedText },
     ]
 };
 
@@ -118,13 +119,13 @@ const AddTransactionScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#0D9488] h-28 px-6 pt-12`}>
+            <View style={tw`bg-teal-600 h-28 px-6 pt-12`}>
                 <View style={tw`flex-row items-center justify-between`}>
                     <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
-                        <ArrowLeft size={24} color="#fff" />
+                        <ArrowLeft size={24} color={theme.colors.white} />
                         <Text style={tw`text-white text-lg font-bold ml-2`}>{t('addTransaction')}</Text>
                     </TouchableOpacity>
                 </View>
@@ -163,7 +164,7 @@ const AddTransactionScreen = () => {
                             <Text style={tw`text-2xl font-bold text-gray-400 mr-2`}>৳</Text>
                             <TextInput
                                 placeholder="0.00"
-                                placeholderTextColor="#9ca3af"
+                                placeholderTextColor={theme.colors.gray400}
                                 keyboardType="numeric"
                                 value={amount}
                                 onChangeText={setAmount}
@@ -189,7 +190,7 @@ const AddTransactionScreen = () => {
                                             tw`w-14 h-14 rounded-2xl items-center justify-center mb-1`,
                                             { backgroundColor: isSelected ? cat.color : cat.color + '20' }
                                         ]}>
-                                            <IconComponent size={24} color={isSelected ? '#fff' : cat.color} />
+                                            <IconComponent size={24} color={isSelected ? theme.colors.white : cat.color} />
                                             {isSelected && (
                                                 <View style={tw`absolute -top-1 -right-1 bg-white rounded-full p-0.5`}>
                                                     <Check size={12} color={cat.color} />
@@ -210,7 +211,7 @@ const AddTransactionScreen = () => {
                             onPress={() => setShowDatePicker(true)}
                             style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}
                         >
-                            <Calendar size={20} color="#9ca3af" />
+                            <Calendar size={20} color={theme.colors.gray400} />
                             <Text style={tw`flex-1 ml-3 text-gray-800 font-medium`}>
                                 {date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </Text>
@@ -232,10 +233,10 @@ const AddTransactionScreen = () => {
                     <View style={tw`mb-8`}>
                         <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('note')}</Text>
                         <View style={tw`flex-row items-start border border-gray-200 rounded-2xl px-4 py-3 bg-gray-50`}>
-                            <FileText size={20} color="#9ca3af" style={tw`mt-1`} />
+                            <FileText size={20} color={theme.colors.gray400} style={tw`mt-1`} />
                             <TextInput
                                 placeholder={t('addNote')}
-                                placeholderTextColor="#9ca3af"
+                                placeholderTextColor={theme.colors.gray400}
                                 multiline
                                 numberOfLines={3}
                                 value={note}
@@ -250,10 +251,10 @@ const AddTransactionScreen = () => {
                         onPress={handleSave}
                         disabled={isLoading}
                         activeOpacity={0.8}
-                        style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                        style={tw`bg-teal-600 rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                     >
                         {isLoading ? (
-                            <ActivityIndicator color="#fff" />
+                            <ActivityIndicator color={theme.colors.white} />
                         ) : (
                             <Text style={tw`text-white text-center font-bold text-lg`}>
                                 {t('saveTransaction')}

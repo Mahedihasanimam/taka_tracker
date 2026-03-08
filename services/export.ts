@@ -1,0 +1,180 @@
+import { TransactionRecord } from '@/services/db';
+import { theme } from "@/constants/theme";
+import * as FileSystem from 'expo-file-system';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+
+type ExportFormat = 'csv' | 'pdf';
+type ExportRange = '7days' | '30days' | 'month' | 'all';
+
+const sanitizeDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getRangeStartDate = (range: ExportRange): Date | null => {
+  const now = new Date();
+
+  if (range === 'all') return null;
+  if (range === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const days = range === '7days' ? 7 : 30;
+  const date = new Date(now);
+  date.setDate(now.getDate() - days);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+export const filterTransactionsByRange = (
+  transactions: TransactionRecord[],
+  range: ExportRange,
+): TransactionRecord[] => {
+  const startDate = getRangeStartDate(range);
+  if (!startDate) return transactions;
+
+  return transactions.filter((transaction) => {
+    const date = sanitizeDate(transaction.date);
+    return date ? date >= startDate : false;
+  });
+};
+
+const csvEscape = (value: string | number | null | undefined): string => {
+  const raw = value === null || value === undefined ? '' : String(value);
+  if (raw.includes(',') || raw.includes('"') || raw.includes('\n')) {
+    return `"${raw.replace(/"/g, '""')}"`;
+  }
+  return raw;
+};
+
+const buildCsv = (transactions: TransactionRecord[], includeReceipts: boolean): string => {
+  const baseHeaders = ['Date', 'Type', 'Category', 'Amount'];
+  const headers = includeReceipts ? [...baseHeaders, 'Note'] : baseHeaders;
+
+  const rows = transactions.map((transaction) => {
+    const values = [
+      transaction.date,
+      transaction.type,
+      transaction.category,
+      Number(transaction.amount || 0).toFixed(2),
+    ];
+
+    if (includeReceipts) {
+      values.push(transaction.note || '');
+    }
+
+    return values.map((value) => csvEscape(value)).join(',');
+  });
+
+  return [headers.join(','), ...rows].join('\n');
+};
+
+const buildPdfHtml = (
+  transactions: TransactionRecord[],
+  includeReceipts: boolean,
+  totalIncome: number,
+  totalExpense: number,
+): string => {
+  const rows = transactions
+    .map((transaction) => {
+      const noteCell = includeReceipts
+        ? `<td style=\"padding:8px;border-bottom:1px solid ${theme.colors.borderLight};\">${transaction.note || '-'}</td>`
+        : '';
+
+      return `
+        <tr>
+          <td style=\"padding:8px;border-bottom:1px solid ${theme.colors.borderLight};\">${transaction.date}</td>
+          <td style=\"padding:8px;border-bottom:1px solid ${theme.colors.borderLight};text-transform:capitalize;\">${transaction.type}</td>
+          <td style=\"padding:8px;border-bottom:1px solid ${theme.colors.borderLight};\">${transaction.category}</td>
+          <td style=\"padding:8px;border-bottom:1px solid ${theme.colors.borderLight};\">${Number(transaction.amount || 0).toFixed(2)}</td>
+          ${noteCell}
+        </tr>
+      `;
+    })
+    .join('');
+
+  return `
+    <html>
+      <body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;color:${theme.colors.darkSlate};\">
+        <h2 style=\"margin:0 0 8px 0;\">TakaTracker Export</h2>
+        <p style=\"margin:0 0 16px 0;color:${theme.colors.mutedText};\">Generated at ${new Date().toLocaleString()}</p>
+
+        <div style=\"display:flex;gap:16px;margin-bottom:16px;\">
+          <div style=\"padding:10px 12px;background:${theme.colors.greenSoft};border-radius:10px;\">Total Income: ${totalIncome.toFixed(2)}</div>
+          <div style=\"padding:10px 12px;background:${theme.colors.redSoft};border-radius:10px;\">Total Expense: ${totalExpense.toFixed(2)}</div>
+        </div>
+
+        <table style=\"width:100%;border-collapse:collapse;font-size:12px;\">
+          <thead>
+            <tr style=\"background:${theme.colors.lightSlate};text-align:left;\">
+              <th style=\"padding:8px;\">Date</th>
+              <th style=\"padding:8px;\">Type</th>
+              <th style=\"padding:8px;\">Category</th>
+              <th style=\"padding:8px;\">Amount</th>
+              ${includeReceipts ? '<th style=\"padding:8px;\">Note</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body>
+    </html>
+  `;
+};
+
+export const exportTransactionsToFile = async ({
+  transactions,
+  format,
+  includeReceipts,
+  filenamePrefix,
+}: {
+  transactions: TransactionRecord[];
+  format: ExportFormat;
+  includeReceipts: boolean;
+  filenamePrefix?: string;
+}): Promise<{ success: boolean; message: string; uri?: string }> => {
+  try {
+    const shareAvailable = await Sharing.isAvailableAsync();
+    if (!shareAvailable) {
+      return { success: false, message: 'Sharing is not available on this device.' };
+    }
+
+    const safePrefix = filenamePrefix || 'takatracker-export';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+    if (format === 'csv') {
+      const csv = buildCsv(transactions, includeReceipts);
+      const uri = `${FileSystem.cacheDirectory}${safePrefix}-${timestamp}.csv`;
+      await FileSystem.writeAsStringAsync(uri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Export CSV' });
+      return { success: true, message: 'CSV export ready.', uri };
+    }
+
+    const totals = transactions.reduce(
+      (acc, transaction) => {
+        if (transaction.type === 'income') acc.totalIncome += Number(transaction.amount) || 0;
+        if (transaction.type === 'expense') acc.totalExpense += Number(transaction.amount) || 0;
+        return acc;
+      },
+      { totalIncome: 0, totalExpense: 0 },
+    );
+
+    const html = buildPdfHtml(
+      transactions,
+      includeReceipts,
+      totals.totalIncome,
+      totals.totalExpense,
+    );
+
+    const { uri } = await Print.printToFileAsync({ html, base64: false });
+    await Sharing.shareAsync(uri, {
+      mimeType: 'application/pdf',
+      dialogTitle: 'Export PDF',
+      UTI: 'com.adobe.pdf',
+    });
+    return { success: true, message: 'PDF export ready.', uri };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Export failed.',
+    };
+  }
+};

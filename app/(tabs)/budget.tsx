@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import EmptyStateMascot from '@/components/EmptyStateMascot';
 import {
@@ -133,7 +134,7 @@ const BudgetScreen = () => {
                         ...budget,
                         spent: spent || 0,
                         icon: category?.icon || 'MoreHorizontal',
-                        color: category?.color || '#6b7280'
+                        color: category?.color || theme.colors.mutedText
                     });
                 } catch (err) {
                     console.error('Error fetching category spent:', err);
@@ -141,7 +142,7 @@ const BudgetScreen = () => {
                         ...budget,
                         spent: 0,
                         icon: 'MoreHorizontal',
-                        color: '#6b7280'
+                        color: theme.colors.mutedText
                     });
                 }
             }
@@ -179,11 +180,11 @@ const BudgetScreen = () => {
 
     // Get status color
     const getStatusColor = (spent: number, limit: number) => {
-        if (!limit || limit === 0) return '#6b7280';
+        if (!limit || limit === 0) return theme.colors.mutedText;
         const percentage = (spent / limit) * 100;
-        if (percentage >= 100) return '#ef4444';
-        if (percentage >= 80) return '#f59e0b';
-        return '#10b981';
+        if (percentage >= 100) return theme.colors.danger;
+        if (percentage >= 80) return theme.colors.warning;
+        return theme.colors.success;
     };
 
     // Get icon component
@@ -280,18 +281,18 @@ const BudgetScreen = () => {
     if (isLoading) {
         return (
             <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-                <ActivityIndicator size="large" color="#0D9488" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
-            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* --- HEADER --- */}
             <LinearGradient
-                colors={['#0D9488', '#0F766E']}
+                colors={[theme.colors.primary, theme.colors.primaryDark]}
                 style={tw`px-6 pt-10 pb-32 rounded-b-[36px] shadow-lg`}
             >
                 <Text style={tw`text-white text-2xl font-extrabold tracking-wide mb-4`}>
@@ -300,7 +301,7 @@ const BudgetScreen = () => {
 
                 {/* Income Info */}
                 <View style={tw`flex-row items-center bg-white/15 rounded-xl px-4 py-2 mb-4`}>
-                    <TrendingUp size={16} color="#86efac" />
+                    <TrendingUp size={16} color={theme.colors.lightSuccess} />
                     <Text style={tw`text-white/80 text-sm ml-2`}>
                         {t('monthlyIncome') || 'Monthly Income'}: <Text style={tw`font-bold text-white`}>৳{(balance.totalIncome || 0).toLocaleString()}</Text>
                     </Text>
@@ -314,7 +315,7 @@ const BudgetScreen = () => {
                             <Text style={tw`text-2xl font-extrabold text-gray-900`}>৳{totalBudget.toLocaleString()}</Text>
                         </View>
                         <View style={tw`bg-teal-50 p-3 rounded-2xl`}>
-                            <PieChart size={24} color="#0D9488" />
+                            <PieChart size={24} color={theme.colors.primary} />
                         </View>
                     </View>
 
@@ -332,7 +333,7 @@ const BudgetScreen = () => {
                                     tw`h-full rounded-full`,
                                     {
                                         width: `${Math.min(incomeUtilization, 100)}%`,
-                                        backgroundColor: incomeUtilization > 100 ? '#ef4444' : incomeUtilization > 80 ? '#f59e0b' : '#10b981'
+                                        backgroundColor: incomeUtilization > 100 ? theme.colors.danger : incomeUtilization > 80 ? theme.colors.warning : theme.colors.success
                                     }
                                 ]}
                             />
@@ -366,7 +367,7 @@ const BudgetScreen = () => {
                 contentContainerStyle={tw`pb-24 pt-4 px-6`}
                 style={tw`-mt-16`}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0D9488']} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
                 }
                 ListHeaderComponent={() => (
                     <TouchableOpacity
@@ -375,9 +376,9 @@ const BudgetScreen = () => {
                         style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed border-teal-300 mb-5`}
                     >
                         <View style={tw`w-10 h-10 bg-teal-100 rounded-full items-center justify-center mr-3`}>
-                            <Plus size={20} color="#0D9488" />
+                            <Plus size={20} color={theme.colors.primary} />
                         </View>
-                        <Text style={tw`text-[#0D9488] font-bold`}>{t('createBudget') || 'Create Budget'}</Text>
+                        <Text style={tw`text-teal-600 font-bold`}>{t('createBudget') || 'Create Budget'}</Text>
                     </TouchableOpacity>
                 )}
                 ListEmptyComponent={() => (
@@ -399,8 +400,8 @@ const BudgetScreen = () => {
                             {/* Top Row */}
                             <View style={tw`flex-row justify-between items-center mb-3`}>
                                 <View style={tw`flex-row items-center flex-1`}>
-                                    <View style={[tw`w-11 h-11 rounded-xl items-center justify-center mr-3`, { backgroundColor: (item.color || '#6b7280') + '20' }]}>
-                                        <IconComp size={20} color={item.color || '#6b7280'} />
+                                    <View style={[tw`w-11 h-11 rounded-xl items-center justify-center mr-3`, { backgroundColor: (item.color || theme.colors.mutedText) + '20' }]}>
+                                        <IconComp size={20} color={item.color || theme.colors.mutedText} />
                                     </View>
                                     <View style={tw`flex-1`}>
                                         <Text style={tw`text-sm font-bold text-gray-800`}>{item.category}</Text>
@@ -409,10 +410,10 @@ const BudgetScreen = () => {
                                 </View>
                                 <View style={tw`flex-row`}>
                                     <TouchableOpacity onPress={() => openModal(item)} style={tw`p-2 bg-gray-50 rounded-lg mr-1`}>
-                                        <Edit3 size={14} color="#9ca3af" />
+                                        <Edit3 size={14} color={theme.colors.gray400} />
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => handleDelete(item)} style={tw`p-2 bg-red-50 rounded-lg`}>
-                                        <Trash2 size={14} color="#ef4444" />
+                                        <Trash2 size={14} color={theme.colors.danger} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -435,7 +436,7 @@ const BudgetScreen = () => {
                                 </Text>
                                 {isExceeded ? (
                                     <View style={tw`flex-row items-center bg-red-50 px-2 py-1 rounded-lg`}>
-                                        <AlertTriangle size={10} color="#ef4444" style={tw`mr-1`} />
+                                        <AlertTriangle size={10} color={theme.colors.danger} style={tw`mr-1`} />
                                         <Text style={tw`text-[10px] font-bold text-red-500`}>
                                             {t('exceeded') || 'Exceeded'} ৳{Math.abs(remaining).toLocaleString()}
                                         </Text>
@@ -466,7 +467,7 @@ const BudgetScreen = () => {
                                 {isEditing ? (t('editBudget') || 'Edit Budget') : (t('createBudget') || 'Create Budget')}
                             </Text>
                             <TouchableOpacity onPress={() => setModalVisible(false)} style={tw`bg-gray-100 p-2 rounded-full`}>
-                                <X size={20} color="#6b7280" />
+                                <X size={20} color={theme.colors.mutedText} />
                             </TouchableOpacity>
                         </View>
 
@@ -489,17 +490,17 @@ const BudgetScreen = () => {
                                                 <View
                                                     style={[
                                                         tw`w-12 h-12 rounded-2xl items-center justify-center mb-1`,
-                                                        { backgroundColor: isSelected ? '#0D9488' : (cat.color || '#6b7280') + '20' }
+                                                        { backgroundColor: isSelected ? theme.colors.primary : (cat.color || theme.colors.mutedText) + '20' }
                                                     ]}
                                                 >
-                                                    <IconComp size={20} color={isSelected ? 'white' : (cat.color || '#6b7280')} />
+                                                    <IconComp size={20} color={isSelected ? 'white' : (cat.color || theme.colors.mutedText)} />
                                                     {isSelected && (
                                                         <View style={tw`absolute -top-1 -right-1 bg-white rounded-full p-0.5`}>
-                                                            <Check size={10} color="#0D9488" />
+                                                            <Check size={10} color={theme.colors.primary} />
                                                         </View>
                                                     )}
                                                 </View>
-                                                <Text style={tw`text-[10px] font-bold text-center ${isSelected ? 'text-[#0D9488]' : 'text-gray-500'}`} numberOfLines={1}>
+                                                <Text style={tw`text-[10px] font-bold text-center ${isSelected ? 'text-teal-600' : 'text-gray-500'}`} numberOfLines={1}>
                                                     {cat.name}
                                                 </Text>
                                             </TouchableOpacity>
@@ -510,7 +511,7 @@ const BudgetScreen = () => {
                                 <View style={tw`bg-amber-50 p-4 rounded-xl mb-6`}>
                                     <Text style={tw`text-amber-700 text-sm text-center`}>{t('allCategoriesBudgeted') || 'All categories have budgets'}</Text>
                                     <TouchableOpacity onPress={() => { setModalVisible(false); router.push('/screens/categories'); }}>
-                                        <Text style={tw`text-[#0D9488] font-bold text-center mt-2`}>{t('addMoreCategories') || 'Add more categories'}</Text>
+                                        <Text style={tw`text-teal-600 font-bold text-center mt-2`}>{t('addMoreCategories') || 'Add more categories'}</Text>
                                     </TouchableOpacity>
                                 </View>
                             ) : null}
@@ -521,7 +522,7 @@ const BudgetScreen = () => {
                                 <Text style={tw`text-xl font-bold text-gray-400 mr-2`}>৳</Text>
                                 <TextInput
                                     placeholder="0"
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     keyboardType="numeric"
                                     style={tw`flex-1 text-xl font-bold text-gray-900`}
                                     value={limitAmount}
@@ -554,7 +555,7 @@ const BudgetScreen = () => {
                                 onPress={handleSave}
                                 disabled={isSaving || (!isEditing && getAvailableCategories().length === 0)}
                                 activeOpacity={0.9}
-                                style={tw`bg-[#0D9488] rounded-2xl py-4 items-center shadow-lg ${isSaving || (!isEditing && getAvailableCategories().length === 0) ? 'opacity-70' : ''}`}
+                                style={tw`bg-teal-600 rounded-2xl py-4 items-center shadow-lg ${isSaving || (!isEditing && getAvailableCategories().length === 0) ? 'opacity-70' : ''}`}
                             >
                                 {isSaving ? (
                                     <ActivityIndicator color="white" />

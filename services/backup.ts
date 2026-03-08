@@ -1,5 +1,9 @@
 import Constants from "expo-constants";
 import { getUserBackupPayload, restoreUserDataFromBackup, UserBackupPayload } from "@/services/db";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as DocumentPicker from "expo-document-picker";
 
 interface SupabaseConfig {
   url?: string;
@@ -20,6 +24,10 @@ const getSupabaseConfig = (): SupabaseConfig => {
 
 const missingTableHelp =
   "Supabase table missing. Create table public.user_backups (id bigint identity primary key, user_id bigint not null, backup_data jsonb not null, created_at timestamptz default now()).";
+const LOCAL_BACKUP_PREFIX = "localBackupSnapshot";
+
+const getLocalBackupKey = (userId: number) =>
+  `${LOCAL_BACKUP_PREFIX}:${userId}`;
 
 const parseSupabaseError = (text: string): string => {
   if (!text) return "Unknown error";
@@ -27,6 +35,16 @@ const parseSupabaseError = (text: string): string => {
     return missingTableHelp;
   }
   return text;
+};
+
+const isValidBackupPayload = (data: unknown): data is UserBackupPayload => {
+  if (!data || typeof data !== "object") return false;
+  const candidate = data as UserBackupPayload;
+  return (
+    Array.isArray(candidate.transactions) &&
+    Array.isArray(candidate.categories) &&
+    Array.isArray(candidate.budgets)
+  );
 };
 
 export const backupUserDataToSupabase = async (userId: number) => {
@@ -42,6 +60,7 @@ export const backupUserDataToSupabase = async (userId: number) => {
 
   try {
     const payload = await getUserBackupPayload(userId);
+    await AsyncStorage.setItem(getLocalBackupKey(userId), JSON.stringify(payload));
 
     const response = await fetch(`${url}/rest/v1/user_backups`, {
       method: "POST",
@@ -60,6 +79,9 @@ export const backupUserDataToSupabase = async (userId: number) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      if (errorText.includes("PGRST205") || errorText.includes("user_backups")) {
+        return await backupUserDataLocally(userId, payload);
+      }
       return {
         success: false,
         message: `Backup failed (${response.status}): ${parseSupabaseError(errorText)}`,
@@ -75,6 +97,85 @@ export const backupUserDataToSupabase = async (userId: number) => {
       success: false,
       message:
         error instanceof Error ? error.message : "Backup failed due to an unexpected error.",
+    };
+  }
+};
+
+const backupUserDataLocally = async (
+  userId: number,
+  payload?: UserBackupPayload,
+) => {
+  try {
+    const shareAvailable = await Sharing.isAvailableAsync();
+    if (!shareAvailable) {
+      return {
+        success: false,
+        message:
+          "Supabase table is missing and local share is unavailable on this device.",
+      };
+    }
+
+    const backup = payload ?? (await getUserBackupPayload(userId));
+    await AsyncStorage.setItem(getLocalBackupKey(userId), JSON.stringify(backup));
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const uri = `${FileSystem.cacheDirectory}takatracker-backup-${userId}-${timestamp}.json`;
+    await FileSystem.writeAsStringAsync(uri, JSON.stringify(backup, null, 2), {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+    await Sharing.shareAsync(uri, {
+      mimeType: "application/json",
+      dialogTitle: "Backup Data",
+      UTI: "public.json",
+    });
+
+    return {
+      success: true,
+      message:
+        "Supabase backup table was missing, so a local backup file was exported instead.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to create local backup file.",
+    };
+  }
+};
+
+const restoreFromLocalBackup = async (userId: number) => {
+  try {
+    const snapshot = await AsyncStorage.getItem(getLocalBackupKey(userId));
+    if (!snapshot) {
+      return {
+        success: false,
+        message:
+          "No cloud backup table found and no local backup snapshot exists yet. Run Backup Data once first.",
+      };
+    }
+
+    const parsed = JSON.parse(snapshot) as UserBackupPayload;
+    const restored = await restoreUserDataFromBackup(userId, parsed);
+    if (!restored) {
+      return {
+        success: false,
+        message: "Local backup found, but restore failed.",
+      };
+    }
+
+    return {
+      success: true,
+      message:
+        "Supabase table is missing, restored successfully from local backup snapshot.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to restore from local backup snapshot.",
     };
   }
 };
@@ -103,6 +204,9 @@ export const restoreLatestUserBackupFromSupabase = async (userId: number) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      if (errorText.includes("PGRST205") || errorText.includes("user_backups")) {
+        return await restoreFromLocalBackup(userId);
+      }
       return {
         success: false,
         message: `Restore failed (${response.status}): ${parseSupabaseError(errorText)}`,
@@ -138,6 +242,48 @@ export const restoreLatestUserBackupFromSupabase = async (userId: number) => {
       success: false,
       message:
         error instanceof Error ? error.message : "Restore failed due to an unexpected error.",
+    };
+  }
+};
+
+export const importBackupFromJsonFile = async (userId: number) => {
+  try {
+    const picked = await DocumentPicker.getDocumentAsync({
+      type: ["application/json", "text/json", "*/*"],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+
+    if (picked.canceled || !picked.assets?.length) {
+      return { success: false, message: "Import cancelled." };
+    }
+
+    const file = picked.assets[0];
+    const raw = await FileSystem.readAsStringAsync(file.uri, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+    const parsed = JSON.parse(raw) as UserBackupPayload | { backup_data?: UserBackupPayload };
+    const payload = (parsed as { backup_data?: UserBackupPayload })?.backup_data || parsed;
+
+    if (!isValidBackupPayload(payload)) {
+      return {
+        success: false,
+        message:
+          "Invalid backup file. Expected a TakaTracker backup JSON with transactions, categories, and budgets.",
+      };
+    }
+
+    const restored = await restoreUserDataFromBackup(userId, payload);
+    if (!restored) {
+      return { success: false, message: "Backup file is valid, but restore failed." };
+    }
+
+    await AsyncStorage.setItem(getLocalBackupKey(userId), JSON.stringify(payload));
+    return { success: true, message: "Backup file imported and restored successfully." };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to import backup file.",
     };
   }
 };

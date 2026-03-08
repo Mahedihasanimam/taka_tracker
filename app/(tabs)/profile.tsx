@@ -1,7 +1,7 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { backupUserDataToSupabase, restoreLatestUserBackupFromSupabase } from '@/services/backup';
+import { backupUserDataToSupabase, importBackupFromJsonFile, restoreLatestUserBackupFromSupabase } from '@/services/backup';
 import { resetUserData } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ import {
     HelpCircle,
     Lock,
     LogOut,
+    FileUp,
     RefreshCcw,
     RotateCcw,
     ShieldCheck,
@@ -45,6 +46,7 @@ const ProfileScreen = () => {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
 
     const formatMemberSince = (dateString?: string) => {
@@ -145,6 +147,17 @@ const ProfileScreen = () => {
         );
     };
 
+    const handleImportBackup = async () => {
+        if (!user?.id || isImporting) return;
+        setIsImporting(true);
+        try {
+            const result = await importBackupFromJsonFile(user.id);
+            Alert.alert(result.success ? t('success') : t('Opps'), result.message);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     const handleLogout = () => {
         Alert.alert(
             t('logoutConfirmTitle'),
@@ -181,7 +194,7 @@ const ProfileScreen = () => {
         >
             <View style={tw`flex-row items-center`}>
                 <View style={tw`w-10 h-10 rounded-full ${isDestructive ? 'bg-red-50' : 'bg-gray-50'} items-center justify-center mr-4`}>
-                    <Icon size={20} color={isDestructive ? theme.colors.danger : '#4b5563'} />
+                    <Icon size={20} color={isDestructive ? theme.colors.danger : theme.colors.gray600} />
                 </View>
                 <Text style={tw`text-sm font-bold ${isDestructive ? 'text-red-500' : 'text-gray-700'}`}>
                     {label}
@@ -193,14 +206,14 @@ const ProfileScreen = () => {
 
                 {showSwitch ? (
                     <Switch
-                        trackColor={{ false: theme.colors.border, true: '#99f6e4' }}
-                        thumbColor={switchValue ? theme.colors.primary : '#f4f3f4'}
+                        trackColor={{ false: theme.colors.border, true: theme.colors.lightMint }}
+                        thumbColor={switchValue ? theme.colors.primary : theme.colors.whiteSoft}
                         onValueChange={onSwitchChange}
                         value={switchValue}
                         style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                     />
                 ) : showChevron ? (
-                    <ChevronRight size={18} color="#d1d5db" />
+                    <ChevronRight size={18} color={theme.colors.gray300} />
                 ) : null}
             </View>
         </TouchableOpacity>
@@ -335,6 +348,13 @@ const ProfileScreen = () => {
                         showChevron={false}
                         isLoading={isRestoring}
                         onPress={handleRestoreData}
+                    />
+                    <MenuItem
+                        icon={FileUp}
+                        label={t('importBackupFile')}
+                        showChevron={false}
+                        isLoading={isImporting}
+                        onPress={handleImportBackup}
                     />
                     <View style={tw`flex-row items-start mt-3 px-1`}>
                         <Database size={14} color={theme.colors.mutedText} style={tw`mt-0.5 mr-2`} />

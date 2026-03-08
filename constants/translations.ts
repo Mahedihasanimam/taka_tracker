@@ -115,6 +115,7 @@ export const translations = {
     dataManagement: "Data Management",
     backupData: "Backup Data",
     restoreData: "Restore Data",
+    importBackupFile: "Import Backup File",
     resetData: "Reset Data",
     restoreDataConfirm:
       "This will replace current app data with your latest backup. Continue?",
@@ -122,7 +123,7 @@ export const translations = {
       "This will permanently delete your transactions, budgets and custom categories. Continue?",
     resetDataSuccess: "Your app data has been reset.",
     backupHint:
-      "Backup uploads data to Supabase. Restore pulls your latest backup. Configure keys in app.json first.",
+      "Backup uploads to Supabase or exports local JSON fallback. Restore can use cloud or local snapshot.",
     currentPassword: "Current Password",
     currentPasswordPlaceholder: "Enter current password",
     updatePassword: "Update Password",
@@ -434,6 +435,7 @@ export const translations = {
     dataManagement: "ডেটা ম্যানেজমেন্ট",
     backupData: "ডেটা ব্যাকআপ",
     restoreData: "ডেটা রিস্টোর",
+    importBackupFile: "ব্যাকআপ ফাইল ইমপোর্ট",
     resetData: "ডেটা রিসেট",
     restoreDataConfirm:
       "এটি বর্তমান অ্যাপ ডেটা মুছে আপনার সর্বশেষ ব্যাকআপ পুনরুদ্ধার করবে। চালিয়ে যাবেন?",
@@ -441,7 +443,7 @@ export const translations = {
       "এটি আপনার সব লেনদেন, বাজেট এবং কাস্টম ক্যাটাগরি স্থায়ীভাবে মুছে দেবে। চালিয়ে যাবেন?",
     resetDataSuccess: "আপনার অ্যাপ ডেটা রিসেট হয়েছে।",
     backupHint:
-      "ব্যাকআপ Supabase-এ আপলোড করে, রিস্টোর সর্বশেষ ব্যাকআপ নামায়। আগে app.json-এ কী কনফিগার করুন।",
+      "ব্যাকআপ Supabase-এ আপলোড করে বা লোকাল JSON রাখে। রিস্টোর ক্লাউড বা লোকাল স্ন্যাপশট থেকে হবে।",
     currentPassword: "বর্তমান পাসওয়ার্ড",
     currentPasswordPlaceholder: "বর্তমান পাসওয়ার্ড দিন",
     updatePassword: "পাসওয়ার্ড আপডেট",

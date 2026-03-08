@@ -1,4 +1,5 @@
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
+import { theme } from "@/constants/theme";
 import { useAuth } from '@/context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,7 +38,7 @@ const BudgetIllustration = () => (
     <View
       style={[
         tw`absolute`,
-        { width: 260, height: 260, borderRadius: 130, backgroundColor: '#0D948818', top: 60, alignSelf: 'center' },
+        { width: 260, height: 260, borderRadius: 130, backgroundColor: theme.colors.tealOverlay, top: 60, alignSelf: 'center' },
       ]}
     />
 
@@ -46,7 +47,7 @@ const BudgetIllustration = () => (
       {/* Card header */}
       <View style={tw`flex-row items-center mb-4`}>
         <View style={tw`bg-teal-100 p-2 rounded-xl mr-3`}>
-          <PieChart size={20} color="#0D9488" />
+          <PieChart size={20} color={theme.colors.primary} />
         </View>
         <View>
           <Text style={tw`text-gray-800 font-extrabold text-base`}>Monthly Budget</Text>
@@ -59,10 +60,10 @@ const BudgetIllustration = () => (
 
       {/* Budget rows */}
       {[
-        { icon: Utensils, color: '#f97316', label: 'Food', pct: 72 },
-        { icon: Car, color: '#3b82f6', label: 'Transport', pct: 40 },
-        { icon: ShoppingBag, color: '#a855f7', label: 'Shopping', pct: 55 },
-        { icon: Zap, color: '#eab308', label: 'Utilities', pct: 30 },
+        { icon: Utensils, color: theme.colors.categoryFood, label: 'Food', pct: 72 },
+        { icon: Car, color: theme.colors.secondary, label: 'Transport', pct: 40 },
+        { icon: ShoppingBag, color: theme.colors.categoryPurple, label: 'Shopping', pct: 55 },
+        { icon: Zap, color: theme.colors.categoryBills, label: 'Utilities', pct: 30 },
       ].map(({ icon: Icon, color, label, pct }) => (
         <View key={label} style={tw`mb-3`}>
           <View style={tw`flex-row items-center justify-between mb-1`}>
@@ -109,13 +110,13 @@ const TransactionIllustration = () => (
     <View
       style={[
         tw`absolute`,
-        { width: 260, height: 260, borderRadius: 130, backgroundColor: '#0D948818', top: 60, alignSelf: 'center' },
+        { width: 260, height: 260, borderRadius: 130, backgroundColor: theme.colors.tealOverlay, top: 60, alignSelf: 'center' },
       ]}
     />
 
     {/* Balance Card */}
     <LinearGradient
-      colors={['#0D9488', '#0F766E']}
+      colors={[theme.colors.primary, theme.colors.primaryDark]}
       style={tw`w-full rounded-3xl p-5 mb-4 shadow-lg`}
     >
       <Text style={tw`text-white/70 text-xs font-semibold mb-1`}>Total Balance</Text>
@@ -123,7 +124,7 @@ const TransactionIllustration = () => (
       <View style={tw`flex-row justify-between`}>
         <View style={tw`flex-row items-center`}>
           <View style={tw`bg-white/20 p-1.5 rounded-lg mr-2`}>
-            <TrendingUp size={14} color="#86efac" />
+            <TrendingUp size={14} color={theme.colors.lightSuccess} />
           </View>
           <View>
             <Text style={tw`text-white/60 text-[10px]`}>Income</Text>
@@ -132,7 +133,7 @@ const TransactionIllustration = () => (
         </View>
         <View style={tw`flex-row items-center`}>
           <View style={tw`bg-white/20 p-1.5 rounded-lg mr-2`}>
-            <TrendingDown size={14} color="#fca5a5" />
+            <TrendingDown size={14} color={theme.colors.lightDanger} />
           </View>
           <View>
             <Text style={tw`text-white/60 text-[10px]`}>Expense</Text>
@@ -146,10 +147,10 @@ const TransactionIllustration = () => (
     <View style={tw`bg-white rounded-3xl p-4 w-full shadow-md shadow-gray-200`}>
       <Text style={tw`text-gray-800 font-extrabold text-sm mb-3`}>Recent Transactions</Text>
       {[
-        { icon: TrendingUp, color: '#10b981', label: 'Salary', sub: 'Oct 1', amount: '+৳50,000', up: true },
-        { icon: Utensils, color: '#f97316', label: 'Groceries', sub: 'Oct 3', amount: '-৳1,200', up: false },
-        { icon: Wallet, color: '#6366f1', label: 'Freelance', sub: 'Oct 5', amount: '+৳12,000', up: true },
-        { icon: Car, color: '#3b82f6', label: 'Fuel', sub: 'Oct 7', amount: '-৳800', up: false },
+        { icon: TrendingUp, color: theme.colors.success, label: 'Salary', sub: 'Oct 1', amount: '+৳50,000', up: true },
+        { icon: Utensils, color: theme.colors.categoryFood, label: 'Groceries', sub: 'Oct 3', amount: '-৳1,200', up: false },
+        { icon: Wallet, color: theme.colors.indigo, label: 'Freelance', sub: 'Oct 5', amount: '+৳12,000', up: true },
+        { icon: Car, color: theme.colors.secondary, label: 'Fuel', sub: 'Oct 7', amount: '-৳800', up: false },
       ].map(({ icon: Icon, color, label, sub, amount, up }) => (
         <View key={label} style={tw`flex-row items-center py-2 border-b border-gray-50`}>
           <View
@@ -164,7 +165,7 @@ const TransactionIllustration = () => (
             <Text style={tw`text-gray-800 text-xs font-bold`}>{label}</Text>
             <Text style={tw`text-gray-400 text-[10px]`}>{sub}</Text>
           </View>
-          <Text style={[tw`text-xs font-extrabold`, { color: up ? '#10b981' : '#ef4444' }]}>{amount}</Text>
+          <Text style={[tw`text-xs font-extrabold`, { color: up ? theme.colors.success : theme.colors.danger }]}>{amount}</Text>
         </View>
       ))}
     </View>
@@ -173,8 +174,8 @@ const TransactionIllustration = () => (
 
 // ─── Slide Data ───────────────────────────────────────────────────────────────
 // Unified theme: all screens share the same bg and accent
-const ACCENT = '#0D9488';
-const BG = '#E4F3F6';
+const ACCENT = theme.colors.primary;
+const BG = theme.colors.bgBlueLight;
 
 const slides = [
   {
@@ -281,7 +282,7 @@ const OnboardingScreen = () => {
 
       {/* Bottom text content */}
       <View style={tw`flex-1 px-8 pt-6`}>
-        <Text style={tw`text-3xl font-extrabold text-center text-[#1C3A5E] mb-3 leading-10`}>
+        <Text style={[tw`text-3xl font-extrabold text-center mb-3 leading-10`, { color: theme.colors.headingBlue }]}>
           {item.title}
           <Text style={{ color: item.dotColor }}>{item.titleAccent}</Text>
         </Text>
@@ -291,7 +292,7 @@ const OnboardingScreen = () => {
   );
 
   return (
-    <View style={tw`flex-1 bg-[#E4F3F6]`}>
+    <View style={[tw`flex-1`, { backgroundColor: theme.colors.bgBlueLight }]}>
       <StatusBar backgroundColor="transparent" translucent barStyle="dark-content" />
 
       {/* Slides */}
@@ -320,7 +321,7 @@ const OnboardingScreen = () => {
                 tw`rounded-full`,
                 i === currentIndex
                   ? { width: 20, height: 10, backgroundColor: slides[currentIndex].dotColor }
-                  : { width: 10, height: 10, backgroundColor: '#D1D5DB' },
+                  : { width: 10, height: 10, backgroundColor: theme.colors.indicatorGray },
               ]}
             />
           ))}

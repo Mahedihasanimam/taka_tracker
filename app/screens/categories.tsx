@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import { addCategory, deleteCategory, getCategories, updateCategory } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -75,7 +76,7 @@ const CategoryManagementScreen = () => {
     // Form State
     const [name, setName] = useState('');
     const [selectedIconName, setSelectedIconName] = useState('MoreHorizontal');
-    const [selectedColor, setSelectedColor] = useState('#0D9488');
+    const [selectedColor, setSelectedColor] = useState(theme.colors.primary);
 
     // Categories data
     const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
@@ -106,9 +107,9 @@ const CategoryManagementScreen = () => {
     ];
 
     const availableColors = [
-        '#0D9488', '#f97316', '#eab308', '#10b981', '#06b6d4',
-        '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6',
-        '#f59e0b', '#84cc16', '#6366f1', '#d946ef', '#1f2937'
+        theme.colors.primary, theme.colors.categoryFood, theme.colors.categoryBills, theme.colors.success, theme.colors.categoryRent,
+        theme.colors.secondary, theme.colors.purple, theme.colors.categoryShopping, theme.colors.danger, theme.colors.primary,
+        theme.colors.warning, theme.colors.success, theme.colors.indigo, theme.colors.purple, theme.colors.darkSlate
     ];
 
     // --- FETCH CATEGORIES ---
@@ -150,7 +151,7 @@ const CategoryManagementScreen = () => {
             setEditingId(null);
             setName('');
             setSelectedIconName('MoreHorizontal');
-            setSelectedColor(activeTab === 'expense' ? '#0D9488' : '#10b981');
+            setSelectedColor(activeTab === 'expense' ? theme.colors.primary : theme.colors.success);
         }
         setModalVisible(true);
     };
@@ -205,18 +206,18 @@ const CategoryManagementScreen = () => {
     if (isLoading) {
         return (
             <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-                <ActivityIndicator size="large" color="#0D9488" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
-            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* --- HEADER --- */}
             <LinearGradient
-                colors={['#0D9488', '#0F766E']}
+                colors={[theme.colors.primary, theme.colors.primaryDark]}
                 style={tw`h-52 px-6 pt-12 rounded-b-[36px] shadow-lg`}
             >
                 <View style={tw`flex-row justify-between items-center mb-6`}>
@@ -233,9 +234,9 @@ const CategoryManagementScreen = () => {
                 <View style={tw`bg-white rounded-2xl p-1.5 flex-row shadow-xl mx-2`}>
                     <TouchableOpacity
                         onPress={() => setActiveTab('expense')}
-                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'expense' ? 'bg-[#0D9488]' : 'bg-transparent'}`}
+                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'expense' ? 'bg-teal-600' : 'bg-transparent'}`}
                     >
-                        <ShoppingBag size={18} color={activeTab === 'expense' ? 'white' : '#9ca3af'} style={tw`mr-2`} />
+                        <ShoppingBag size={18} color={activeTab === 'expense' ? 'white' : theme.colors.gray400} style={tw`mr-2`} />
                         <Text style={tw`font-bold ${activeTab === 'expense' ? 'text-white' : 'text-gray-500'}`}>
                             {t('expense')} ({expenseCategories.length})
                         </Text>
@@ -243,9 +244,9 @@ const CategoryManagementScreen = () => {
 
                     <TouchableOpacity
                         onPress={() => setActiveTab('income')}
-                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'income' ? 'bg-[#10b981]' : 'bg-transparent'}`}
+                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'income' ? 'bg-green-600' : 'bg-transparent'}`}
                     >
-                        <Banknote size={18} color={activeTab === 'income' ? 'white' : '#9ca3af'} style={tw`mr-2`} />
+                        <Banknote size={18} color={activeTab === 'income' ? 'white' : theme.colors.gray400} style={tw`mr-2`} />
                         <Text style={tw`font-bold ${activeTab === 'income' ? 'text-white' : 'text-gray-500'}`}>
                             {t('income')} ({incomeCategories.length})
                         </Text>
@@ -263,9 +264,9 @@ const CategoryManagementScreen = () => {
                     style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed ${activeTab === 'expense' ? 'border-teal-300' : 'border-green-300'} mb-5`}
                 >
                     <View style={tw`w-10 h-10 rounded-full ${activeTab === 'expense' ? 'bg-teal-100' : 'bg-green-100'} items-center justify-center mr-3`}>
-                        <Plus size={20} color={activeTab === 'expense' ? '#0D9488' : '#10b981'} />
+                        <Plus size={20} color={activeTab === 'expense' ? theme.colors.primary : theme.colors.success} />
                     </View>
-                    <Text style={tw`${activeTab === 'expense' ? 'text-[#0D9488]' : 'text-[#10b981]'} font-bold text-base`}>
+                    <Text style={tw`${activeTab === 'expense' ? 'text-teal-600' : 'text-green-600'} font-bold text-base`}>
                         {t('addNewCategory')}
                     </Text>
                 </TouchableOpacity>
@@ -273,7 +274,7 @@ const CategoryManagementScreen = () => {
                 {currentList.length === 0 ? (
                     <View style={tw`flex-1 justify-center items-center`}>
                         <View style={tw`w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4`}>
-                            <ShoppingBag size={32} color="#9ca3af" />
+                            <ShoppingBag size={32} color={theme.colors.gray400} />
                         </View>
                         <Text style={tw`text-gray-500 font-medium`}>{t('noCategories')}</Text>
                         <Text style={tw`text-gray-400 text-sm mt-1`}>{t('addCategoryHint')}</Text>
@@ -308,13 +309,13 @@ const CategoryManagementScreen = () => {
                                             onPress={() => handleOpenModal(item)}
                                             style={tw`p-2.5 bg-gray-50 rounded-xl mr-2`}
                                         >
-                                            <Edit3 size={16} color="#6b7280" />
+                                            <Edit3 size={16} color={theme.colors.mutedText} />
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => handleDelete(item)}
                                             style={tw`p-2.5 bg-red-50 rounded-xl`}
                                         >
-                                            <Trash2 size={16} color="#ef4444" />
+                                            <Trash2 size={16} color={theme.colors.danger} />
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -345,7 +346,7 @@ const CategoryManagementScreen = () => {
                                 onPress={() => setModalVisible(false)}
                                 style={tw`bg-gray-100 p-2 rounded-full`}
                             >
-                                <X size={20} color="#6b7280" />
+                                <X size={20} color={theme.colors.mutedText} />
                             </TouchableOpacity>
                         </View>
 
@@ -371,7 +372,7 @@ const CategoryManagementScreen = () => {
                             <View style={tw`bg-gray-50 rounded-2xl px-4 py-3.5 mb-6 border border-gray-200`}>
                                 <TextInput
                                     placeholder={t('categoryNamePlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     value={name}
                                     onChangeText={setName}
                                     style={tw`text-base font-bold text-gray-900`}
@@ -392,7 +393,7 @@ const CategoryManagementScreen = () => {
                                                 : tw`bg-white border border-gray-200`
                                         ]}
                                     >
-                                        <item.icon size={20} color={selectedIconName === item.name ? 'white' : '#6b7280'} />
+                                        <item.icon size={20} color={selectedIconName === item.name ? 'white' : theme.colors.mutedText} />
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -426,7 +427,7 @@ const CategoryManagementScreen = () => {
                                 ]}
                             >
                                 {isSaving ? (
-                                    <ActivityIndicator color="#fff" />
+                                    <ActivityIndicator color={theme.colors.white} />
                                 ) : (
                                     <Text style={tw`text-white font-bold text-lg`}>
                                         {isEditing ? t('updateCategory') : t('saveCategory')}

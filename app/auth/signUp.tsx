@@ -1,4 +1,5 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { theme } from "@/constants/theme";
 import { registerUser } from '@/services/db';
 import { router } from 'expo-router';
 import { Eye, EyeOff, Lock, Phone, User } from 'lucide-react-native';
@@ -83,7 +84,7 @@ const SignUpScreen = () => {
     <View style={tw`flex-1 bg-white`}>
 
       {/* --- HEADER SECTION (Consistent with Login) --- */}
-      <View style={tw`bg-[#0D9488] h-52 px-6 pt-12 relative`}>
+      <View style={tw`bg-teal-600 h-52 px-6 pt-12 relative`}>
         <View style={tw`flex-row justify-between items-start`}>
           <View>
             <Text style={tw`text-white text-2xl font-bold tracking-wide`}>
@@ -95,13 +96,13 @@ const SignUpScreen = () => {
           </View>
 
           {/* Language Toggle */}
-          <View style={tw`flex-row bg-[#0F766E] rounded-full p-1 border border-[#0F766E]`}>
+          <View style={[tw`flex-row bg-teal-700 rounded-full p-1 border`, { borderColor: theme.colors.primaryDark }]}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => switchLanguage('bn')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'bn' ? 'text-[#0D9488]' : 'text-white/70'}`}>বাংলা</Text>
+              <Text style={tw`text-[12px] font-bold ${lang === 'bn' ? 'text-teal-600' : 'text-white/70'}`}>বাংলা</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -109,7 +110,7 @@ const SignUpScreen = () => {
               onPress={() => switchLanguage('en')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'en' ? 'text-[#0D9488]' : 'text-white/70'}`}>ENG</Text>
+              <Text style={tw`text-[12px] font-bold ${lang === 'en' ? 'text-teal-600' : 'text-white/70'}`}>ENG</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -134,12 +135,12 @@ const SignUpScreen = () => {
             {/* 1. Name Input */}
             <View style={tw`mb-5`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('nameLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
-                <User size={20} color="#9ca3af" />
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-teal-600`}>
+                <User size={20} color={theme.colors.gray400} />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
                   placeholder={t('namePlaceholder')}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={theme.colors.gray400}
                   value={name}
                   onChangeText={setName}
                   style={tw`flex-1 text-gray-800 text-base font-medium`}
@@ -150,12 +151,12 @@ const SignUpScreen = () => {
             {/* 2. Phone Input */}
             <View style={tw`mb-5`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('phoneLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
-                <Phone size={20} color="#9ca3af" />
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-teal-600`}>
+                <Phone size={20} color={theme.colors.gray400} />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
                   placeholder={t('phonePlaceholder')}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={theme.colors.gray400}
                   keyboardType="phone-pad"
                   value={phone}
                   onChangeText={setPhone}
@@ -167,19 +168,19 @@ const SignUpScreen = () => {
             {/* 3. Password Input */}
             <View style={tw`mb-5`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('passLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
-                <Lock size={20} color="#9ca3af" />
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-teal-600`}>
+                <Lock size={20} color={theme.colors.gray400} />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
                   placeholder={t('passPlaceholder')}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={theme.colors.gray400}
                   secureTextEntry={secureText}
                   value={password}
                   onChangeText={setPassword}
                   style={tw`flex-1 text-gray-800 text-base font-medium`}
                 />
                 <TouchableOpacity onPress={() => setSecureText(!secureText)}>
-                  {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
+                  {secureText ? <EyeOff size={20} color={theme.colors.gray400} /> : <Eye size={20} color={theme.colors.primary} />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -187,19 +188,19 @@ const SignUpScreen = () => {
             {/* 4. Confirm Password Input */}
             <View style={tw`mb-8`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('confirmPassLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
-                <Lock size={20} color="#9ca3af" />
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-teal-600`}>
+                <Lock size={20} color={theme.colors.gray400} />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
                   placeholder={t('confirmPassPlaceholder')}
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={theme.colors.gray400}
                   secureTextEntry={secureConfirmText}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   style={tw`flex-1 text-gray-800 text-base font-medium`}
                 />
                 <TouchableOpacity onPress={() => setSecureConfirmText(!secureConfirmText)}>
-                  {secureConfirmText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
+                  {secureConfirmText ? <EyeOff size={20} color={theme.colors.gray400} /> : <Eye size={20} color={theme.colors.primary} />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -209,10 +210,10 @@ const SignUpScreen = () => {
               activeOpacity={0.8}
               onPress={handleSignUp}
               disabled={isLoading}
-              style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg shadow-[#0D9488]/40 mb-4 ${isLoading ? 'opacity-70' : ''}`}
+              style={tw`bg-teal-600 rounded-2xl py-4 shadow-lg shadow-teal-300/40 mb-4 ${isLoading ? 'opacity-70' : ''}`}
             >
               {isLoading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.colors.white} />
               ) : (
                 <Text style={tw`text-white text-center font-bold text-lg tracking-wide`}>
                   {t('signUpBtn')}
@@ -226,7 +227,7 @@ const SignUpScreen = () => {
                 {t('haveAccount')}
               </Text>
               <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/auth/signIn')}>
-                <Text style={tw`text-[#0D9488] font-bold text-base underline`}>
+                <Text style={tw`text-teal-600 font-bold text-base underline`}>
                   {t('logInLink')}
                 </Text>
               </TouchableOpacity>

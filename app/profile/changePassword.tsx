@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import { changeUserPassword } from '@/services/db';
 import { router } from 'expo-router';
@@ -34,13 +35,13 @@ const ChangePasswordScreen = () => {
 
     // Password strength indicator
     const getPasswordStrength = (password: string) => {
-        if (password.length === 0) return { level: 0, text: '', color: '#e5e7eb' };
-        if (password.length < 6) return { level: 1, text: t('weak'), color: '#ef4444' };
-        if (password.length < 8) return { level: 2, text: t('medium'), color: '#f59e0b' };
+        if (password.length === 0) return { level: 0, text: '', color: theme.colors.gray200 };
+        if (password.length < 6) return { level: 1, text: t('weak'), color: theme.colors.danger };
+        if (password.length < 8) return { level: 2, text: t('medium'), color: theme.colors.warning };
         if (password.match(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)) {
-            return { level: 4, text: t('strong'), color: '#10b981' };
+            return { level: 4, text: t('strong'), color: theme.colors.success };
         }
-        return { level: 3, text: t('good'), color: '#3b82f6' };
+        return { level: 3, text: t('good'), color: theme.colors.secondary };
     };
 
     const passwordStrength = getPasswordStrength(newPassword);
@@ -92,12 +93,12 @@ const ChangePasswordScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#0D9488] h-28 px-6 pt-12`}>
+            <View style={tw`bg-teal-600 h-28 px-6 pt-12`}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
-                    <ArrowLeft size={24} color="#fff" />
+                    <ArrowLeft size={24} color={theme.colors.white} />
                     <Text style={tw`text-white text-lg font-bold ml-2`}>{t('changePassword')}</Text>
                 </TouchableOpacity>
             </View>
@@ -113,7 +114,7 @@ const ChangePasswordScreen = () => {
                         {/* Security Icon */}
                         <View style={tw`items-center mb-8`}>
                             <View style={tw`w-20 h-20 bg-teal-50 rounded-full items-center justify-center mb-3`}>
-                                <Shield size={40} color="#0D9488" />
+                                <Shield size={40} color={theme.colors.primary} />
                             </View>
                             <Text style={tw`text-gray-600 text-center text-sm px-4`}>
                                 {t('changePasswordDesc')}
@@ -126,11 +127,11 @@ const ChangePasswordScreen = () => {
                                 {t('currentPassword')}
                             </Text>
                             <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                <Lock size={20} color="#9ca3af" />
+                                <Lock size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     placeholder={t('currentPasswordPlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     secureTextEntry={!showCurrentPassword}
                                     value={currentPassword}
                                     onChangeText={setCurrentPassword}
@@ -138,9 +139,9 @@ const ChangePasswordScreen = () => {
                                 />
                                 <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
                                     {showCurrentPassword ? (
-                                        <EyeOff size={20} color="#9ca3af" />
+                                        <EyeOff size={20} color={theme.colors.gray400} />
                                     ) : (
-                                        <Eye size={20} color="#9ca3af" />
+                                        <Eye size={20} color={theme.colors.gray400} />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -152,11 +153,11 @@ const ChangePasswordScreen = () => {
                                 {t('newPassword')}
                             </Text>
                             <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                <Lock size={20} color="#9ca3af" />
+                                <Lock size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     placeholder={t('newPasswordPlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     secureTextEntry={!showNewPassword}
                                     value={newPassword}
                                     onChangeText={setNewPassword}
@@ -164,9 +165,9 @@ const ChangePasswordScreen = () => {
                                 />
                                 <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
                                     {showNewPassword ? (
-                                        <EyeOff size={20} color="#9ca3af" />
+                                        <EyeOff size={20} color={theme.colors.gray400} />
                                     ) : (
-                                        <Eye size={20} color="#9ca3af" />
+                                        <Eye size={20} color={theme.colors.gray400} />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -185,7 +186,7 @@ const ChangePasswordScreen = () => {
                                                     {
                                                         backgroundColor: level <= passwordStrength.level
                                                             ? passwordStrength.color
-                                                            : '#e5e7eb'
+                                                            : theme.colors.gray200
                                                     }
                                                 ]}
                                             />
@@ -207,11 +208,11 @@ const ChangePasswordScreen = () => {
                                 {t('confirmPassLabel')}
                             </Text>
                             <View style={tw`flex-row items-center border ${confirmPassword && confirmPassword !== newPassword ? 'border-red-300' : 'border-gray-200'} rounded-2xl px-4 py-3.5 bg-gray-50`}>
-                                <Lock size={20} color="#9ca3af" />
+                                <Lock size={20} color={theme.colors.gray400} />
                                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                                 <TextInput
                                     placeholder={t('confirmPassPlaceholder')}
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={theme.colors.gray400}
                                     secureTextEntry={!showConfirmPassword}
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
@@ -219,9 +220,9 @@ const ChangePasswordScreen = () => {
                                 />
                                 <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                                     {showConfirmPassword ? (
-                                        <EyeOff size={20} color="#9ca3af" />
+                                        <EyeOff size={20} color={theme.colors.gray400} />
                                     ) : (
-                                        <Eye size={20} color="#9ca3af" />
+                                        <Eye size={20} color={theme.colors.gray400} />
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -242,10 +243,10 @@ const ChangePasswordScreen = () => {
                             onPress={handleChangePassword}
                             disabled={isLoading}
                             activeOpacity={0.8}
-                            style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                            style={tw`bg-teal-600 rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={theme.colors.white} />
                             ) : (
                                 <Text style={tw`text-white text-center font-bold text-lg`}>
                                     {t('updatePassword')}

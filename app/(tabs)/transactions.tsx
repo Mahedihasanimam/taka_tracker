@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { theme } from '@/constants/theme';
 import EmptyStateMascot from '@/components/EmptyStateMascot';
 import { deleteTransaction, getCategories, getTransactions } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -151,7 +152,7 @@ const TransactionsScreen = () => {
     const getColor = (transaction: any) => {
         if (transaction.color) return transaction.color;
         const category = getCategoryDetails(transaction.category);
-        return category?.color || '#6b7280';
+        return category?.color || theme.colors.mutedText;
     };
 
     // Apply date filter presets
@@ -320,18 +321,18 @@ const TransactionsScreen = () => {
     if (isLoading) {
         return (
             <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-                <ActivityIndicator size="large" color="#0D9488" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
-            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* --- HEADER --- */}
             <LinearGradient
-                colors={['#0D9488', '#0F766E']}
+                colors={theme.gradients.primary}
                 style={tw`px-6 pt-12 pb-20 rounded-b-[36px] shadow-lg`}
             >
                 <View style={tw`flex-row justify-between items-center mb-5`}>
@@ -350,14 +351,14 @@ const TransactionsScreen = () => {
                 <View style={tw`flex-row justify-between`}>
                     <View style={tw`flex-1 bg-white/15 rounded-2xl p-4 mr-2`}>
                         <View style={tw`flex-row items-center mb-1`}>
-                            <ArrowDownLeft size={16} color="#86efac" />
+                            <ArrowDownLeft size={16} color={theme.colors.lightSuccess} />
                             <Text style={tw`text-white/70 text-xs ml-1 font-medium`}>{t('totalIncome')}</Text>
                         </View>
                         <Text style={tw`text-white text-lg font-bold`}>৳{totals.income.toLocaleString()}</Text>
                     </View>
                     <View style={tw`flex-1 bg-white/15 rounded-2xl p-4 ml-2`}>
                         <View style={tw`flex-row items-center mb-1`}>
-                            <ArrowUpRight size={16} color="#fca5a5" />
+                            <ArrowUpRight size={16} color={theme.colors.lightDanger} />
                             <Text style={tw`text-white/70 text-xs ml-1 font-medium`}>{t('totalExpense')}</Text>
                         </View>
                         <Text style={tw`text-white text-lg font-bold`}>৳{totals.expense.toLocaleString()}</Text>
@@ -370,17 +371,17 @@ const TransactionsScreen = () => {
                 <View style={tw`bg-white rounded-2xl shadow-xl shadow-gray-300/50 p-4`}>
                     {/* Search Input */}
                     <View style={tw`flex-row items-center bg-gray-50 rounded-xl px-4 py-2.5 mb-3`}>
-                        <Search size={18} color="#9ca3af" />
+                        <Search size={18} color={theme.colors.gray400} />
                         <TextInput
                             placeholder={t('searchTransactions')}
-                            placeholderTextColor="#9ca3af"
+                            placeholderTextColor={theme.colors.gray400}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             style={tw`flex-1 ml-3 text-gray-800 font-medium text-sm`}
                         />
                         {searchQuery ? (
                             <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                <X size={18} color="#9ca3af" />
+                                <X size={18} color={theme.colors.gray400} />
                             </TouchableOpacity>
                         ) : null}
                     </View>
@@ -394,7 +395,7 @@ const TransactionsScreen = () => {
                                     key={item}
                                     onPress={() => setFilter(item)}
                                     style={tw`px-4 py-2 rounded-full mr-2 ${filter === item
-                                        ? item === 'income' ? 'bg-green-500' : item === 'expense' ? 'bg-red-500' : 'bg-[#0D9488]'
+                                        ? item === 'income' ? 'bg-green-500' : item === 'expense' ? 'bg-red-500' : 'bg-teal-600'
                                         : 'bg-gray-100'
                                         }`}
                                 >
@@ -408,13 +409,13 @@ const TransactionsScreen = () => {
                         {/* Date Filter Button */}
                         <TouchableOpacity
                             onPress={() => setShowDateFilter(true)}
-                            style={tw`flex-row items-center px-3 py-2 rounded-full ${dateFilterLabel ? 'bg-[#0D9488]' : 'bg-gray-100'}`}
+                            style={tw`flex-row items-center px-3 py-2 rounded-full ${dateFilterLabel ? 'bg-teal-600' : 'bg-gray-100'}`}
                         >
-                            <Calendar size={14} color={dateFilterLabel ? '#fff' : '#6b7280'} />
+                            <Calendar size={14} color={dateFilterLabel ? theme.colors.white : theme.colors.mutedText} />
                             <Text style={tw`text-xs font-bold ml-1 ${dateFilterLabel ? 'text-white' : 'text-gray-500'}`}>
                                 {dateFilterLabel || t('date')}
                             </Text>
-                            <ChevronDown size={14} color={dateFilterLabel ? '#fff' : '#6b7280'} style={tw`ml-1`} />
+                            <ChevronDown size={14} color={dateFilterLabel ? theme.colors.white : theme.colors.mutedText} style={tw`ml-1`} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -436,7 +437,7 @@ const TransactionsScreen = () => {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={tw`pb-28 px-5 pt-4`}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0D9488']} />
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
                     }
                     renderItem={({ item: section }) => (
                         <View style={tw`mb-5`}>
@@ -486,9 +487,9 @@ const TransactionsScreen = () => {
                                                         </Text>
                                                         <View style={tw`flex-row items-center`}>
                                                             {transaction.type === 'expense' ? (
-                                                                <ArrowUpRight size={12} color="#ef4444" />
+                                                                <ArrowUpRight size={12} color={theme.colors.danger} />
                                                             ) : (
-                                                                <ArrowDownLeft size={12} color="#10b981" />
+                                                                <ArrowDownLeft size={12} color={theme.colors.success} />
                                                             )}
                                                             <Text style={tw`text-[10px] text-gray-400 font-medium ml-1`}>
                                                                 {new Date(transaction.date).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', {
@@ -516,7 +517,7 @@ const TransactionsScreen = () => {
             <TouchableOpacity
                 onPress={() => router.push('/add')}
                 activeOpacity={0.9}
-                style={tw`absolute bottom-28 right-5 w-14 h-14 bg-[#0D9488] rounded-2xl items-center justify-center shadow-lg shadow-[#0D9488]/50`}
+                style={tw`absolute bottom-28 right-5 w-14 h-14 bg-teal-600 rounded-2xl items-center justify-center shadow-lg shadow-teal-300`}
             >
                 <Plus size={28} color="white" strokeWidth={2.5} />
             </TouchableOpacity>
@@ -538,7 +539,7 @@ const TransactionsScreen = () => {
                             <View style={tw`flex-row justify-between items-center mb-6`}>
                                 <Text style={tw`text-xl font-bold text-gray-800`}>{t('filterByDate')}</Text>
                                 <TouchableOpacity onPress={() => setShowDateFilter(false)}>
-                                    <X size={24} color="#6b7280" />
+                                    <X size={24} color={theme.colors.mutedText} />
                                 </TouchableOpacity>
                             </View>
 
@@ -568,12 +569,12 @@ const TransactionsScreen = () => {
                             <View style={tw`flex-row mb-6`}>
                                 <TouchableOpacity
                                     onPress={() => setShowStartPicker(true)}
-                                    style={tw`flex-1 bg-gray-100 p-4 rounded-xl mr-2 ${tempStartDate ? 'border-2 border-[#0D9488]' : ''}`}
+                                    style={tw`flex-1 bg-gray-100 p-4 rounded-xl mr-2 ${tempStartDate ? 'border-2 border-teal-600' : ''}`}
                                 >
                                     <Text style={tw`text-gray-400 text-xs mb-1`}>{t('from')}</Text>
                                     <View style={tw`flex-row items-center`}>
-                                        <Calendar size={16} color={tempStartDate ? '#0D9488' : '#6b7280'} />
-                                        <Text style={tw`ml-2 font-medium ${tempStartDate ? 'text-[#0D9488]' : 'text-gray-800'}`}>
+                                        <Calendar size={16} color={tempStartDate ? theme.colors.primary : theme.colors.mutedText} />
+                                        <Text style={tw`ml-2 font-medium ${tempStartDate ? 'text-teal-600' : 'text-gray-800'}`}>
                                             {tempStartDate
                                                 ? tempStartDate.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
                                                 : t('selectDate')
@@ -583,12 +584,12 @@ const TransactionsScreen = () => {
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => setShowEndPicker(true)}
-                                    style={tw`flex-1 bg-gray-100 p-4 rounded-xl ml-2 ${tempEndDate ? 'border-2 border-[#0D9488]' : ''}`}
+                                    style={tw`flex-1 bg-gray-100 p-4 rounded-xl ml-2 ${tempEndDate ? 'border-2 border-teal-600' : ''}`}
                                 >
                                     <Text style={tw`text-gray-400 text-xs mb-1`}>{t('to')}</Text>
                                     <View style={tw`flex-row items-center`}>
-                                        <Calendar size={16} color={tempEndDate ? '#0D9488' : '#6b7280'} />
-                                        <Text style={tw`ml-2 font-medium ${tempEndDate ? 'text-[#0D9488]' : 'text-gray-800'}`}>
+                                        <Calendar size={16} color={tempEndDate ? theme.colors.primary : theme.colors.mutedText} />
+                                        <Text style={tw`ml-2 font-medium ${tempEndDate ? 'text-teal-600' : 'text-gray-800'}`}>
                                             {tempEndDate
                                                 ? tempEndDate.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
                                                 : t('selectDate')
@@ -609,7 +610,7 @@ const TransactionsScreen = () => {
                                 <TouchableOpacity
                                     onPress={applyCustomDateRange}
                                     disabled={!tempStartDate || !tempEndDate}
-                                    style={tw`flex-1 py-4 rounded-xl ml-2 ${tempStartDate && tempEndDate ? 'bg-[#0D9488]' : 'bg-gray-300'}`}
+                                    style={tw`flex-1 py-4 rounded-xl ml-2 ${tempStartDate && tempEndDate ? 'bg-teal-600' : 'bg-gray-300'}`}
                                 >
                                     <Text style={tw`text-white text-center font-bold`}>{t('applyFilter')}</Text>
                                 </TouchableOpacity>
@@ -665,7 +666,7 @@ const TransactionsScreen = () => {
                             {selectedTransaction?.category}
                             </Text>
                             <TouchableOpacity onPress={() => setShowActionModal(false)} style={tw`bg-gray-100 p-2 rounded-full`}>
-                                <X size={18} color="#6b7280" />
+                                <X size={18} color={theme.colors.mutedText} />
                             </TouchableOpacity>
                         </View>
 
@@ -676,7 +677,7 @@ const TransactionsScreen = () => {
                             }}
                             style={tw`flex-row items-center p-4 bg-gray-50 rounded-xl mb-3`}
                         >
-                            <Filter size={20} color="#6b7280" />
+                            <Filter size={20} color={theme.colors.mutedText} />
                             <Text style={tw`ml-3 text-gray-700 font-medium`}>{t('editTransaction')}</Text>
                         </TouchableOpacity>
 
@@ -684,7 +685,7 @@ const TransactionsScreen = () => {
                             onPress={() => handleDelete(selectedTransaction)}
                             style={tw`flex-row items-center p-4 bg-red-50 rounded-xl`}
                         >
-                            <Trash2 size={20} color="#ef4444" />
+                            <Trash2 size={20} color={theme.colors.danger} />
                             <Text style={tw`ml-3 text-red-500 font-medium`}>{t('deleteTransaction')}</Text>
                         </TouchableOpacity>
                     </View>

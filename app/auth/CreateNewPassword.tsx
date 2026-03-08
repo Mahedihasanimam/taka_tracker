@@ -1,4 +1,5 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { theme } from "@/constants/theme";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Check, Eye, EyeOff, Lock, ShieldCheck, X } from 'lucide-react-native';
@@ -45,12 +46,12 @@ const CreateNewPassword = () => {
 
   return (
     <View style={tw`flex-1 bg-slate-50`}>
-      <StatusBar backgroundColor="#0F766E" barStyle="light-content" />
+      <StatusBar backgroundColor={theme.colors.primaryDark} barStyle="light-content" />
 
       {/* --- HEADER --- */}
       {/* Consistent Height and Padding with previous screens */}
       <LinearGradient
-        colors={['#0D9488', '#0F766E']}
+        colors={[theme.colors.primary, theme.colors.primaryDark]}
         style={tw`h-80 px-6 pt-12 pb-12 rounded-b-[36px] shadow-lg relative z-0 justify-start`}
       >
         <TouchableOpacity
@@ -82,7 +83,7 @@ const CreateNewPassword = () => {
               {/* Hero Icon */}
               <View style={tw`items-center mb-8`}>
                 <View style={tw`w-20 h-20 bg-green-50 rounded-full items-center justify-center border-4 border-white shadow-sm`}>
-                  <ShieldCheck size={32} color="#10b981" />
+                  <ShieldCheck size={32} color={theme.colors.success} />
                 </View>
               </View>
 
@@ -93,13 +94,13 @@ const CreateNewPassword = () => {
                 </Text>
                 <View
                   style={tw`flex-row items-center border rounded-2xl px-4 py-3.5 bg-gray-50 
-                  ${focusPass ? 'border-[#0D9488] bg-teal-50/20' : 'border-gray-200'}`}
+                  ${focusPass ? 'border-teal-600 bg-teal-50/20' : 'border-gray-200'}`}
                 >
-                  <Lock size={20} color={focusPass ? '#0D9488' : '#9ca3af'} />
+                  <Lock size={20} color={focusPass ? theme.colors.primary : theme.colors.gray400} />
                   <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                   <TextInput
                     placeholder="Min 6 characters"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={theme.colors.gray400}
                     secureTextEntry={!showPass}
                     value={password}
                     onChangeText={setPassword}
@@ -108,7 +109,7 @@ const CreateNewPassword = () => {
                     style={tw`flex-1 text-gray-800 text-base font-medium`}
                   />
                   <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                    {showPass ? <Eye size={20} color="#0D9488" /> : <EyeOff size={20} color="#9ca3af" />}
+                    {showPass ? <Eye size={20} color={theme.colors.primary} /> : <EyeOff size={20} color={theme.colors.gray400} />}
                   </TouchableOpacity>
                 </View>
                 {/* Length Hint */}
@@ -126,13 +127,13 @@ const CreateNewPassword = () => {
                   style={tw`flex-row items-center border rounded-2xl px-4 py-3.5 bg-gray-50 
                   ${confirmPassword.length > 0 && isMatch ? 'border-green-500 bg-green-50/30' :
                       confirmPassword.length > 0 && !isMatch ? 'border-red-400 bg-red-50/30' :
-                        focusConfirm ? 'border-[#0D9488] bg-teal-50/20' : 'border-gray-200'}`}
+                        focusConfirm ? 'border-teal-600 bg-teal-50/20' : 'border-gray-200'}`}
                 >
-                  <Lock size={20} color={focusConfirm ? '#0D9488' : '#9ca3af'} />
+                  <Lock size={20} color={focusConfirm ? theme.colors.primary : theme.colors.gray400} />
                   <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                   <TextInput
                     placeholder="Re-enter password"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={theme.colors.gray400}
                     secureTextEntry={!showConfirmPass}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
@@ -144,12 +145,12 @@ const CreateNewPassword = () => {
                   {/* Visual Validation Icon */}
                   {confirmPassword.length > 0 && (
                     <View style={tw`ml-2`}>
-                      {isMatch ? <Check size={18} color="#10b981" /> : <X size={18} color="#ef4444" />}
+                      {isMatch ? <Check size={18} color={theme.colors.success} /> : <X size={18} color={theme.colors.danger} />}
                     </View>
                   )}
 
                   <TouchableOpacity onPress={() => setShowConfirmPass(!showConfirmPass)} style={tw`ml-2`}>
-                    {showConfirmPass ? <Eye size={20} color="#0D9488" /> : <EyeOff size={20} color="#9ca3af" />}
+                    {showConfirmPass ? <Eye size={20} color={theme.colors.primary} /> : <EyeOff size={20} color={theme.colors.gray400} />}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -160,7 +161,7 @@ const CreateNewPassword = () => {
                 disabled={!canSubmit}
                 activeOpacity={0.8}
                 style={tw`rounded-2xl py-4 items-center mb-4 
-                ${canSubmit ? 'bg-[#10b981] shadow-lg shadow-green-200' : 'bg-gray-200'}`}
+                ${canSubmit ? 'bg-green-600 shadow-lg shadow-green-200' : 'bg-gray-200'}`}
               >
                 <Text style={tw`font-bold text-lg tracking-wide ${canSubmit ? 'text-white' : 'text-gray-400'}`}>
                   {t('resetBtn')}
