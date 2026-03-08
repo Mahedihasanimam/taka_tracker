@@ -45,12 +45,12 @@ const CreateNewPassword = () => {
 
   return (
     <View style={tw`flex-1 bg-slate-50`}>
-      <StatusBar backgroundColor="#be125a" barStyle="light-content" />
+      <StatusBar backgroundColor="#0F766E" barStyle="light-content" />
 
       {/* --- HEADER --- */}
       {/* Consistent Height and Padding with previous screens */}
       <LinearGradient
-        colors={['#e2136e', '#be125a']}
+        colors={['#0D9488', '#0F766E']}
         style={tw`h-80 px-6 pt-12 pb-12 rounded-b-[36px] shadow-lg relative z-0 justify-start`}
       >
         <TouchableOpacity
@@ -93,9 +93,9 @@ const CreateNewPassword = () => {
                 </Text>
                 <View
                   style={tw`flex-row items-center border rounded-2xl px-4 py-3.5 bg-gray-50 
-                  ${focusPass ? 'border-[#e2136e] bg-pink-50/20' : 'border-gray-200'}`}
+                  ${focusPass ? 'border-[#0D9488] bg-teal-50/20' : 'border-gray-200'}`}
                 >
-                  <Lock size={20} color={focusPass ? '#e2136e' : '#9ca3af'} />
+                  <Lock size={20} color={focusPass ? '#0D9488' : '#9ca3af'} />
                   <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                   <TextInput
                     placeholder="Min 6 characters"
@@ -108,7 +108,7 @@ const CreateNewPassword = () => {
                     style={tw`flex-1 text-gray-800 text-base font-medium`}
                   />
                   <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                    {showPass ? <Eye size={20} color="#e2136e" /> : <EyeOff size={20} color="#9ca3af" />}
+                    {showPass ? <Eye size={20} color="#0D9488" /> : <EyeOff size={20} color="#9ca3af" />}
                   </TouchableOpacity>
                 </View>
                 {/* Length Hint */}
@@ -126,9 +126,9 @@ const CreateNewPassword = () => {
                   style={tw`flex-row items-center border rounded-2xl px-4 py-3.5 bg-gray-50 
                   ${confirmPassword.length > 0 && isMatch ? 'border-green-500 bg-green-50/30' :
                       confirmPassword.length > 0 && !isMatch ? 'border-red-400 bg-red-50/30' :
-                        focusConfirm ? 'border-[#e2136e] bg-pink-50/20' : 'border-gray-200'}`}
+                        focusConfirm ? 'border-[#0D9488] bg-teal-50/20' : 'border-gray-200'}`}
                 >
-                  <Lock size={20} color={focusConfirm ? '#e2136e' : '#9ca3af'} />
+                  <Lock size={20} color={focusConfirm ? '#0D9488' : '#9ca3af'} />
                   <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                   <TextInput
                     placeholder="Re-enter password"
@@ -149,7 +149,7 @@ const CreateNewPassword = () => {
                   )}
 
                   <TouchableOpacity onPress={() => setShowConfirmPass(!showConfirmPass)} style={tw`ml-2`}>
-                    {showConfirmPass ? <Eye size={20} color="#e2136e" /> : <EyeOff size={20} color="#9ca3af" />}
+                    {showConfirmPass ? <Eye size={20} color="#0D9488" /> : <EyeOff size={20} color="#9ca3af" />}
                   </TouchableOpacity>
                 </View>
               </View>

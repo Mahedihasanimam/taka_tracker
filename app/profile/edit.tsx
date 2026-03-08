@@ -1,3 +1,4 @@
+import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { updateUserProfile } from '@/services/db';
@@ -22,11 +23,11 @@ import tw from 'twrnc';
 
 const EditProfileScreen = () => {
     const { t } = useLanguage();
-    const { user, updateUser } = useAuth();
+    const { user, avatarUri, updateUser, updateAvatar } = useAuth();
 
     const [name, setName] = useState(user?.name || '');
     const [phone] = useState(user?.phone || '');
-    const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [profileImage, setProfileImage] = useState<string | null>(avatarUri);
     const [isLoading, setIsLoading] = useState(false);
 
     // Pick image from gallery
@@ -105,6 +106,7 @@ const EditProfileScreen = () => {
             const result = await updateUserProfile(user!.id, name.trim());
             if (result.success && result.user) {
                 await updateUser(result.user);
+                await updateAvatar(profileImage);
                 Alert.alert(
                     t('success'),
                     t('profileUpdateSuccess'),
@@ -122,10 +124,10 @@ const EditProfileScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#e2136e] h-28 px-6 pt-12`}>
+            <View style={[tw`h-28 px-6 pt-12`, { backgroundColor: theme.colors.primary }]}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
                     <ArrowLeft size={24} color="#fff" />
                     <Text style={tw`text-white text-lg font-bold ml-2`}>{t('editProfile')}</Text>
@@ -144,7 +146,7 @@ const EditProfileScreen = () => {
                         <View style={tw`items-center mb-8`}>
                             <TouchableOpacity onPress={showImageOptions} activeOpacity={0.8}>
                                 <View style={tw`relative`}>
-                                    <View style={tw`w-28 h-28 rounded-full border-4 border-pink-100 overflow-hidden bg-pink-50`}>
+                                    <View style={tw`w-28 h-28 rounded-full border-4 border-teal-100 overflow-hidden bg-teal-50`}>
                                         {profileImage ? (
                                             <Image
                                                 source={{ uri: profileImage }}
@@ -153,18 +155,18 @@ const EditProfileScreen = () => {
                                             />
                                         ) : (
                                             <View style={tw`w-full h-full items-center justify-center`}>
-                                                <User size={48} color="#e2136e" />
+                                                <User size={48} color={theme.colors.primary} />
                                             </View>
                                         )}
                                     </View>
                                     {/* Camera Badge */}
-                                    <View style={tw`absolute bottom-0 right-0 w-9 h-9 bg-[#e2136e] rounded-full items-center justify-center border-3 border-white`}>
+                                    <View style={[tw`absolute bottom-0 right-0 w-9 h-9 rounded-full items-center justify-center border-3 border-white`, { backgroundColor: theme.colors.primary }]}>
                                         <Camera size={16} color="white" />
                                     </View>
                                 </View>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={showImageOptions} style={tw`mt-3`}>
-                                <Text style={tw`text-[#e2136e] font-semibold text-sm`}>{t('changePhoto')}</Text>
+                                <Text style={[tw`font-semibold text-sm`, { color: theme.colors.primary }]}>{t('changePhoto')}</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -210,7 +212,10 @@ const EditProfileScreen = () => {
                             onPress={handleSave}
                             disabled={isLoading}
                             activeOpacity={0.8}
-                            style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                            style={[
+                                tw`rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`,
+                                { backgroundColor: theme.colors.primary }
+                            ]}
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="#fff" />

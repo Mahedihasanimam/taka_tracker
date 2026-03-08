@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import EmptyStateMascot from '@/components/EmptyStateMascot';
 import {
     addBudget,
     deleteBudget,
@@ -279,18 +280,18 @@ const BudgetScreen = () => {
     if (isLoading) {
         return (
             <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-                <ActivityIndicator size="large" color="#e2136e" />
+                <ActivityIndicator size="large" color="#0D9488" />
             </View>
         );
     }
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
 
             {/* --- HEADER --- */}
             <LinearGradient
-                colors={['#e2136e', '#be125a']}
+                colors={['#0D9488', '#0F766E']}
                 style={tw`px-6 pt-10 pb-32 rounded-b-[36px] shadow-lg`}
             >
                 <Text style={tw`text-white text-2xl font-extrabold tracking-wide mb-4`}>
@@ -312,8 +313,8 @@ const BudgetScreen = () => {
                             <Text style={tw`text-gray-400 text-xs font-bold uppercase tracking-wider`}>{t('totalBudget') || 'Total Budget'}</Text>
                             <Text style={tw`text-2xl font-extrabold text-gray-900`}>৳{totalBudget.toLocaleString()}</Text>
                         </View>
-                        <View style={tw`bg-pink-50 p-3 rounded-2xl`}>
-                            <PieChart size={24} color="#e2136e" />
+                        <View style={tw`bg-teal-50 p-3 rounded-2xl`}>
+                            <PieChart size={24} color="#0D9488" />
                         </View>
                     </View>
 
@@ -365,28 +366,26 @@ const BudgetScreen = () => {
                 contentContainerStyle={tw`pb-24 pt-4 px-6`}
                 style={tw`-mt-16`}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e2136e']} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0D9488']} />
                 }
                 ListHeaderComponent={() => (
                     <TouchableOpacity
                         onPress={() => openModal()}
                         activeOpacity={0.8}
-                        style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed border-pink-300 mb-5`}
+                        style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed border-teal-300 mb-5`}
                     >
-                        <View style={tw`w-10 h-10 bg-pink-100 rounded-full items-center justify-center mr-3`}>
-                            <Plus size={20} color="#e2136e" />
+                        <View style={tw`w-10 h-10 bg-teal-100 rounded-full items-center justify-center mr-3`}>
+                            <Plus size={20} color="#0D9488" />
                         </View>
-                        <Text style={tw`text-[#e2136e] font-bold`}>{t('createBudget') || 'Create Budget'}</Text>
+                        <Text style={tw`text-[#0D9488] font-bold`}>{t('createBudget') || 'Create Budget'}</Text>
                     </TouchableOpacity>
                 )}
                 ListEmptyComponent={() => (
-                    <View style={tw`items-center py-10`}>
-                        <View style={tw`w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4`}>
-                            <PieChart size={32} color="#9ca3af" />
-                        </View>
-                        <Text style={tw`text-gray-500 font-medium`}>{t('noBudgets') || 'No budgets yet'}</Text>
-                        <Text style={tw`text-gray-400 text-sm mt-1`}>{t('noBudgetsHint') || 'Create a budget to track your spending'}</Text>
-                    </View>
+                    <EmptyStateMascot
+                        variant="budget"
+                        title={t('noBudgets') || 'No budgets yet'}
+                        subtitle={t('noBudgetsHint') || 'Create a budget to track your spending'}
+                    />
                 )}
                 renderItem={({ item }) => {
                     const percent = item.limit_amount > 0 ? Math.min((item.spent / item.limit_amount) * 100, 100) : 0;
@@ -490,17 +489,17 @@ const BudgetScreen = () => {
                                                 <View
                                                     style={[
                                                         tw`w-12 h-12 rounded-2xl items-center justify-center mb-1`,
-                                                        { backgroundColor: isSelected ? '#e2136e' : (cat.color || '#6b7280') + '20' }
+                                                        { backgroundColor: isSelected ? '#0D9488' : (cat.color || '#6b7280') + '20' }
                                                     ]}
                                                 >
                                                     <IconComp size={20} color={isSelected ? 'white' : (cat.color || '#6b7280')} />
                                                     {isSelected && (
                                                         <View style={tw`absolute -top-1 -right-1 bg-white rounded-full p-0.5`}>
-                                                            <Check size={10} color="#e2136e" />
+                                                            <Check size={10} color="#0D9488" />
                                                         </View>
                                                     )}
                                                 </View>
-                                                <Text style={tw`text-[10px] font-bold text-center ${isSelected ? 'text-[#e2136e]' : 'text-gray-500'}`} numberOfLines={1}>
+                                                <Text style={tw`text-[10px] font-bold text-center ${isSelected ? 'text-[#0D9488]' : 'text-gray-500'}`} numberOfLines={1}>
                                                     {cat.name}
                                                 </Text>
                                             </TouchableOpacity>
@@ -511,7 +510,7 @@ const BudgetScreen = () => {
                                 <View style={tw`bg-amber-50 p-4 rounded-xl mb-6`}>
                                     <Text style={tw`text-amber-700 text-sm text-center`}>{t('allCategoriesBudgeted') || 'All categories have budgets'}</Text>
                                     <TouchableOpacity onPress={() => { setModalVisible(false); router.push('/screens/categories'); }}>
-                                        <Text style={tw`text-[#e2136e] font-bold text-center mt-2`}>{t('addMoreCategories') || 'Add more categories'}</Text>
+                                        <Text style={tw`text-[#0D9488] font-bold text-center mt-2`}>{t('addMoreCategories') || 'Add more categories'}</Text>
                                     </TouchableOpacity>
                                 </View>
                             ) : null}
@@ -555,7 +554,7 @@ const BudgetScreen = () => {
                                 onPress={handleSave}
                                 disabled={isSaving || (!isEditing && getAvailableCategories().length === 0)}
                                 activeOpacity={0.9}
-                                style={tw`bg-[#e2136e] rounded-2xl py-4 items-center shadow-lg ${isSaving || (!isEditing && getAvailableCategories().length === 0) ? 'opacity-70' : ''}`}
+                                style={tw`bg-[#0D9488] rounded-2xl py-4 items-center shadow-lg ${isSaving || (!isEditing && getAvailableCategories().length === 0) ? 'opacity-70' : ''}`}
                             >
                                 {isSaving ? (
                                     <ActivityIndicator color="white" />

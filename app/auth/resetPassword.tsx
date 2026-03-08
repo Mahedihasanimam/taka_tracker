@@ -58,10 +58,10 @@ const ResetPasswordScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#e2136e] h-44 px-6 pt-12`}>
+            <View style={tw`bg-[#0D9488] h-44 px-6 pt-12`}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
                     <ArrowLeft size={24} color="#fff" />
                     <Text style={tw`text-white text-lg font-medium ml-2`}>{t('back')}</Text>
@@ -102,7 +102,7 @@ const ResetPasswordScreen = () => {
                                     style={tw`flex-1 text-gray-800 text-base font-medium`}
                                 />
                                 <TouchableOpacity onPress={() => setSecureText(!secureText)}>
-                                    {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#e2136e" />}
+                                    {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -124,7 +124,7 @@ const ResetPasswordScreen = () => {
                                     style={tw`flex-1 text-gray-800 text-base font-medium`}
                                 />
                                 <TouchableOpacity onPress={() => setSecureConfirmText(!secureConfirmText)}>
-                                    {secureConfirmText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#e2136e" />}
+                                    {secureConfirmText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -134,7 +134,7 @@ const ResetPasswordScreen = () => {
                             onPress={handleReset}
                             disabled={isLoading}
                             activeOpacity={0.8}
-                            style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                            style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="#fff" />

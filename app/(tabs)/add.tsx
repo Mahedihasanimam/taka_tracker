@@ -3,7 +3,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { addTransaction, getCategories } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
     ArrowLeft,
     Banknote,
@@ -83,6 +83,7 @@ const AddTransactionScreen = () => {
     const { t, lang } = useLanguage();
     const { user } = useAuth();
     const router = useRouter();
+    const params = useLocalSearchParams<{ type?: string }>();
 
     // State
     const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -128,7 +129,12 @@ const AddTransactionScreen = () => {
             setSelectedCategory(null);
             setNote('');
             setDate(new Date());
-        }, [fetchCategories])
+            if (params.type === 'income' || params.type === 'expense') {
+                setType(params.type);
+            } else {
+                setType('expense');
+            }
+        }, [fetchCategories, params.type])
     );
 
     // Get current categories based on type
@@ -215,11 +221,11 @@ const AddTransactionScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor={type === 'expense' ? '#e2136e' : '#10b981'} barStyle="light-content" />
+            <StatusBar backgroundColor={type === 'expense' ? '#0D9488' : '#10b981'} barStyle="light-content" />
 
             {/* Header with Amount Input */}
             <LinearGradient
-                colors={type === 'expense' ? ['#e2136e', '#be125a'] : ['#10b981', '#059669']}
+                colors={type === 'expense' ? ['#0D9488', '#0F766E'] : ['#10b981', '#059669']}
                 style={tw`h-64 px-6 pt-12 rounded-b-[36px] shadow-lg z-10`}
             >
                 <View style={tw`flex-row justify-between items-center mb-6`}>
@@ -261,8 +267,8 @@ const AddTransactionScreen = () => {
                                     onPress={() => handleTypeChange('expense')}
                                     style={tw`flex-1 py-3 rounded-xl items-center flex-row justify-center ${type === 'expense' ? 'bg-white shadow-sm' : ''}`}
                                 >
-                                    <ShoppingBag size={18} color={type === 'expense' ? '#e2136e' : '#9ca3af'} style={tw`mr-2`} />
-                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-[#e2136e]' : 'text-gray-500'}`}>
+                                    <ShoppingBag size={18} color={type === 'expense' ? '#0D9488' : '#9ca3af'} style={tw`mr-2`} />
+                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-[#0D9488]' : 'text-gray-500'}`}>
                                         {t('expense')}
                                     </Text>
                                 </TouchableOpacity>
@@ -285,14 +291,14 @@ const AddTransactionScreen = () => {
                                     onPress={() => router.push('/screens/categories')}
                                     style={tw`flex-row items-center`}
                                 >
-                                    <Plus size={14} color="#e2136e" />
-                                    <Text style={tw`text-[#e2136e] text-xs font-bold ml-1`}>{t('manage')}</Text>
+                                    <Plus size={14} color="#0D9488" />
+                                    <Text style={tw`text-[#0D9488] text-xs font-bold ml-1`}>{t('manage')}</Text>
                                 </TouchableOpacity>
                             </View>
 
                             {isLoadingCategories ? (
                                 <View style={tw`h-32 items-center justify-center`}>
-                                    <ActivityIndicator size="small" color="#e2136e" />
+                                    <ActivityIndicator size="small" color="#0D9488" />
                                 </View>
                             ) : (
                                 <View style={tw`flex-row flex-wrap mb-6`}>
@@ -310,7 +316,7 @@ const AddTransactionScreen = () => {
                                                         tw`w-14 h-14 rounded-2xl items-center justify-center mb-2`,
                                                         {
                                                             backgroundColor: isSelected
-                                                                ? (type === 'expense' ? '#e2136e' : '#10b981')
+                                                                ? (type === 'expense' ? '#0D9488' : '#10b981')
                                                                 : cat.color + '20'
                                                         }
                                                     ]}
@@ -367,7 +373,7 @@ const AddTransactionScreen = () => {
                                 activeOpacity={0.8}
                                 disabled={isSaving}
                                 style={tw`rounded-2xl py-4 items-center shadow-lg ${isSaving ? 'opacity-70' : ''}
-                                    ${type === 'expense' ? 'bg-[#e2136e]' : 'bg-[#10b981]'}`}
+                                    ${type === 'expense' ? 'bg-[#0D9488]' : 'bg-[#10b981]'}`}
                                 onPress={handleSave}
                             >
                                 {isSaving ? (

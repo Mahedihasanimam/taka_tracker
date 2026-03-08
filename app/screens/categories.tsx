@@ -75,7 +75,7 @@ const CategoryManagementScreen = () => {
     // Form State
     const [name, setName] = useState('');
     const [selectedIconName, setSelectedIconName] = useState('MoreHorizontal');
-    const [selectedColor, setSelectedColor] = useState('#e2136e');
+    const [selectedColor, setSelectedColor] = useState('#0D9488');
 
     // Categories data
     const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
@@ -106,7 +106,7 @@ const CategoryManagementScreen = () => {
     ];
 
     const availableColors = [
-        '#e2136e', '#f97316', '#eab308', '#10b981', '#06b6d4',
+        '#0D9488', '#f97316', '#eab308', '#10b981', '#06b6d4',
         '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#14b8a6',
         '#f59e0b', '#84cc16', '#6366f1', '#d946ef', '#1f2937'
     ];
@@ -150,7 +150,7 @@ const CategoryManagementScreen = () => {
             setEditingId(null);
             setName('');
             setSelectedIconName('MoreHorizontal');
-            setSelectedColor(activeTab === 'expense' ? '#e2136e' : '#10b981');
+            setSelectedColor(activeTab === 'expense' ? '#0D9488' : '#10b981');
         }
         setModalVisible(true);
     };
@@ -205,18 +205,18 @@ const CategoryManagementScreen = () => {
     if (isLoading) {
         return (
             <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-                <ActivityIndicator size="large" color="#e2136e" />
+                <ActivityIndicator size="large" color="#0D9488" />
             </View>
         );
     }
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
 
             {/* --- HEADER --- */}
             <LinearGradient
-                colors={['#e2136e', '#be125a']}
+                colors={['#0D9488', '#0F766E']}
                 style={tw`h-52 px-6 pt-12 rounded-b-[36px] shadow-lg`}
             >
                 <View style={tw`flex-row justify-between items-center mb-6`}>
@@ -233,7 +233,7 @@ const CategoryManagementScreen = () => {
                 <View style={tw`bg-white rounded-2xl p-1.5 flex-row shadow-xl mx-2`}>
                     <TouchableOpacity
                         onPress={() => setActiveTab('expense')}
-                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'expense' ? 'bg-[#e2136e]' : 'bg-transparent'}`}
+                        style={tw`flex-1 py-3.5 rounded-xl items-center flex-row justify-center ${activeTab === 'expense' ? 'bg-[#0D9488]' : 'bg-transparent'}`}
                     >
                         <ShoppingBag size={18} color={activeTab === 'expense' ? 'white' : '#9ca3af'} style={tw`mr-2`} />
                         <Text style={tw`font-bold ${activeTab === 'expense' ? 'text-white' : 'text-gray-500'}`}>
@@ -260,12 +260,12 @@ const CategoryManagementScreen = () => {
                 <TouchableOpacity
                     onPress={() => handleOpenModal()}
                     activeOpacity={0.8}
-                    style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed ${activeTab === 'expense' ? 'border-pink-300' : 'border-green-300'} mb-5`}
+                    style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed ${activeTab === 'expense' ? 'border-teal-300' : 'border-green-300'} mb-5`}
                 >
-                    <View style={tw`w-10 h-10 rounded-full ${activeTab === 'expense' ? 'bg-pink-100' : 'bg-green-100'} items-center justify-center mr-3`}>
-                        <Plus size={20} color={activeTab === 'expense' ? '#e2136e' : '#10b981'} />
+                    <View style={tw`w-10 h-10 rounded-full ${activeTab === 'expense' ? 'bg-teal-100' : 'bg-green-100'} items-center justify-center mr-3`}>
+                        <Plus size={20} color={activeTab === 'expense' ? '#0D9488' : '#10b981'} />
                     </View>
-                    <Text style={tw`${activeTab === 'expense' ? 'text-[#e2136e]' : 'text-[#10b981]'} font-bold text-base`}>
+                    <Text style={tw`${activeTab === 'expense' ? 'text-[#0D9488]' : 'text-[#10b981]'} font-bold text-base`}>
                         {t('addNewCategory')}
                     </Text>
                 </TouchableOpacity>

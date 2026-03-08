@@ -92,10 +92,10 @@ const ChangePasswordScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#e2136e] h-28 px-6 pt-12`}>
+            <View style={tw`bg-[#0D9488] h-28 px-6 pt-12`}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
                     <ArrowLeft size={24} color="#fff" />
                     <Text style={tw`text-white text-lg font-bold ml-2`}>{t('changePassword')}</Text>
@@ -112,8 +112,8 @@ const ChangePasswordScreen = () => {
 
                         {/* Security Icon */}
                         <View style={tw`items-center mb-8`}>
-                            <View style={tw`w-20 h-20 bg-pink-50 rounded-full items-center justify-center mb-3`}>
-                                <Shield size={40} color="#e2136e" />
+                            <View style={tw`w-20 h-20 bg-teal-50 rounded-full items-center justify-center mb-3`}>
+                                <Shield size={40} color="#0D9488" />
                             </View>
                             <Text style={tw`text-gray-600 text-center text-sm px-4`}>
                                 {t('changePasswordDesc')}
@@ -242,7 +242,7 @@ const ChangePasswordScreen = () => {
                             onPress={handleChangePassword}
                             disabled={isLoading}
                             activeOpacity={0.8}
-                            style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                            style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="#fff" />

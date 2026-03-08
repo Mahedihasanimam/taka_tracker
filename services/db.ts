@@ -14,6 +14,38 @@ export interface User {
   created_at: string;
 }
 
+export interface TransactionRecord {
+  id: number;
+  user_id?: number;
+  amount: number;
+  type: string;
+  category: string;
+  date: string;
+  note?: string;
+  icon?: string;
+  color?: string;
+}
+
+export interface UserBackupPayload {
+  user: Pick<User, "id" | "name" | "phone" | "created_at"> | null;
+  transactions: TransactionRecord[];
+  categories: {
+    id: number;
+    user_id?: number;
+    name: string;
+    type: string;
+    icon: string;
+    color: string;
+  }[];
+  budgets: {
+    id: number;
+    user_id?: number;
+    category: string;
+    limit_amount: number;
+  }[];
+  exported_at: string;
+}
+
 // --- INITIALIZE DATABASE & TABLES ---
 export const initDB = async (): Promise<boolean> => {
   // If already initializing, wait for it
@@ -118,7 +150,7 @@ export const initDB = async (): Promise<boolean> => {
   return dbInitPromise;
 };
 
-// Helper to ensure DB is ready before operations
+// Helper to ensure DB is ready before operations .
 const ensureDB = async (): Promise<SQLite.SQLiteDatabase> => {
   if (!db) {
     await initDB();
@@ -417,6 +449,27 @@ export const updateUserProfile = async (
 
 // --- CRUD OPERATIONS ---
 
+const parseTransactionDate = (value: string): Date | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const isSameMonth = (date: Date, reference: Date): boolean =>
+  date.getFullYear() === reference.getFullYear() &&
+  date.getMonth() === reference.getMonth();
+
+const sortTransactionsDesc = (
+  first: TransactionRecord,
+  second: TransactionRecord,
+) => {
+  const firstDate = parseTransactionDate(first.date);
+  const secondDate = parseTransactionDate(second.date);
+  const firstTime = firstDate ? firstDate.getTime() : 0;
+  const secondTime = secondDate ? secondDate.getTime() : 0;
+  return secondTime - firstTime;
+};
+
 // 1. ADD TRANSACTION
 export const addTransaction = async (
   userId: number,
@@ -437,38 +490,54 @@ export const addTransaction = async (
 };
 
 // 2. GET ALL TRANSACTIONS
-export const getTransactions = async (userId?: number) => {
+export const getTransactions = async (
+  userId?: number,
+  options?: { month?: Date; all?: boolean },
+) => {
   const database = await ensureDB();
+  const targetMonth = options?.month ?? new Date();
+
+  let rows: TransactionRecord[];
   if (userId) {
-    return await database.getAllAsync(
-      `SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC`,
+    rows = await database.getAllAsync<TransactionRecord>(
+      `SELECT * FROM transactions WHERE user_id = ?`,
       [userId],
     );
+  } else {
+    rows = await database.getAllAsync<TransactionRecord>(
+      `SELECT * FROM transactions`,
+    );
   }
-  return await database.getAllAsync(
-    `SELECT * FROM transactions ORDER BY date DESC`,
-  );
+
+  const filtered = options?.all
+    ? rows
+    : rows.filter((transaction) => {
+        const transactionDate = parseTransactionDate(transaction.date);
+        return transactionDate
+          ? isSameMonth(transactionDate, targetMonth)
+          : false;
+      });
+
+  return filtered.sort(sortTransactionsDesc);
 };
 
 // 3. GET TOTAL BALANCE
-export const getBalance = async (userId?: number) => {
-  const database = await ensureDB();
-  const query = userId
-    ? `SELECT 
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as totalIncome,
-        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as totalExpense
-       FROM transactions WHERE user_id = ?`
-    : `SELECT 
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as totalIncome,
-        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as totalExpense
-       FROM transactions`;
-
-  const result = await database.getFirstAsync<{
-    totalIncome: number;
-    totalExpense: number;
-  }>(query, userId ? [userId] : []);
-
-  return result || { totalIncome: 0, totalExpense: 0 };
+export const getBalance = async (
+  userId?: number,
+  options?: { month?: Date; all?: boolean },
+) => {
+  const transactions = await getTransactions(userId, options);
+  return transactions.reduce(
+    (acc, transaction) => {
+      if (transaction.type === "income") {
+        acc.totalIncome += Number(transaction.amount) || 0;
+      } else if (transaction.type === "expense") {
+        acc.totalExpense += Number(transaction.amount) || 0;
+      }
+      return acc;
+    },
+    { totalIncome: 0, totalExpense: 0 },
+  );
 };
 
 // 4. DELETE TRANSACTION
@@ -633,37 +702,122 @@ export const getTransactionsByCategory = async (
   category: string,
   type: string,
   userId?: number,
+  month: Date = new Date(),
 ): Promise<number> => {
+  const transactions = await getTransactions(userId, { month, all: false });
+  return transactions
+    .filter(
+      (transaction) =>
+        transaction.category === category && transaction.type === type,
+    )
+    .reduce(
+      (total, transaction) => total + (Number(transaction.amount) || 0),
+      0,
+    );
+};
+
+export const getUserBackupPayload = async (
+  userId: number,
+): Promise<UserBackupPayload> => {
+  const database = await ensureDB();
+  const [user, transactions, categories, budgets] = await Promise.all([
+    database.getFirstAsync<Pick<User, "id" | "name" | "phone" | "created_at">>(
+      `SELECT id, name, phone, created_at FROM users WHERE id = ?`,
+      [userId],
+    ),
+    getTransactions(userId, { all: true }),
+    database.getAllAsync(
+      `SELECT id, user_id, name, type, icon, color FROM categories WHERE user_id = ?`,
+      [userId],
+    ),
+    database.getAllAsync(
+      `SELECT id, user_id, category, limit_amount FROM budgets WHERE user_id = ?`,
+      [userId],
+    ),
+  ]);
+
+  return {
+    user: user || null,
+    transactions,
+    categories,
+    budgets,
+    exported_at: new Date().toISOString(),
+  };
+};
+
+export const resetUserData = async (userId: number): Promise<boolean> => {
+  const database = await ensureDB();
+  try {
+    await database.withTransactionAsync(async () => {
+      await database.runAsync(`DELETE FROM transactions WHERE user_id = ?`, [
+        userId,
+      ]);
+      await database.runAsync(`DELETE FROM budgets WHERE user_id = ?`, [
+        userId,
+      ]);
+      await database.runAsync(`DELETE FROM categories WHERE user_id = ?`, [
+        userId,
+      ]);
+    });
+    return true;
+  } catch (error) {
+    console.error("Reset user data error:", error);
+    return false;
+  }
+};
+
+export const restoreUserDataFromBackup = async (
+  userId: number,
+  payload: UserBackupPayload,
+): Promise<boolean> => {
   const database = await ensureDB();
 
-  // Get current month's start and end
-  const now = new Date();
-  const startOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1,
-  ).toISOString();
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-  ).toISOString();
+  try {
+    await database.withTransactionAsync(async () => {
+      await database.runAsync(`DELETE FROM transactions WHERE user_id = ?`, [
+        userId,
+      ]);
+      await database.runAsync(`DELETE FROM budgets WHERE user_id = ?`, [
+        userId,
+      ]);
+      await database.runAsync(`DELETE FROM categories WHERE user_id = ?`, [
+        userId,
+      ]);
 
-  const query = userId
-    ? `SELECT SUM(amount) as total FROM transactions 
-       WHERE category = ? AND type = ? AND user_id = ? 
-       AND date >= ? AND date <= ?`
-    : `SELECT SUM(amount) as total FROM transactions 
-       WHERE category = ? AND type = ? 
-       AND date >= ? AND date <= ?`;
+      for (const category of payload.categories || []) {
+        await database.runAsync(
+          `INSERT INTO categories (user_id, name, type, icon, color) VALUES (?, ?, ?, ?, ?)`,
+          [userId, category.name, category.type, category.icon, category.color],
+        );
+      }
 
-  const params = userId
-    ? [category, type, userId, startOfMonth, endOfMonth]
-    : [category, type, startOfMonth, endOfMonth];
+      for (const budget of payload.budgets || []) {
+        await database.runAsync(
+          `INSERT INTO budgets (user_id, category, limit_amount) VALUES (?, ?, ?)`,
+          [userId, budget.category, budget.limit_amount],
+        );
+      }
 
-  const result = await database.getFirstAsync<{ total: number }>(query, params);
-  return result?.total || 0;
+      for (const transaction of payload.transactions || []) {
+        await database.runAsync(
+          `INSERT INTO transactions (user_id, amount, type, category, date, note, icon, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            transaction.amount,
+            transaction.type,
+            transaction.category,
+            transaction.date,
+            transaction.note || "",
+            transaction.icon || "",
+            transaction.color || "",
+          ],
+        );
+      }
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Restore user data error:", error);
+    return false;
+  }
 };

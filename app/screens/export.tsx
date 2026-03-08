@@ -53,7 +53,7 @@ const ExportScreen = () => {
             onPress={() => setRange(id)}
             activeOpacity={0.7}
             style={tw`w-[48%] py-3 px-4 rounded-xl border mb-3 flex-row justify-between items-center 
-      ${range === id ? 'bg-[#e2136e] border-[#e2136e]' : 'bg-gray-50 border-gray-100'}`}
+      ${range === id ? 'bg-[#0D9488] border-[#0D9488]' : 'bg-gray-50 border-gray-100'}`}
         >
             <Text style={tw`text-xs font-bold ${range === id ? 'text-white' : 'text-gray-600'}`}>
                 {label}
@@ -64,11 +64,11 @@ const ExportScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
 
             {/* --- HEADER --- */}
             <LinearGradient
-                colors={['#e2136e', '#be125a']}
+                colors={['#0D9488', '#0F766E']}
                 style={tw`h-64 px-6 pt-12 rounded-b-[36px] shadow-lg z-0 relative`}
             >
                 <View style={tw`flex-row justify-between items-center mb-4`}>
@@ -160,8 +160,8 @@ const ExportScreen = () => {
                                 <Text style={tw`text-gray-700 font-bold text-xs`}>{t('includeReceipts')}</Text>
                             </View>
                             <Switch
-                                trackColor={{ false: "#e5e7eb", true: "#fbcfe8" }}
-                                thumbColor={includeReceipts ? "#e2136e" : "#f4f3f4"}
+                                trackColor={{ false: "#e5e7eb", true: "#99f6e4" }}
+                                thumbColor={includeReceipts ? "#0D9488" : "#f4f3f4"}
                                 onValueChange={setIncludeReceipts}
                                 value={includeReceipts}
                                 style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}

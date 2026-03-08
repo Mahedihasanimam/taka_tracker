@@ -64,11 +64,11 @@ const AddTransactionScreen = () => {
 
     useEffect(() => {
         loadCategories();
-    }, [type]);
+    }, [type, user?.id]);
 
     const loadCategories = async () => {
         try {
-            const dbCategories = await getCategories(type);
+            const dbCategories = await getCategories(type, user?.id);
             if (dbCategories && dbCategories.length > 0) {
                 setCategories(dbCategories as any[]);
             } else {
@@ -118,10 +118,10 @@ const AddTransactionScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#e2136e] h-28 px-6 pt-12`}>
+            <View style={tw`bg-[#0D9488] h-28 px-6 pt-12`}>
                 <View style={tw`flex-row items-center justify-between`}>
                     <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
                         <ArrowLeft size={24} color="#fff" />
@@ -250,7 +250,7 @@ const AddTransactionScreen = () => {
                         onPress={handleSave}
                         disabled={isLoading}
                         activeOpacity={0.8}
-                        style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                        style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                     >
                         {isLoading ? (
                             <ActivityIndicator color="#fff" />

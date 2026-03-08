@@ -4,21 +4,25 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const AUTH_TOKEN_KEY = 'authToken';
 const USER_DATA_KEY = 'userData';
+const AVATAR_URI_KEY = 'avatarUri';
 
 interface AuthContextType {
     user: User | null;
+    avatarUri: string | null;
     token: string | null;
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (user: User, token: string) => Promise<void>;
     logout: () => Promise<void>;
     updateUser: (user: User) => Promise<void>;
+    updateAvatar: (uri: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [avatarUri, setAvatarUri] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -28,10 +32,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const loadSession = async () => {
         try {
-            const [storedToken, storedUserData] = await Promise.all([
+            const [storedToken, storedUserData, storedAvatar] = await Promise.all([
                 AsyncStorage.getItem(AUTH_TOKEN_KEY),
                 AsyncStorage.getItem(USER_DATA_KEY),
+                AsyncStorage.getItem(AVATAR_URI_KEY),
             ]);
+            setAvatarUri(storedAvatar);
 
             if (storedToken) {
                 const result = await validateToken(storedToken);
@@ -55,9 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const clearStorage = async () => {
-        await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, USER_DATA_KEY]);
+        await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, USER_DATA_KEY, AVATAR_URI_KEY]);
         setToken(null);
         setUser(null);
+        setAvatarUri(null);
     };
 
     const login = async (userData: User, authToken: string) => {
@@ -93,15 +100,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const updateAvatar = async (uri: string | null) => {
+        try {
+            if (uri) {
+                await AsyncStorage.setItem(AVATAR_URI_KEY, uri);
+            } else {
+                await AsyncStorage.removeItem(AVATAR_URI_KEY);
+            }
+            setAvatarUri(uri);
+        } catch (error) {
+            console.error('Failed to update avatar:', error);
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
+            avatarUri,
             token,
             isLoading,
             isAuthenticated: !!user && !!token,
             login,
             logout,
             updateUser,
+            updateAvatar,
         }}>
             {children}
         </AuthContext.Provider>

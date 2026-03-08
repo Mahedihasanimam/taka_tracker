@@ -63,12 +63,12 @@ const OtpVerify = () => {
 
   return (
     <View style={tw`flex-1 bg-slate-50`}>
-      <StatusBar backgroundColor="#be125a" barStyle="light-content" />
+      <StatusBar backgroundColor="#0F766E" barStyle="light-content" />
 
       {/* --- HEADER --- */}
       {/* Increased height to prevent text overlap */}
       <LinearGradient
-        colors={['#e2136e', '#be125a']}
+        colors={['#0D9488', '#0F766E']}
         style={tw`h-80 px-6 pt-12 pb-12 rounded-b-[36px] shadow-lg relative z-0 justify-start`}
       >
         <TouchableOpacity
@@ -105,8 +105,8 @@ const OtpVerify = () => {
 
               {/* Icon */}
               <View style={tw`items-center mb-8`}>
-                <View style={tw`w-20 h-20 bg-pink-50 rounded-full items-center justify-center border-4 border-white shadow-sm mb-4`}>
-                  <MessageCircle size={32} color="#e2136e" />
+                <View style={tw`w-20 h-20 bg-teal-50 rounded-full items-center justify-center border-4 border-white shadow-sm mb-4`}>
+                  <MessageCircle size={32} color="#0D9488" />
                 </View>
                 <Text style={tw`text-gray-500 text-sm font-bold uppercase tracking-widest`}>
                   {t('otpLabel')}
@@ -120,7 +120,7 @@ const OtpVerify = () => {
                     key={index}
                     ref={(ref) => (inputs.current[index] = ref)}
                     style={tw`w-11 h-14 border-2 rounded-xl text-center text-xl font-bold text-gray-800 
-                    ${focusedIndex === index || digit ? 'border-[#e2136e] bg-pink-50/20' : 'border-gray-200 bg-gray-50'}`}
+                    ${focusedIndex === index || digit ? 'border-[#0D9488] bg-teal-50/20' : 'border-gray-200 bg-gray-50'}`}
                     maxLength={1}
                     keyboardType="number-pad"
                     value={digit}
@@ -151,12 +151,12 @@ const OtpVerify = () => {
                   {t('otpResend')}
                 </Text>
                 {timer > 0 ? (
-                  <Text style={tw`text-[#e2136e] font-bold text-sm`}>
+                  <Text style={tw`text-[#0D9488] font-bold text-sm`}>
                     00:{timer < 10 ? `0${timer}` : timer}
                   </Text>
                 ) : (
                   <TouchableOpacity onPress={() => setTimer(30)}>
-                    <Text style={tw`text-[#e2136e] font-bold text-sm underline`}>
+                    <Text style={tw`text-[#0D9488] font-bold text-sm underline`}>
                       {t('otpResendLink')}
                     </Text>
                   </TouchableOpacity>

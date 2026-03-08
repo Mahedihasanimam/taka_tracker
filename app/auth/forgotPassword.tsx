@@ -49,10 +49,10 @@ const ForgotPasswordScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+            <StatusBar backgroundColor="#0D9488" barStyle="light-content" />
 
             {/* Header */}
-            <View style={tw`bg-[#e2136e] h-44 px-6 pt-12`}>
+            <View style={tw`bg-[#0D9488] h-44 px-6 pt-12`}>
                 <TouchableOpacity onPress={() => router.back()} style={tw`flex-row items-center`}>
                     <ArrowLeft size={24} color="#fff" />
                     <Text style={tw`text-white text-lg font-medium ml-2`}>{t('back')}</Text>
@@ -100,7 +100,7 @@ const ForgotPasswordScreen = () => {
                             onPress={handleSubmit}
                             disabled={isLoading}
                             activeOpacity={0.8}
-                            style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
+                            style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`}
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="#fff" />
@@ -113,7 +113,7 @@ const ForgotPasswordScreen = () => {
 
                         {/* Back to Login */}
                         <TouchableOpacity onPress={() => router.back()} style={tw`mt-6`}>
-                            <Text style={tw`text-center text-[#e2136e] font-semibold`}>
+                            <Text style={tw`text-center text-[#0D9488] font-semibold`}>
                                 {t('backToLogin')}
                             </Text>
                         </TouchableOpacity>

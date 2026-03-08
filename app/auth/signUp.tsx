@@ -83,7 +83,7 @@ const SignUpScreen = () => {
     <View style={tw`flex-1 bg-white`}>
 
       {/* --- HEADER SECTION (Consistent with Login) --- */}
-      <View style={tw`bg-[#e2136e] h-52 px-6 pt-12 relative`}>
+      <View style={tw`bg-[#0D9488] h-52 px-6 pt-12 relative`}>
         <View style={tw`flex-row justify-between items-start`}>
           <View>
             <Text style={tw`text-white text-2xl font-bold tracking-wide`}>
@@ -95,13 +95,13 @@ const SignUpScreen = () => {
           </View>
 
           {/* Language Toggle */}
-          <View style={tw`flex-row bg-[#be125a] rounded-full p-1 border border-[#a3124a]`}>
+          <View style={tw`flex-row bg-[#0F766E] rounded-full p-1 border border-[#0F766E]`}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => switchLanguage('bn')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'bn' ? 'text-[#e2136e]' : 'text-white/70'}`}>বাংলা</Text>
+              <Text style={tw`text-[12px] font-bold ${lang === 'bn' ? 'text-[#0D9488]' : 'text-white/70'}`}>বাংলা</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -109,7 +109,7 @@ const SignUpScreen = () => {
               onPress={() => switchLanguage('en')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'en' ? 'text-[#e2136e]' : 'text-white/70'}`}>ENG</Text>
+              <Text style={tw`text-[12px] font-bold ${lang === 'en' ? 'text-[#0D9488]' : 'text-white/70'}`}>ENG</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -134,7 +134,7 @@ const SignUpScreen = () => {
             {/* 1. Name Input */}
             <View style={tw`mb-5`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('nameLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#e2136e]`}>
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
                 <User size={20} color="#9ca3af" />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
@@ -150,7 +150,7 @@ const SignUpScreen = () => {
             {/* 2. Phone Input */}
             <View style={tw`mb-5`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('phoneLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#e2136e]`}>
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
                 <Phone size={20} color="#9ca3af" />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
@@ -167,7 +167,7 @@ const SignUpScreen = () => {
             {/* 3. Password Input */}
             <View style={tw`mb-5`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('passLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#e2136e]`}>
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
                 <Lock size={20} color="#9ca3af" />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
@@ -179,7 +179,7 @@ const SignUpScreen = () => {
                   style={tw`flex-1 text-gray-800 text-base font-medium`}
                 />
                 <TouchableOpacity onPress={() => setSecureText(!secureText)}>
-                  {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#e2136e" />}
+                  {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -187,7 +187,7 @@ const SignUpScreen = () => {
             {/* 4. Confirm Password Input */}
             <View style={tw`mb-8`}>
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('confirmPassLabel')}</Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#e2136e]`}>
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
                 <Lock size={20} color="#9ca3af" />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
@@ -199,7 +199,7 @@ const SignUpScreen = () => {
                   style={tw`flex-1 text-gray-800 text-base font-medium`}
                 />
                 <TouchableOpacity onPress={() => setSecureConfirmText(!secureConfirmText)}>
-                  {secureConfirmText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#e2136e" />}
+                  {secureConfirmText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#0D9488" />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -209,7 +209,7 @@ const SignUpScreen = () => {
               activeOpacity={0.8}
               onPress={handleSignUp}
               disabled={isLoading}
-              style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg shadow-[#e2136e]/40 mb-4 ${isLoading ? 'opacity-70' : ''}`}
+              style={tw`bg-[#0D9488] rounded-2xl py-4 shadow-lg shadow-[#0D9488]/40 mb-4 ${isLoading ? 'opacity-70' : ''}`}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
@@ -226,7 +226,7 @@ const SignUpScreen = () => {
                 {t('haveAccount')}
               </Text>
               <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/auth/signIn')}>
-                <Text style={tw`text-[#e2136e] font-bold text-base underline`}>
+                <Text style={tw`text-[#0D9488] font-bold text-base underline`}>
                   {t('logInLink')}
                 </Text>
               </TouchableOpacity>

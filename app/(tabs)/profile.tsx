@@ -1,23 +1,31 @@
+import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { backupUserDataToSupabase, restoreLatestUserBackupFromSupabase } from '@/services/backup';
+import { resetUserData } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
     Bell,
     ChevronRight,
     CreditCard,
+    Database,
     Edit3,
     Globe,
     HelpCircle,
     Lock,
     LogOut,
+    RefreshCcw,
+    RotateCcw,
     ShieldCheck,
     Smartphone,
+    Upload,
     User
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
     Alert,
+    Image,
     ScrollView,
     Switch,
     Text,
@@ -28,32 +36,115 @@ import tw from 'twrnc';
 
 const ProfileScreen = () => {
     const { lang, switchLanguage, t } = useLanguage();
-    const { user, logout } = useAuth();
+    const { user, avatarUri, logout } = useAuth();
     const router = useRouter();
 
     // Toggles State
     const [isNotifEnabled, setIsNotifEnabled] = useState(true);
     const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isBackingUp, setIsBackingUp] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
 
-    // Format date
     const formatMemberSince = (dateString?: string) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     };
 
-    // Format phone number
     const formatPhone = (phone?: string) => {
         if (!phone) return '';
-        // Format: +880 1712 345 678
         if (phone.length === 11) {
             return `+880 ${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`;
         }
         return phone;
     };
 
-    // Handle Logout
+    const openLanguageSelector = () => {
+        Alert.alert(
+            t('language'),
+            t('chooseLanguage'),
+            [
+                {
+                    text: 'English',
+                    onPress: () => switchLanguage('en')
+                },
+                {
+                    text: 'বাংলা',
+                    onPress: () => switchLanguage('bn')
+                },
+                {
+                    text: t('cancel'),
+                    style: 'cancel'
+                }
+            ]
+        );
+    };
+
+    const handleBackup = async () => {
+        if (!user?.id || isBackingUp) return;
+        setIsBackingUp(true);
+        try {
+            const result = await backupUserDataToSupabase(user.id);
+            Alert.alert(result.success ? t('success') : t('Opps'), result.message);
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
+
+    const handleResetData = () => {
+        if (!user?.id || isResetting) return;
+
+        Alert.alert(
+            t('resetData'),
+            t('resetDataConfirm'),
+            [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                    text: t('delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        setIsResetting(true);
+                        try {
+                            const success = await resetUserData(user.id);
+                            Alert.alert(
+                                success ? t('success') : t('Opps'),
+                                success ? t('resetDataSuccess') : t('somethingWrong')
+                            );
+                        } finally {
+                            setIsResetting(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleRestoreData = () => {
+        if (!user?.id || isRestoring) return;
+
+        Alert.alert(
+            t('restoreData'),
+            t('restoreDataConfirm'),
+            [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                    text: t('restoreData'),
+                    onPress: async () => {
+                        setIsRestoring(true);
+                        try {
+                            const result = await restoreLatestUserBackupFromSupabase(user.id);
+                            Alert.alert(result.success ? t('success') : t('Opps'), result.message);
+                        } finally {
+                            setIsRestoring(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const handleLogout = () => {
         Alert.alert(
             t('logoutConfirmTitle'),
@@ -70,8 +161,7 @@ const ProfileScreen = () => {
                         setIsLoggingOut(true);
                         try {
                             await logout();
-                            // Navigation will be handled by _layout.tsx auth check
-                        } catch (error) {
+                        } catch {
                             Alert.alert(t('Opps'), t('somethingWrong'));
                         } finally {
                             setIsLoggingOut(false);
@@ -82,7 +172,6 @@ const ProfileScreen = () => {
         );
     };
 
-    // --- REUSABLE MENU ITEM COMPONENT ---
     const MenuItem = ({ icon: Icon, label, value, onPress, isDestructive = false, showChevron = true, showSwitch = false, switchValue, onSwitchChange, isLoading = false }: any) => (
         <TouchableOpacity
             activeOpacity={onPress ? 0.7 : 1}
@@ -92,7 +181,7 @@ const ProfileScreen = () => {
         >
             <View style={tw`flex-row items-center`}>
                 <View style={tw`w-10 h-10 rounded-full ${isDestructive ? 'bg-red-50' : 'bg-gray-50'} items-center justify-center mr-4`}>
-                    <Icon size={20} color={isDestructive ? '#ef4444' : '#4b5563'} />
+                    <Icon size={20} color={isDestructive ? theme.colors.danger : '#4b5563'} />
                 </View>
                 <Text style={tw`text-sm font-bold ${isDestructive ? 'text-red-500' : 'text-gray-700'}`}>
                     {label}
@@ -104,8 +193,8 @@ const ProfileScreen = () => {
 
                 {showSwitch ? (
                     <Switch
-                        trackColor={{ false: "#e5e7eb", true: "#fbcfe8" }}
-                        thumbColor={switchValue ? "#e2136e" : "#f4f3f4"}
+                        trackColor={{ false: theme.colors.border, true: '#99f6e4' }}
+                        thumbColor={switchValue ? theme.colors.primary : '#f4f3f4'}
                         onValueChange={onSwitchChange}
                         value={switchValue}
                         style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
@@ -119,18 +208,23 @@ const ProfileScreen = () => {
 
     return (
         <View style={tw`flex-1 bg-slate-50`}>
-
-            {/* --- HEADER --- */}
             <LinearGradient
-                colors={['#e2136e', '#be125a']}
+                colors={theme.gradients.primary}
                 style={tw`h-72 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg relative z-0 items-center`}
             >
                 <Text style={tw`text-white text-xl font-bold mb-6`}>{t('profileTitle')}</Text>
 
-                {/* Profile Image Wrapper */}
                 <View style={tw`relative`}>
                     <View style={tw`w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-white/30 shadow-xl`}>
-                        <User size={40} color="#e2136e" />
+                        {avatarUri ? (
+                            <Image
+                                source={{ uri: avatarUri }}
+                                style={{ width: 88, height: 88, borderRadius: 999 }}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <User size={40} color={theme.colors.primary} />
+                        )}
                     </View>
                     <TouchableOpacity
                         style={tw`absolute bottom-0 right-0 bg-gray-900 p-2 rounded-full border-2 border-white`}
@@ -148,14 +242,12 @@ const ProfileScreen = () => {
                 </Text>
             </LinearGradient>
 
-            {/* --- BODY CONTENT --- */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={tw`pb-24 px-5 pt-4`}
                 style={tw`z-10`}
             >
 
-                {/* --- STATS ROW --- */}
                 <View style={tw`flex-row justify-between mb-6`}>
                     <View style={tw`flex-1 bg-white p-4 rounded-2xl shadow-sm shadow-gray-200 mr-2 items-center`}>
                         <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1`}>{t('memberSince')}</Text>
@@ -166,13 +258,12 @@ const ProfileScreen = () => {
                     <View style={tw`flex-1 bg-white p-4 rounded-2xl shadow-sm shadow-gray-200 ml-2 items-center`}>
                         <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1`}>{t('status')}</Text>
                         <View style={tw`flex-row items-center`}>
-                            <ShieldCheck size={14} color="#10b981" style={tw`mr-1`} />
+                            <ShieldCheck size={14} color={theme.colors.success} style={tw`mr-1`} />
                             <Text style={tw`text-green-600 font-bold`}>{t('verified')}</Text>
                         </View>
                     </View>
                 </View>
 
-                {/* --- SECTION 1: GENERAL --- */}
                 <View style={tw`bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 mb-6`}>
                     <Text style={tw`text-gray-400 text-xs font-bold uppercase mb-2 ml-1`}>{t('general')}</Text>
 
@@ -191,7 +282,7 @@ const ProfileScreen = () => {
                         icon={Globe}
                         label={t('language')}
                         value={lang === 'bn' ? 'বাংলা' : 'English'}
-                        onPress={() => switchLanguage(lang === 'bn' ? 'en' : 'bn')}
+                        onPress={openLanguageSelector}
                     />
                     <MenuItem
                         icon={Bell}
@@ -203,7 +294,6 @@ const ProfileScreen = () => {
                     />
                 </View>
 
-                {/* --- SECTION 2: SECURITY --- */}
                 <View style={tw`bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 mb-6`}>
                     <Text style={tw`text-gray-400 text-xs font-bold uppercase mb-2 ml-1`}>{t('security')}</Text>
 
@@ -222,7 +312,36 @@ const ProfileScreen = () => {
                     />
                 </View>
 
-                {/* --- SECTION 3: SUPPORT --- */}
+                <View style={tw`bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 mb-6`}>
+                    <Text style={tw`text-gray-400 text-xs font-bold uppercase mb-2 ml-1`}>{t('dataManagement')}</Text>
+
+                    <MenuItem
+                        icon={Upload}
+                        label={t('backupData')}
+                        showChevron={false}
+                        isLoading={isBackingUp}
+                        onPress={handleBackup}
+                    />
+                    <MenuItem
+                        icon={RefreshCcw}
+                        label={t('resetData')}
+                        showChevron={false}
+                        isLoading={isResetting}
+                        onPress={handleResetData}
+                    />
+                    <MenuItem
+                        icon={RotateCcw}
+                        label={t('restoreData')}
+                        showChevron={false}
+                        isLoading={isRestoring}
+                        onPress={handleRestoreData}
+                    />
+                    <View style={tw`flex-row items-start mt-3 px-1`}>
+                        <Database size={14} color={theme.colors.mutedText} style={tw`mt-0.5 mr-2`} />
+                        <Text style={tw`text-xs text-gray-500 flex-1`}>{t('backupHint')}</Text>
+                    </View>
+                </View>
+
                 <View style={tw`bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 mb-8`}>
                     <Text style={tw`text-gray-400 text-xs font-bold uppercase mb-2 ml-1`}>{t('support')}</Text>
 

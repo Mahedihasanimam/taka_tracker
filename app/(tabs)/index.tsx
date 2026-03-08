@@ -1,3 +1,5 @@
+import { theme } from '@/constants/theme';
+import EmptyStateMascot from '@/components/EmptyStateMascot';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { getBalance, getBudgets, getCategories, getTransactions, getTransactionsByCategory } from '@/services/db';
@@ -66,7 +68,7 @@ interface Budget {
 const HomeScreen = () => {
   const { lang, switchLanguage, t } = useLanguage();
   const { user } = useAuth();
-  const primaryColor = '#e2136e';
+  const primaryColor = theme.colors.primary;
 
   // State
   const [isLoading, setIsLoading] = useState(true);
@@ -81,9 +83,10 @@ const HomeScreen = () => {
   // Fetch all data
   const fetchData = useCallback(async () => {
     try {
-      const [balanceData, txnData, budgetData, categoryData] = await Promise.all([
+      const [balanceData, txnData, allTxnData, budgetData, categoryData] = await Promise.all([
         getBalance(user?.id),
         getTransactions(user?.id),
+        getTransactions(user?.id, { all: true }),
         getBudgets(user?.id),
         getCategories('expense', user?.id)
       ]);
@@ -158,7 +161,7 @@ const HomeScreen = () => {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 7);
 
-        const weekTxns = (txnData as Transaction[]).filter(t => {
+        const weekTxns = (allTxnData as Transaction[]).filter(t => {
           const txnDate = new Date(t.date);
           return txnDate >= weekStart && txnDate < weekEnd && t.type === 'expense';
         });
@@ -173,7 +176,7 @@ const HomeScreen = () => {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id]);
+  }, [primaryColor, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -192,9 +195,12 @@ const HomeScreen = () => {
   const highestDay = weeklyData.reduce((max, d) => d.value > max.value ? d : max, { value: 0, label: '' });
 
   // Prepare pie chart data for today
+  const dailyBudget = budgets.length > 0
+    ? Math.round(budgets.reduce((sum, b) => sum + b.limit_amount, 0) / 30)
+    : 0;
+
   const getDailyPieData = () => {
-    const dailyBudget = 1000;
-    if (todayData.categories.length === 0) {
+    if (dailyBudget === 0 || todayData.categories.length === 0) {
       return [{ value: 1, color: '#e5e7eb', text: '0%' }];
     }
 
@@ -214,7 +220,6 @@ const HomeScreen = () => {
 
   // Center label for donut chart
   const renderCenterLabel = () => {
-    const dailyBudget = 1000;
     const remaining = Math.max(0, dailyBudget - todayData.spent);
     return (
       <View style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -235,7 +240,7 @@ const HomeScreen = () => {
     { id: 1, onPress: () => router.push('/add'), label: t('addExpense'), icon: PlusCircle, color: '#ef4444', bg: 'bg-red-50' },
     { id: 2, onPress: () => router.push('/budget'), label: t('setBudget'), icon: PieIcon, color: '#8b5cf6', bg: 'bg-purple-50' },
     { id: 3, onPress: () => router.push('/screens/categories'), label: t('categories'), icon: Folder, color: '#10b981', bg: 'bg-green-50' },
-    { id: 4, onPress: () => router.push('/transactions'), label: t('export'), icon: Download, color: '#f59e0b', bg: 'bg-amber-50' },
+    { id: 4, onPress: () => router.push('/screens/export'), label: t('export'), icon: Download, color: '#f59e0b', bg: 'bg-amber-50' },
   ];
 
   // Dashboard cards data
@@ -246,7 +251,7 @@ const HomeScreen = () => {
       amountLabel: t('spentToday'),
       amount: `৳ ${todayData.spent.toLocaleString()}`,
       type: 'donut',
-      subText: `${t('budget')}: ৳1,000`,
+      subText: dailyBudget > 0 ? `${t('budget')}: ৳${dailyBudget.toLocaleString()}` : t('noBudgetsSet'),
       legend: todayData.categories.slice(0, 3)
     },
     {
@@ -270,18 +275,18 @@ const HomeScreen = () => {
   if (isLoading) {
     return (
       <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-        <ActivityIndicator size="large" color="#e2136e" />
+        <ActivityIndicator size="large" color="#0D9488" />
       </View>
     );
   }
 
   return (
     <View style={tw`flex-1 bg-slate-50`}>
-      <StatusBar backgroundColor="#be125a" barStyle="light-content" />
+      <StatusBar backgroundColor={theme.colors.primaryDark} barStyle="light-content" />
 
       {/* --- HEADER --- */}
       <LinearGradient
-        colors={['#e2136e', '#be125a']}
+        colors={['#0D9488', '#0F766E']}
         style={tw`h-60 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg`}
       >
         <View style={tw`flex-row justify-between items-start`}>
@@ -292,10 +297,10 @@ const HomeScreen = () => {
           {/* Language Toggle */}
           <View style={tw`flex-row bg-white/20 rounded-full p-1 border border-white/30`}>
             <TouchableOpacity onPress={() => switchLanguage('bn')} style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white' : 'bg-transparent'}`}>
-              <Text style={tw`text-[10px] font-bold ${lang === 'bn' ? 'text-[#e2136e]' : 'text-white'}`}>বাংলা</Text>
+              <Text style={tw`text-[10px] font-bold ${lang === 'bn' ? 'text-[#0D9488]' : 'text-white'}`}>বাংলা</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => switchLanguage('en')} style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white' : 'bg-transparent'}`}>
-              <Text style={tw`text-[10px] font-bold ${lang === 'en' ? 'text-[#e2136e]' : 'text-white'}`}>ENG</Text>
+              <Text style={tw`text-[10px] font-bold ${lang === 'en' ? 'text-[#0D9488]' : 'text-white'}`}>ENG</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -307,7 +312,7 @@ const HomeScreen = () => {
         contentContainerStyle={tw`pb-32`}
         style={{ marginTop: -96 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e2136e']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0D9488']} />
         }
       >
         {/* --- HORIZONTAL CARDS --- */}
@@ -336,8 +341,8 @@ const HomeScreen = () => {
               {/* Card Header */}
               <View style={tw`flex-row justify-between items-center mb-4 border-b border-gray-100 pb-3`}>
                 <View style={tw`flex-row items-center`}>
-                  <View style={tw`bg-pink-50 p-2 rounded-full mr-2`}>
-                    <Wallet size={18} color="#e2136e" />
+                  <View style={tw`bg-teal-50 p-2 rounded-full mr-2`}>
+                    <Wallet size={18} color="#0D9488" />
                   </View>
                   <Text style={tw`text-lg font-bold text-gray-800`}>{item.title}</Text>
                 </View>
@@ -463,7 +468,7 @@ const HomeScreen = () => {
               </TouchableOpacity>
             </View>
             {recentTransactions.length === 0 ? (
-              <Text style={tw`text-xs text-gray-400 text-center py-4`}>{t('noRecentActivity')}</Text>
+              <EmptyStateMascot compact variant="general" title={t('noRecentActivity')} />
             ) : (
               recentTransactions.map((txn) => {
                 const IconComp = iconMap[txn.icon || ''] || Briefcase;
@@ -490,7 +495,7 @@ const HomeScreen = () => {
               {t('budgetStatus')}
             </Text>
             {budgets.length === 0 ? (
-              <Text style={tw`text-xs text-gray-400 text-center py-4`}>{t('noBudgetsSet')}</Text>
+              <EmptyStateMascot compact variant="budget" title={t('noBudgetsSet')} />
             ) : (
               <>
                 {budgets.slice(0, 2).map((item) => {

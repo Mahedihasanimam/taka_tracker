@@ -40,6 +40,10 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "supabaseUrl": "https://nszlclazcguyerhvppdz.supabase.co",
+      "supabaseAnonKey": "sb_publishable_mCd4PJDh6MNzRwTfgm6yKw_V1ud0EQG"
     }
   }
 }

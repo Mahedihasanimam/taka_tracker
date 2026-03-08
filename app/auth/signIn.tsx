@@ -1,3 +1,4 @@
+import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { loginUser } from '@/services/db';
@@ -61,10 +62,10 @@ const LoginScreen = () => {
 
   return (
     <View style={tw`flex-1 bg-white`}>
-      <StatusBar backgroundColor="#e2136e" barStyle="light-content" />
+      <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
 
       {/* --- HEADER SECTION --- */}
-      <View style={tw`bg-[#e2136e] h-52 px-6 pt-12 relative`}>
+      <View style={[tw`h-52 px-6 pt-12 relative`, { backgroundColor: theme.colors.primary }]}>
         <View style={tw`flex-row justify-between items-start`}>
           {/* App Name in Header */}
           <View>
@@ -77,13 +78,13 @@ const LoginScreen = () => {
           </View>
 
           {/* Language Toggle */}
-          <View style={tw`flex-row bg-[#be125a] rounded-full p-1 border border-[#a3124a]`}>
+          <View style={[tw`flex-row rounded-full p-1 border`, { backgroundColor: theme.colors.primaryDark, borderColor: '#0F766E' }]}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => switchLanguage('bn')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'bn' ? 'text-[#e2136e]' : 'text-white/70'}`}>
+              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'bn' ? theme.colors.primary : 'rgba(255,255,255,0.7)' }]}>
                 বাংলা
               </Text>
             </TouchableOpacity>
@@ -93,7 +94,7 @@ const LoginScreen = () => {
               onPress={() => switchLanguage('en')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'en' ? 'text-[#e2136e]' : 'text-white/70'}`}>
+              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'en' ? theme.colors.primary : 'rgba(255,255,255,0.7)' }]}>
                 ENG
               </Text>
             </TouchableOpacity>
@@ -133,7 +134,7 @@ const LoginScreen = () => {
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>
                 {t('phoneLabel')}
               </Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#e2136e]`}>
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
                 <Phone size={20} color="#9ca3af" />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
@@ -152,7 +153,7 @@ const LoginScreen = () => {
               <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>
                 {t('passLabel')}
               </Text>
-              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#e2136e]`}>
+              <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3.5 bg-gray-50 focus:border-[#0D9488]`}>
                 <Lock size={20} color="#9ca3af" />
                 <View style={tw`h-6 w-[1px] bg-gray-300 mx-3`} />
                 <TextInput
@@ -164,7 +165,7 @@ const LoginScreen = () => {
                   style={tw`flex-1 text-gray-800 text-base font-medium`}
                 />
                 <TouchableOpacity onPress={() => setSecureText(!secureText)}>
-                  {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#e2136e" />}
+                  {secureText ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color={theme.colors.primary} />}
                 </TouchableOpacity>
               </View>
             </View>
@@ -181,7 +182,10 @@ const LoginScreen = () => {
               onPress={handleLogin}
               disabled={isLoading}
               activeOpacity={0.8}
-              style={tw`bg-[#e2136e] rounded-2xl py-4 shadow-lg shadow-[#e2136e]/40 ${isLoading ? 'opacity-70' : ''}`}
+              style={[
+                tw`rounded-2xl py-4 shadow-lg ${isLoading ? 'opacity-70' : ''}`,
+                { backgroundColor: theme.colors.primary }
+              ]}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
@@ -198,7 +202,7 @@ const LoginScreen = () => {
                 {t('noAccount')}
               </Text>
               <TouchableOpacity onPress={() => router.push('/auth/signUp')}>
-                <Text style={tw`text-[#e2136e] font-bold text-base underline`}>
+                <Text style={[tw`font-bold text-base underline`, { color: theme.colors.primary }]}>
                   {t('signUp')}
                 </Text>
               </TouchableOpacity>
