@@ -1,13 +1,12 @@
 import { theme } from '@/constants/theme';
 import { useLanguage } from '@/context/LanguageContext';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import tw from 'twrnc';
 
-// Theme colors matching the home page gradient
 const TAB_COLORS = {
     active: theme.colors.primary,
     inactive: theme.colors.gray400,
@@ -23,11 +22,23 @@ export default function CustomTabBar() {
     const { t } = useLanguage();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    // Panel animations
     const overlayOpacity = useRef(new Animated.Value(0)).current;
-    const panelTranslateX = useRef(new Animated.Value(36)).current;
+    const panelTranslateX = useRef(new Animated.Value(40)).current; // Panel slides from right
     const fabRotation = useRef(new Animated.Value(0)).current;
 
-    // Tab animation refs
+    const quickActions = useMemo(() => [
+        { key: 'expense', label: t('createExpense'), icon: 'arrow-down-circle' as const, color: theme.colors.expense, bg: theme.colors.redSoft, onPress: () => router.push({ pathname: '/add', params: { type: 'expense' } }) },
+        { key: 'income', label: t('createIncome'), icon: 'arrow-up-circle' as const, color: theme.colors.income, bg: theme.colors.greenSoft, onPress: () => router.push({ pathname: '/add', params: { type: 'income' } }) },
+        { key: 'category', label: t('createCategory'), icon: 'grid' as const, color: theme.colors.categoryBlue, bg: theme.colors.blueSoft, onPress: () => router.push('/screens/categories') },
+        { key: 'budget', label: t('createBudget'), icon: 'flag' as const, color: theme.colors.categoryPurple, bg: theme.colors.purpleSoft, onPress: () => router.push('/budget') },
+    ], [router, t]);
+
+    // 1. Animation values for each individual list item
+    const itemAnims = useRef(quickActions.map(() => new Animated.Value(0))).current;
+
+    // Tab bar interaction refs
     const tabAnimations = useRef({
         index: new Animated.Value(1),
         transactions: new Animated.Value(1),
@@ -49,278 +60,136 @@ export default function CustomTabBar() {
         { name: 'profile', label: t('tabProfile'), icon: 'person' as const },
     ];
 
-    const quickActions = useMemo(
-        () => [
-            {
-                key: 'expense',
-                label: t('createExpense'),
-                icon: 'arrow-down-circle' as const,
-                color: theme.colors.expense,
-                bg: theme.colors.redSoft,
-                onPress: () => router.push({ pathname: '/add', params: { type: 'expense' } }),
-            },
-            {
-                key: 'income',
-                label: t('createIncome'),
-                icon: 'arrow-up-circle' as const,
-                color: theme.colors.income,
-                bg: theme.colors.greenSoft,
-                onPress: () => router.push({ pathname: '/add', params: { type: 'income' } }),
-            },
-            {
-                key: 'category',
-                label: t('createCategory'),
-                icon: 'grid' as const,
-                color: theme.colors.categoryBlue,
-                bg: theme.colors.blueSoft,
-                onPress: () => router.push('/screens/categories'),
-            },
-            {
-                key: 'budget',
-                label: t('createBudget'),
-                icon: 'flag' as const,
-                color: theme.colors.categoryPurple,
-                bg: theme.colors.purpleSoft,
-                onPress: () => router.push('/budget'),
-            },
-        ],
-        [router, t],
-    );
+    useEffect(() => {
+        if (showCreateModal) {
+            // OPEN ANIMATION
+            Animated.parallel([
+                Animated.timing(overlayOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+                Animated.spring(panelTranslateX, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
+                Animated.timing(fabRotation, { toValue: 1, duration: 300, easing: Easing.bezier(0.4, 0, 0.2, 1), useNativeDriver: true }),
+                // STAGGERED ITEMS: Each item slides from right (X: 50 -> 0)
+                Animated.stagger(100, itemAnims.map(anim =>
+                    Animated.spring(anim, {
+                        toValue: 1,
+                        friction: 7,
+                        tension: 45,
+                        useNativeDriver: true,
+                    })
+                ))
+            ]).start();
+        } else {
+            // CLOSE ANIMATION
+            Animated.parallel([
+                Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+                Animated.timing(panelTranslateX, { toValue: 40, duration: 200, useNativeDriver: true }),
+                Animated.timing(fabRotation, { toValue: 0, duration: 250, useNativeDriver: true }),
+                ...itemAnims.map(anim => Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }))
+            ]).start();
+        }
+    }, [showCreateModal]);
 
-    // Animate tab when selected
     const animateTab = useCallback((tabName: string) => {
         const scaleAnim = tabAnimations[tabName as keyof typeof tabAnimations];
         const bounceAnim = tabBounce[tabName as keyof typeof tabBounce];
-
-        // Scale animation
-        Animated.sequence([
-            Animated.timing(scaleAnim, {
-                toValue: 1.2,
-                duration: 100,
-                easing: Easing.out(Easing.ease),
-                useNativeDriver: true,
-            }),
-            Animated.spring(scaleAnim, {
-                toValue: 1,
-                friction: 4,
-                tension: 100,
-                useNativeDriver: true,
-            }),
-        ]).start();
-
-        // Bounce animation for the icon
-        Animated.sequence([
-            Animated.timing(bounceAnim, {
-                toValue: -8,
-                duration: 100,
-                easing: Easing.out(Easing.ease),
-                useNativeDriver: true,
-            }),
-            Animated.spring(bounceAnim, {
-                toValue: 0,
-                friction: 3,
-                tension: 120,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    }, [tabAnimations, tabBounce]);
-
-    useEffect(() => {
         Animated.parallel([
-            Animated.timing(overlayOpacity, {
-                toValue: showCreateModal ? 1 : 0,
-                duration: 160,
-                useNativeDriver: true,
-            }),
-            Animated.timing(panelTranslateX, {
-                toValue: showCreateModal ? 0 : 36,
-                duration: 180,
-                useNativeDriver: true,
-            }),
-            Animated.timing(fabRotation, {
-                toValue: showCreateModal ? 1 : 0,
-                duration: 200,
-                easing: Easing.out(Easing.ease),
-                useNativeDriver: true,
-            }),
+            Animated.sequence([
+                Animated.timing(scaleAnim, { toValue: 1.2, duration: 100, useNativeDriver: true }),
+                Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
+            ]),
+            Animated.sequence([
+                Animated.timing(bounceAnim, { toValue: -8, duration: 100, useNativeDriver: true }),
+                Animated.spring(bounceAnim, { toValue: 0, friction: 3, useNativeDriver: true }),
+            ]),
         ]).start();
-    }, [showCreateModal, fabRotation, overlayOpacity, panelTranslateX]);
+    }, []);
 
     const goTo = (name: string) => {
         animateTab(name);
-        if (name === 'index') router.push('/');
-        else router.push(`/${name}` as any);
+        name === 'index' ? router.push('/') : router.push(`/${name}` as any);
     };
 
-    const isActive = (name: string) =>
-        (pathname === '/' && name === 'index') ||
-        (pathname === '/index' && name === 'index') ||
-        (name !== 'index' && pathname.includes(name));
-
-    const closeAndRun = (fn: () => void) => {
-        setShowCreateModal(false);
-        setTimeout(fn, 120);
-    };
+    const isActive = (name: string) => (pathname === '/' && name === 'index') || pathname.includes(name);
 
     return (
         <View style={tw`absolute bottom-0 w-full`}>
-            {/* The Tab Bar Body */}
+            {/* Tab Bar Content */}
             <LinearGradient
                 colors={[theme.colors.white, theme.colors.lightSlate]}
                 style={tw`flex-row pt-2 pb-${Platform.OS === 'ios' ? '8' : '4'} px-4 justify-between items-center rounded-t-[32px] shadow-2xl border-t border-purple-100/50`}
             >
-                {/* Left Tabs */}
-                <View style={tw`flex-row flex-1 justify-around`}>
-                    {tabs.slice(0, 2).map((tab) => {
-                        const active = isActive(tab.name);
-                        const scaleAnim = tabAnimations[tab.name as keyof typeof tabAnimations];
-                        const bounceAnim = tabBounce[tab.name as keyof typeof tabBounce];
-                        return (
-                            <TouchableOpacity
-                                key={tab.name}
-                                onPress={() => goTo(tab.name)}
-                                style={tw`items-center justify-center py-1`}
-                                activeOpacity={0.7}
-                            >
-                                <Animated.View
-                                    style={{
-                                        transform: [
-                                            { scale: scaleAnim },
-                                            { translateY: bounceAnim },
-                                        ],
-                                    }}
-                                >
-                                    <View style={[tw`p-2 rounded-xl`, active && { backgroundColor: TAB_COLORS.activeBg }]}>
-                                        <Ionicons
-                                            name={active ? tab.icon : (`${tab.icon}-outline` as any)}
-                                            size={24}
-                                            color={active ? TAB_COLORS.active : TAB_COLORS.inactive}
-                                        />
-                                    </View>
-                                </Animated.View>
-                                <Text style={[tw`text-[10px] mt-1 font-semibold`, { color: active ? TAB_COLORS.active : TAB_COLORS.inactive }]}>
-                                    {tab.label}
-                                </Text>
-                                {active && <View style={[tw`w-1 h-1 rounded-full mt-1`, { backgroundColor: TAB_COLORS.active }]} />}
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-
-                {/* FAB Placeholder Gap */}
-                <View style={tw`w-20`} />
-
-                {/* Right Tabs */}
-                <View style={tw`flex-row flex-1 justify-around`}>
-                    {tabs.slice(2).map((tab) => {
-                        const active = isActive(tab.name);
-                        const scaleAnim = tabAnimations[tab.name as keyof typeof tabAnimations];
-                        const bounceAnim = tabBounce[tab.name as keyof typeof tabBounce];
-                        return (
-                            <TouchableOpacity
-                                key={tab.name}
-                                onPress={() => goTo(tab.name)}
-                                style={tw`items-center justify-center py-1`}
-                                activeOpacity={0.7}
-                            >
-                                <Animated.View
-                                    style={{
-                                        transform: [
-                                            { scale: scaleAnim },
-                                            { translateY: bounceAnim },
-                                        ],
-                                    }}
-                                >
-                                    <View style={[tw`p-2 rounded-xl`, active && { backgroundColor: TAB_COLORS.activeBg }]}>
-                                        <Ionicons
-                                            name={active ? tab.icon : (`${tab.icon}-outline` as any)}
-                                            size={24}
-                                            color={active ? TAB_COLORS.active : TAB_COLORS.inactive}
-                                        />
-                                    </View>
-                                </Animated.View>
-                                <Text style={[tw`text-[10px] mt-1 font-semibold`, { color: active ? TAB_COLORS.active : TAB_COLORS.inactive }]}>
-                                    {tab.label}
-                                </Text>
-                                {active && <View style={[tw`w-1 h-1 rounded-full mt-1`, { backgroundColor: TAB_COLORS.active }]} />}
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
+                {tabs.map((tab, idx) => (
+                    <React.Fragment key={tab.name}>
+                        {idx === 2 && <View style={tw`w-20`} />}
+                        <TouchableOpacity onPress={() => goTo(tab.name)} style={tw`items-center justify-center flex-1`}>
+                            <Animated.View style={{ transform: [{ scale: tabAnimations[tab.name as keyof typeof tabAnimations] }, { translateY: tabBounce[tab.name as keyof typeof tabBounce] }] }}>
+                                <View style={[tw`p-2 rounded-xl`, isActive(tab.name) && { backgroundColor: TAB_COLORS.activeBg }]}>
+                                    <Ionicons name={isActive(tab.name) ? tab.icon : (`${tab.icon}-outline` as any)} size={24} color={isActive(tab.name) ? TAB_COLORS.active : TAB_COLORS.inactive} />
+                                </View>
+                            </Animated.View>
+                            <Text style={[tw`text-[10px] mt-1 font-semibold`, { color: isActive(tab.name) ? TAB_COLORS.active : TAB_COLORS.inactive }]}>{tab.label}</Text>
+                        </TouchableOpacity>
+                    </React.Fragment>
+                ))}
             </LinearGradient>
 
-            {/* Floating Action Button */}
+            {/* FAB */}
             <View style={[tw`absolute -top-7 items-center`, { left: '50%', transform: [{ translateX: -32 }] }]}>
-                {/* Visual Notch Background */}
                 <View style={[tw`w-20 h-10 absolute -top-1 rounded-full`, { backgroundColor: theme.colors.white }]} />
-
-                <Pressable onPress={() => setShowCreateModal((prev) => !prev)}>
-                    <LinearGradient
-                        colors={TAB_COLORS.fabGradient}
-                        start={{ x: 1, y: 0 }}
-                        end={{ x: 0, y: 1 }}
-                        style={[tw`w-16 h-16 rounded-full items-center justify-center border-4 shadow-lg`, { borderColor: theme.colors.white }]}
-                    >
-                        <Animated.View
-                            style={{
-                                transform: [{
-                                    rotate: fabRotation.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: ['0deg', '135deg'],
-                                    }),
-                                }],
-                            }}
-                        >
+                <Pressable onPress={() => setShowCreateModal(!showCreateModal)}>
+                    <LinearGradient colors={TAB_COLORS.fabGradient} style={[tw`w-16 h-16 rounded-full items-center justify-center border-4 shadow-lg`, { borderColor: theme.colors.white }]}>
+                        <Animated.View style={{ transform: [{ rotate: fabRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] }) }] }}>
                             <Ionicons name="add" size={36} color={theme.colors.white} />
                         </Animated.View>
                     </LinearGradient>
                 </Pressable>
             </View>
 
-            {/* Quick Action Modal */}
+            {/* QUICK ACTIONS MODAL */}
             <Modal transparent visible={showCreateModal} animationType="none" onRequestClose={() => setShowCreateModal(false)}>
-                <Pressable style={tw`flex-1`} onPress={() => setShowCreateModal(false)}>
-                    <Animated.View style={[tw`absolute inset-0 blur-lg `, { backgroundColor: TAB_COLORS.modalOverlay, opacity: overlayOpacity }]} />
+                <Pressable style={tw`flex-1 blur-xl`} onPress={() => setShowCreateModal(false)}>
                     <Animated.View
                         style={[
-                            tw`absolute right-6 bottom-32 w-72 rounded-[32px] p-5 shadow-2xl border`,
-                            { backgroundColor: `${theme.colors.white}F2`, borderColor: theme.colors.white },
-                            { transform: [{ translateX: panelTranslateX }] },
+                            tw`absolute right-5 bottom-32 w-72 rounded-[32px] p-5 shadow-2xl border`,
+                            {
+                                backgroundColor: theme.colors.white,
+                                borderColor: theme.colors.gray100,
+                                opacity: overlayOpacity,
+                                transform: [{ translateX: panelTranslateX }]
+                            },
                         ]}
                     >
                         <View style={tw`flex-row items-center justify-between mb-4`}>
-                            <View style={tw`flex-row items-center`}>
-                                <LinearGradient
-                                    colors={TAB_COLORS.fabGradient}
-                                    start={{ x: 1, y: 0 }}
-                                    end={{ x: 0, y: 1 }}
-                                    style={tw`p-1.5 rounded-lg mr-2`}
-                                >
-                                    <MaterialCommunityIcons name="cat" size={20} color={theme.colors.white} />
-                                </LinearGradient>
-                                <Text style={[tw`text-lg font-bold`, { color: TAB_COLORS.active }]}>{t('quickCreate')}</Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => setShowCreateModal(false)}
-                                style={[tw`w-8 h-8 rounded-full items-center justify-center`, { backgroundColor: theme.colors.gray100 }]}
-                            >
+                            <Text style={[tw`text-lg font-bold`, { color: TAB_COLORS.active }]}>{t('quickCreate')}</Text>
+                            <TouchableOpacity onPress={() => setShowCreateModal(false)} style={tw`w-8 h-8 rounded-full items-center justify-center bg-gray-100`}>
                                 <Ionicons name="close" size={18} color={TAB_COLORS.inactive} />
                             </TouchableOpacity>
                         </View>
 
-                        {quickActions.map((action) => (
-                            <TouchableOpacity
+                        {quickActions.map((action, index) => (
+                            <Animated.View
                                 key={action.key}
-                                onPress={() => closeAndRun(action.onPress)}
-                                style={[tw`flex-row items-center p-3 rounded-2xl mb-2`, { backgroundColor: `${theme.colors.gray100}80` }]}
+                                style={{
+                                    opacity: itemAnims[index],
+                                    transform: [
+                                        {
+                                            translateX: itemAnims[index].interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: [60, 0] // SLIDES FROM RIGHT (60px away)
+                                            })
+                                        }
+                                    ]
+                                }}
                             >
-                                <View style={[tw`w-10 h-10 rounded-xl items-center justify-center`, { backgroundColor: action.bg }]}>
-                                    <Ionicons name={action.icon} size={20} color={action.color} />
-                                </View>
-                                <View style={tw`ml-4`}>
-                                    <Text style={[tw`text-sm font-bold`, { color: TAB_COLORS.active }]}>{action.label}</Text>
-                                </View>
-                            </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => { setShowCreateModal(false); setTimeout(action.onPress, 250); }}
+                                    style={[tw`flex-row items-center p-3 rounded-2xl mb-2`, { backgroundColor: `${theme.colors.gray100}80` }]}
+                                >
+                                    <View style={[tw`w-10 h-10 rounded-xl items-center justify-center`, { backgroundColor: action.bg }]}>
+                                        <Ionicons name={action.icon} size={20} color={action.color} />
+                                    </View>
+                                    <Text style={[tw`ml-4 text-sm font-bold`, { color: TAB_COLORS.active }]}>{action.label}</Text>
+                                </TouchableOpacity>
+                            </Animated.View>
                         ))}
                     </Animated.View>
                 </Pressable>
