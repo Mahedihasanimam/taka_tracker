@@ -1,4 +1,3 @@
-import EmptyStateMascot from '@/components/EmptyStateMascot';
 import { theme } from "@/constants/theme";
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -14,7 +13,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import {
-    AlertTriangle,
     Book,
     Briefcase,
     Car,
@@ -29,25 +27,27 @@ import {
     Home,
     MoreHorizontal,
     Music,
-    PieChart,
     Pill,
     Plane,
     Plus,
     Shirt,
     ShoppingBag,
     Smartphone,
+    Sparkles,
     Trash2,
-    TrendingUp,
     Utensils,
     Wifi,
     X,
     Zap
 } from 'lucide-react-native';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Animated,
+    Dimensions,
     FlatList,
+    Image,
     Modal,
     RefreshControl,
     ScrollView,
@@ -57,7 +57,10 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import tw from 'twrnc';
+
+const { width } = Dimensions.get('window');
 
 // Icon mapping
 const iconMap: Record<string, any> = {
@@ -106,12 +109,18 @@ const BudgetScreen = () => {
     const [limitAmount, setLimitAmount] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
+    // Animation values
+    const scrollY = new Animated.Value(0);
+    const headerHeight = scrollY.interpolate({
+        inputRange: [0, 100],
+        outputRange: [280, 200],
+        extrapolate: 'clamp'
+    });
+
     // Fetch data
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-
-            // Fetch all data
             const [budgetData, categoryData, balanceData] = await Promise.all([
                 getBudgets(user?.id),
                 getCategories('expense', user?.id),
@@ -122,7 +131,6 @@ const BudgetScreen = () => {
             setCategories(cats);
             setBalance(balanceData || { totalIncome: 0, totalExpense: 0 });
 
-            // Get spent amount for each budget - handle errors gracefully
             const budgetList = (budgetData || []) as Budget[];
             const budgetsWithSpent: BudgetWithSpent[] = [];
 
@@ -137,7 +145,6 @@ const BudgetScreen = () => {
                         color: category?.color || theme.colors.mutedText
                     });
                 } catch (err) {
-                    console.error('Error fetching category spent:', err);
                     budgetsWithSpent.push({
                         ...budget,
                         spent: 0,
@@ -150,7 +157,6 @@ const BudgetScreen = () => {
             setBudgets(budgetsWithSpent);
         } catch (error) {
             console.error('Failed to fetch budget data:', error);
-            // Set default values on error
             setBudgets([]);
             setCategories([]);
             setBalance({ totalIncome: 0, totalExpense: 0 });
@@ -171,20 +177,26 @@ const BudgetScreen = () => {
         fetchData();
     };
 
-    // Calculations - with safe defaults
-    const totalBudget = budgets.reduce((acc, item) => acc + (item.limit_amount || 0), 0);
-    const totalSpent = budgets.reduce((acc, item) => acc + (item.spent || 0), 0);
-    const totalRemaining = totalBudget - totalSpent;
-    const overallProgress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-    const incomeUtilization = balance.totalIncome > 0 ? (totalBudget / balance.totalIncome) * 100 : 0;
+    // Calculations with useMemo for performance
+    const totals = useMemo(() => {
+        const totalBudget = budgets.reduce((acc, item) => acc + (item.limit_amount || 0), 0);
+        const totalSpent = budgets.reduce((acc, item) => acc + (item.spent || 0), 0);
+        return {
+            totalBudget,
+            totalSpent,
+            totalRemaining: totalBudget - totalSpent,
+            overallProgress: totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0,
+            incomeUtilization: balance.totalIncome > 0 ? (totalBudget / balance.totalIncome) * 100 : 0
+        };
+    }, [budgets, balance.totalIncome]);
 
-    // Get status color
-    const getStatusColor = (spent: number, limit: number) => {
-        if (!limit || limit === 0) return theme.colors.mutedText;
+    // Get status color and config
+    const getBudgetStatus = (spent: number, limit: number) => {
+        if (!limit || limit === 0) return { color: theme.colors.mutedText, label: 'Not Set', emoji: '📊' };
         const percentage = (spent / limit) * 100;
-        if (percentage >= 100) return theme.colors.danger;
-        if (percentage >= 80) return theme.colors.warning;
-        return theme.colors.success;
+        if (percentage >= 100) return { color: '#EF4444', label: 'Exceeded', emoji: '⚠️' };
+        if (percentage >= 80) return { color: '#F59E0B', label: 'Warning', emoji: '⚡' };
+        return { color: '#10B981', label: 'On Track', emoji: '✅' };
     };
 
     // Get icon component
@@ -213,19 +225,18 @@ const BudgetScreen = () => {
     // Save budget
     const handleSave = async () => {
         if (!selectedCategory) {
-            Alert.alert(t('Opps') || 'Opps', t('selectCategory') || 'Please select a category');
+            Alert.alert('Select Category', 'Please choose a category for your budget');
             return;
         }
         if (!limitAmount || parseFloat(limitAmount) <= 0) {
-            Alert.alert(t('Opps') || 'Opps', t('enterValidAmount') || 'Please enter a valid amount');
+            Alert.alert('Invalid Amount', 'Please enter a valid budget amount');
             return;
         }
 
-        // Check if budget already exists for this category (when adding new)
         if (!isEditing) {
             const existing = budgets.find(b => b.category === selectedCategory.name);
             if (existing) {
-                Alert.alert(t('Opps') || 'Opps', t('budgetExists') || 'Budget already exists for this category');
+                Alert.alert('Budget Exists', 'You already have a budget for this category');
                 return;
             }
         }
@@ -240,30 +251,28 @@ const BudgetScreen = () => {
             setModalVisible(false);
             fetchData();
         } catch (error) {
-            console.error('Save budget error:', error);
-            Alert.alert(t('Opps') || 'Opps', t('somethingWrong') || 'Something went wrong');
+            Alert.alert('Error', 'Failed to save budget. Please try again.');
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Delete budget
+    // Delete budget with swipe action
     const handleDelete = (budget: BudgetWithSpent) => {
         Alert.alert(
-            t('deleteBudget') || 'Delete Budget',
-            t('deleteBudgetConfirm') || 'Are you sure you want to delete this budget?',
+            'Delete Budget',
+            `Are you sure you want to delete the budget for ${budget.category}?`,
             [
-                { text: t('cancel') || 'Cancel', style: 'cancel' },
+                { text: 'Cancel', style: 'cancel' },
                 {
-                    text: t('delete') || 'Delete',
+                    text: 'Delete',
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             await deleteBudget(budget.id);
                             fetchData();
                         } catch (error) {
-                            console.error('Delete budget error:', error);
-                            Alert.alert(t('Opps') || 'Opps', t('somethingWrong') || 'Something went wrong');
+                            Alert.alert('Error', 'Failed to delete budget');
                         }
                     }
                 }
@@ -271,188 +280,243 @@ const BudgetScreen = () => {
         );
     };
 
-    // Get available categories (not already budgeted)
+    // Get available categories
     const getAvailableCategories = () => {
         if (isEditing) return categories;
         const budgetedCategories = budgets.map(b => b.category);
         return categories.filter(c => !budgetedCategories.includes(c.name));
     };
 
+    // Render right swipe actions
+    const renderRightActions = (item: BudgetWithSpent) => (
+        <View style={tw`flex-row`}>
+            <TouchableOpacity
+                onPress={() => openModal(item)}
+                style={[tw`bg-blue-500 justify-center items-center px-6`, { backgroundColor: theme.colors.primary }]}
+            >
+                <Edit3 size={20} color="white" />
+                <Text style={tw`text-white text-xs font-bold mt-1`}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                onPress={() => handleDelete(item)}
+                style={tw`bg-red-500 justify-center items-center px-6`}
+            >
+                <Trash2 size={20} color="white" />
+                <Text style={tw`text-white text-xs font-bold mt-1`}>Delete</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
     if (isLoading) {
         return (
-            <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
+            <View style={tw`flex-1 bg-white justify-center items-center`}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
+                <Text style={tw`text-gray-500 mt-4 font-medium`}>Loading your budgets...</Text>
             </View>
         );
     }
 
     return (
-        <View style={tw`flex-1 bg-slate-50`}>
-            <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
+        <GestureHandlerRootView style={tw`flex-1 bg-gray-50`}>
+            <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
 
-            {/* --- HEADER --- */}
-            <LinearGradient
-                colors={[theme.colors.primary, theme.colors.primaryDark]}
-                style={tw`px-6 pt-10 pb-32 rounded-b-[36px] shadow-lg`}
-            >
-                <Text style={tw`text-white text-2xl font-extrabold tracking-wide mb-4`}>
-                    {t('budgetTitle') || 'Budget'}
-                </Text>
-
-                {/* Income Info */}
-                <View style={tw`flex-row items-center bg-white/15 rounded-xl px-4 py-2 mb-4`}>
-                    <TrendingUp size={16} color={theme.colors.lightSuccess} />
-                    <Text style={tw`text-white/80 text-sm ml-2`}>
-                        {t('monthlyIncome') || 'Monthly Income'}: <Text style={tw`font-bold text-white`}>৳{(balance.totalIncome || 0).toLocaleString()}</Text>
-                    </Text>
-                </View>
-
-                {/* --- SUMMARY CARD --- */}
-                <View style={tw`bg-white rounded-3xl p-5 shadow-xl`}>
+            {/* Animated Header */}
+            <Animated.View style={[{ height: headerHeight }]}>
+                <LinearGradient
+                    colors={[theme.colors.primary, '#0F766E']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={tw`flex-1 px-6 pt-14 rounded-b-[32px]`}
+                >
                     <View style={tw`flex-row justify-between items-center mb-4`}>
-                        <View>
-                            <Text style={tw`text-gray-400 text-xs font-bold uppercase tracking-wider`}>{t('totalBudget') || 'Total Budget'}</Text>
-                            <Text style={tw`text-2xl font-extrabold text-gray-900`}>৳{totalBudget.toLocaleString()}</Text>
+                        <Text style={tw`text-white text-3xl font-bold tracking-tight`}>
+                            Budgets
+                        </Text>
+                        <TouchableOpacity
+                            onPress={() => openModal()}
+                            style={tw`bg-white/20 p-3 rounded-full`}
+                        >
+                            <Plus size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Quick Stats */}
+                    <View style={tw`flex-row justify-between`}>
+                        <View style={tw`bg-white/10 rounded-2xl p-4 flex-1 mr-2`}>
+                            <Text style={tw`text-white/60 text-xs mb-1`}>Monthly Budget</Text>
+                            <Text style={tw`text-white text-2xl font-bold`}>
+                                ৳{totals.totalBudget.toLocaleString()}
+                            </Text>
                         </View>
-                        <View style={tw`bg-teal-50 p-3 rounded-2xl`}>
-                            <PieChart size={24} color={theme.colors.primary} />
+                        <View style={tw`bg-white/10 rounded-2xl p-4 flex-1 ml-2`}>
+                            <Text style={tw`text-white/60 text-xs mb-1`}>Remaining</Text>
+                            <Text style={tw`text-white text-2xl font-bold`}>
+                                ৳{totals.totalRemaining.toLocaleString()}
+                            </Text>
                         </View>
                     </View>
 
-                    {/* Income Utilization */}
-                    <View style={tw`bg-gray-50 rounded-xl p-3 mb-4`}>
-                        <View style={tw`flex-row justify-between mb-2`}>
-                            <Text style={tw`text-xs text-gray-500 font-medium`}>{t('incomeUtilization') || 'Income Utilization'}</Text>
-                            <Text style={tw`text-xs font-bold ${incomeUtilization > 100 ? 'text-red-500' : incomeUtilization > 80 ? 'text-amber-500' : 'text-green-600'}`}>
-                                {incomeUtilization.toFixed(0)}%
-                            </Text>
-                        </View>
-                        <View style={tw`h-2 bg-gray-200 rounded-full overflow-hidden`}>
+                    {/* Progress Ring */}
+                    <View style={tw`mt-4 flex-row items-center`}>
+                        <View style={tw`flex-1 h-2 bg-white/20 rounded-full overflow-hidden`}>
                             <View
                                 style={[
                                     tw`h-full rounded-full`,
                                     {
-                                        width: `${Math.min(incomeUtilization, 100)}%`,
-                                        backgroundColor: incomeUtilization > 100 ? theme.colors.danger : incomeUtilization > 80 ? theme.colors.warning : theme.colors.success
+                                        width: `${Math.min(totals.overallProgress, 100)}%`,
+                                        backgroundColor: totals.overallProgress >= 100 ? '#EF4444' :
+                                            totals.overallProgress >= 80 ? '#F59E0B' : '#10B981'
                                     }
                                 ]}
                             />
                         </View>
-                    </View>
-
-                    {/* Budget Progress */}
-                    <View style={tw`h-3 bg-gray-100 rounded-full overflow-hidden mb-2`}>
-                        <View
-                            style={[
-                                tw`h-full rounded-full`,
-                                { width: `${Math.min(overallProgress, 100)}%`, backgroundColor: getStatusColor(totalSpent, totalBudget) }
-                            ]}
-                        />
-                    </View>
-
-                    <View style={tw`flex-row justify-between`}>
-                        <Text style={tw`text-xs font-bold text-gray-500`}>{t('spent') || 'Spent'}: ৳{totalSpent.toLocaleString()}</Text>
-                        <Text style={tw`text-xs font-bold ${totalRemaining >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                            {t('remaining') || 'Remaining'}: ৳{totalRemaining.toLocaleString()}
+                        <Text style={tw`text-white ml-3 font-semibold`}>
+                            {Math.round(totals.overallProgress)}%
                         </Text>
                     </View>
-                </View>
-            </LinearGradient>
+                </LinearGradient>
+            </Animated.View>
 
-            {/* --- BODY CONTENT --- */}
+            {/* Budget List */}
             <FlatList
                 data={budgets}
                 keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={tw`pb-24 pt-4 px-6`}
-                style={tw`-mt-16`}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
-                }
-                ListHeaderComponent={() => (
-                    <TouchableOpacity
-                        onPress={() => openModal()}
-                        activeOpacity={0.8}
-                        style={tw`flex-row items-center justify-center bg-white p-4 rounded-2xl border-2 border-dashed border-teal-300 mb-5`}
-                    >
-                        <View style={tw`w-10 h-10 bg-teal-100 rounded-full items-center justify-center mr-3`}>
-                            <Plus size={20} color={theme.colors.primary} />
-                        </View>
-                        <Text style={tw`text-teal-600 font-bold`}>{t('createBudget') || 'Create Budget'}</Text>
-                    </TouchableOpacity>
+                contentContainerStyle={tw`px-4 pt-6 pb-24`}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
                 )}
-                ListEmptyComponent={() => (
-                    <EmptyStateMascot
-                        variant="budget"
-                        title={t('noBudgets') || 'No budgets yet'}
-                        subtitle={t('noBudgetsHint') || 'Create a budget to track your spending'}
+                scrollEventThrottle={16}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={[theme.colors.primary]}
+                        tintColor={theme.colors.primary}
                     />
+                }
+                ListEmptyComponent={() => (
+                    <View style={tw`mt-10`}>
+                        <View style={tw`flex-1 justify-center items-center px-6`}>
+                            <Image source={require('@/assets/images/budget.png')} style={tw`w-58 h-58`} resizeMode="cover" />
+                            <Text style={tw`text-gray-500 text-center text-base mb-6`}>
+                                {t('noBudgets')}
+                            </Text>
+                        </View>
+                    </View>
                 )}
                 renderItem={({ item }) => {
                     const percent = item.limit_amount > 0 ? Math.min((item.spent / item.limit_amount) * 100, 100) : 0;
-                    const statusColor = getStatusColor(item.spent, item.limit_amount);
-                    const isExceeded = item.spent > item.limit_amount;
-                    const remaining = item.limit_amount - item.spent;
+                    const status = getBudgetStatus(item.spent, item.limit_amount);
                     const IconComp = getIconComponent(item.icon);
+                    const remaining = item.limit_amount - item.spent;
 
                     return (
-                        <View style={tw`bg-white rounded-2xl p-5 mb-4 shadow-sm shadow-gray-200`}>
-                            {/* Top Row */}
-                            <View style={tw`flex-row justify-between items-center mb-3`}>
-                                <View style={tw`flex-row items-center flex-1`}>
-                                    <View style={[tw`w-11 h-11 rounded-xl items-center justify-center mr-3`, { backgroundColor: (item.color || theme.colors.mutedText) + '20' }]}>
-                                        <IconComp size={20} color={item.color || theme.colors.mutedText} />
+                        <Swipeable renderRightActions={() => renderRightActions(item)}>
+                            <View style={tw`bg-white rounded-2xl p-5 mb-3 shadow-sm border border-gray-100`}>
+                                {/* Category Header */}
+                                <View style={tw`flex-row items-center mb-4`}>
+                                    <View style={[tw`w-12 h-12 rounded-xl items-center justify-center mr-3`, { backgroundColor: (item.color || theme.colors.mutedText) + '15' }]}>
+                                        <IconComp size={22} color={item.color || theme.colors.mutedText} />
                                     </View>
                                     <View style={tw`flex-1`}>
-                                        <Text style={tw`text-sm font-bold text-gray-800`}>{item.category}</Text>
-                                        <Text style={tw`text-[10px] text-gray-400 font-medium`}>{t('monthlyLimit') || 'Monthly Limit'}</Text>
+                                        <Text style={tw`text-lg font-semibold text-gray-900`}>{item.category}</Text>
+                                        <View style={tw`flex-row items-center`}>
+                                            <View style={[tw`w-2 h-2 rounded-full mr-2`, { backgroundColor: status.color }]} />
+                                            <Text style={[tw`text-xs font-medium`, { color: status.color }]}>
+                                                {status.emoji} {status.label}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={tw`items-end`}>
+                                        <Text style={tw`text-xl font-bold text-gray-900`}>৳{item.limit_amount.toLocaleString()}</Text>
+                                        <Text style={tw`text-xs text-gray-400`}>limit</Text>
                                     </View>
                                 </View>
-                                <View style={tw`flex-row`}>
-                                    <TouchableOpacity onPress={() => openModal(item)} style={tw`p-2 bg-gray-50 rounded-lg mr-1`}>
-                                        <Edit3 size={14} color={theme.colors.gray400} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleDelete(item)} style={tw`p-2 bg-red-50 rounded-lg`}>
-                                        <Trash2 size={14} color={theme.colors.danger} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
 
-                            {/* Amounts */}
-                            <View style={tw`flex-row justify-between items-end mb-2`}>
-                                <Text style={tw`text-xl font-bold text-gray-800`}>৳{(item.spent || 0).toLocaleString()}</Text>
-                                <Text style={tw`text-xs font-bold text-gray-400`}>/ ৳{(item.limit_amount || 0).toLocaleString()}</Text>
-                            </View>
-
-                            {/* Progress Bar */}
-                            <View style={tw`h-2.5 bg-gray-100 rounded-full overflow-hidden mb-2`}>
-                                <View style={[tw`h-full rounded-full`, { width: `${percent}%`, backgroundColor: statusColor }]} />
-                            </View>
-
-                            {/* Status Footer */}
-                            <View style={tw`flex-row justify-between items-center`}>
-                                <Text style={[tw`text-[10px] font-bold`, { color: statusColor }]}>
-                                    {percent.toFixed(0)}% {t('used') || 'Used'}
-                                </Text>
-                                {isExceeded ? (
-                                    <View style={tw`flex-row items-center bg-red-50 px-2 py-1 rounded-lg`}>
-                                        <AlertTriangle size={10} color={theme.colors.danger} style={tw`mr-1`} />
-                                        <Text style={tw`text-[10px] font-bold text-red-500`}>
-                                            {t('exceeded') || 'Exceeded'} ৳{Math.abs(remaining).toLocaleString()}
+                                {/* Progress Bar */}
+                                <View style={tw`mb-3`}>
+                                    <View style={tw`flex-row justify-between mb-2`}>
+                                        <Text style={tw`text-sm font-medium text-gray-700`}>
+                                            Spent: ৳{item.spent.toLocaleString()}
+                                        </Text>
+                                        <Text style={tw`text-sm font-medium text-gray-500`}>
+                                            {percent.toFixed(0)}%
                                         </Text>
                                     </View>
-                                ) : (
-                                    <Text style={tw`text-[10px] font-bold text-gray-400`}>
-                                        ৳{remaining.toLocaleString()} {t('left') || 'left'}
+                                    <View style={tw`h-2.5 bg-gray-100 rounded-full overflow-hidden`}>
+                                        <View
+                                            style={[
+                                                tw`h-full rounded-full`,
+                                                { width: `${percent}%`, backgroundColor: status.color }
+                                            ]}
+                                        />
+                                    </View>
+                                </View>
+
+                                {/* Remaining Amount */}
+                                <View style={tw`flex-row justify-between items-center`}>
+                                    <Text style={tw`text-sm text-gray-500`}>
+                                        Remaining
                                     </Text>
-                                )}
+                                    <Text style={[
+                                        tw`text-base font-bold`,
+                                        remaining >= 0 ? 'text-green-600' : 'text-red-600'
+                                    ]}>
+                                        ৳{Math.abs(remaining).toLocaleString()}
+                                        {remaining < 0 && ' over'}
+                                    </Text>
+                                </View>
+
+                                {/* Quick Actions */}
+                                <View style={tw`flex-row mt-4 pt-3 border-t border-gray-100`}>
+                                    <TouchableOpacity
+                                        onPress={() => openModal(item)}
+                                        style={tw`flex-1 flex-row items-center justify-center py-2 mr-2 bg-gray-50 rounded-xl`}
+                                    >
+                                        <Edit3 size={16} color={theme.colors.primary} />
+                                        <Text style={tw`text-teal-600 font-semibold ml-2`}>Edit</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => handleDelete(item)}
+                                        style={tw`flex-1 flex-row items-center justify-center py-2 ml-2 bg-red-50 rounded-xl`}
+                                    >
+                                        <Trash2 size={16} color="#EF4444" />
+                                        <Text style={tw`text-red-500 font-semibold ml-2`}>Delete</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                        </View>
+                        </Swipeable>
                     );
                 }}
             />
 
-            {/* --- ADD/EDIT BUDGET MODAL --- */}
+            {/* Floating Action Button (visible when scrolled) */}
+            <Animated.View style={[
+                tw`absolute bottom-6 right-6`,
+                {
+                    opacity: scrollY.interpolate({
+                        inputRange: [0, 50, 100],
+                        outputRange: [0, 0.5, 1]
+                    }),
+                    transform: [{
+                        scale: scrollY.interpolate({
+                            inputRange: [0, 100],
+                            outputRange: [0.8, 1]
+                        })
+                    }]
+                }
+            ]}>
+                <TouchableOpacity
+                    onPress={() => openModal()}
+                    style={tw`bg-teal-600 w-14 h-14 rounded-full items-center justify-center shadow-lg`}
+                >
+                    <Plus size={28} color="white" />
+                </TouchableOpacity>
+            </Animated.View>
+
+            {/* Add/Edit Budget Modal */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -461,19 +525,32 @@ const BudgetScreen = () => {
             >
                 <View style={tw`flex-1 justify-end bg-black/50`}>
                     <View style={tw`bg-white rounded-t-[32px] max-h-[85%]`}>
-                        {/* Header */}
+                        {/* Modal Header */}
                         <View style={tw`flex-row justify-between items-center p-6 border-b border-gray-100`}>
-                            <Text style={tw`text-xl font-bold text-gray-900`}>
-                                {isEditing ? (t('editBudget') || 'Edit Budget') : (t('createBudget') || 'Create Budget')}
-                            </Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)} style={tw`bg-gray-100 p-2 rounded-full`}>
+                            <View>
+                                <Text style={tw`text-2xl font-bold text-gray-900`}>
+                                    {isEditing ? 'Edit Budget' : 'Create Budget'}
+                                </Text>
+                                <Text style={tw`text-gray-500 text-sm mt-1`}>
+                                    {isEditing ? 'Adjust your budget limits' : 'Set a spending limit for a category'}
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setModalVisible(false)}
+                                style={tw`bg-gray-100 p-3 rounded-full`}
+                            >
                                 <X size={20} color={theme.colors.mutedText} />
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView contentContainerStyle={tw`p-6`}>
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={tw`p-6`}
+                        >
                             {/* Category Selection */}
-                            <Text style={tw`text-gray-600 text-sm font-bold mb-3 ml-1`}>{t('selectCategory') || 'Select Category'}</Text>
+                            <Text style={tw`text-gray-700 font-semibold mb-3`}>
+                                Select Category
+                            </Text>
 
                             {getAvailableCategories().length > 0 ? (
                                 <View style={tw`flex-row flex-wrap mb-6`}>
@@ -485,67 +562,95 @@ const BudgetScreen = () => {
                                                 key={cat.id}
                                                 onPress={() => !isEditing && setSelectedCategory(cat)}
                                                 disabled={isEditing}
-                                                style={tw`w-[23%] items-center mb-4 mr-[2%] ${isEditing ? 'opacity-50' : ''}`}
+                                                style={tw`w-[23%] items-center mb-4 mr-[2%]`}
                                             >
                                                 <View
                                                     style={[
-                                                        tw`w-12 h-12 rounded-2xl items-center justify-center mb-1`,
-                                                        { backgroundColor: isSelected ? theme.colors.primary : (cat.color || theme.colors.mutedText) + '20' }
+                                                        tw`w-14 h-14 rounded-2xl items-center justify-center mb-2`,
+                                                        {
+                                                            backgroundColor: isSelected ? theme.colors.primary : (cat.color || theme.colors.mutedText) + '15'
+                                                        }
                                                     ]}
                                                 >
-                                                    <IconComp size={20} color={isSelected ? 'white' : (cat.color || theme.colors.mutedText)} />
-                                                    {isSelected && (
-                                                        <View style={tw`absolute -top-1 -right-1 bg-white rounded-full p-0.5`}>
-                                                            <Check size={10} color={theme.colors.primary} />
-                                                        </View>
-                                                    )}
+                                                    <IconComp
+                                                        size={24}
+                                                        color={isSelected ? 'white' : (cat.color || theme.colors.mutedText)}
+                                                    />
                                                 </View>
-                                                <Text style={tw`text-[10px] font-bold text-center ${isSelected ? 'text-teal-600' : 'text-gray-500'}`} numberOfLines={1}>
+                                                <Text style={[
+                                                    tw`text-xs font-medium text-center`,
+                                                    isSelected ? 'text-teal-600' : 'text-gray-600'
+                                                ]} numberOfLines={1}>
                                                     {cat.name}
                                                 </Text>
+                                                {isSelected && (
+                                                    <View style={tw`absolute top-0 right-3 bg-teal-600 rounded-full p-1`}>
+                                                        <Check size={10} color="white" />
+                                                    </View>
+                                                )}
                                             </TouchableOpacity>
                                         );
                                     })}
                                 </View>
                             ) : !isEditing ? (
-                                <View style={tw`bg-amber-50 p-4 rounded-xl mb-6`}>
-                                    <Text style={tw`text-amber-700 text-sm text-center`}>{t('allCategoriesBudgeted') || 'All categories have budgets'}</Text>
-                                    <TouchableOpacity onPress={() => { setModalVisible(false); router.push('/screens/categories'); }}>
-                                        <Text style={tw`text-teal-600 font-bold text-center mt-2`}>{t('addMoreCategories') || 'Add more categories'}</Text>
+                                <View style={tw`bg-amber-50 p-6 rounded-2xl mb-6 items-center`}>
+                                    <Sparkles size={32} color="#F59E0B" />
+                                    <Text style={tw`text-amber-700 text-center mt-2 font-medium`}>
+                                        All categories have budgets!
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setModalVisible(false);
+                                            router.push('/screens/categories');
+                                        }}
+                                        style={tw`mt-3 bg-amber-600 px-6 py-3 rounded-xl`}
+                                    >
+                                        <Text style={tw`text-white font-semibold`}>
+                                            Add More Categories
+                                        </Text>
                                     </TouchableOpacity>
                                 </View>
                             ) : null}
 
-                            {/* Limit Amount */}
-                            <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>{t('setLimit') || 'Set Limit'}</Text>
-                            <View style={tw`flex-row items-center bg-gray-50 rounded-2xl px-4 py-3.5 mb-4 border border-gray-200`}>
-                                <Text style={tw`text-xl font-bold text-gray-400 mr-2`}>৳</Text>
-                                <TextInput
-                                    placeholder="0"
-                                    placeholderTextColor={theme.colors.gray400}
-                                    keyboardType="numeric"
-                                    style={tw`flex-1 text-xl font-bold text-gray-900`}
-                                    value={limitAmount}
-                                    onChangeText={(text) => setLimitAmount(text.replace(/[^0-9]/g, ''))}
-                                />
+                            {/* Budget Amount Input */}
+                            <Text style={tw`text-gray-700 font-semibold mb-3`}>
+                                Monthly Limit
+                            </Text>
+                            <View style={tw`bg-gray-50 rounded-2xl px-5 py-4 mb-4 border border-gray-200`}>
+                                <View style={tw`flex-row items-center`}>
+                                    <Text style={tw`text-2xl font-bold text-gray-400 mr-2`}>৳</Text>
+                                    <TextInput
+                                        placeholder="0"
+                                        placeholderTextColor={theme.colors.gray400}
+                                        keyboardType="numeric"
+                                        style={tw`flex-1 text-2xl font-bold text-gray-900`}
+                                        value={limitAmount}
+                                        onChangeText={(text) => setLimitAmount(text.replace(/[^0-9]/g, ''))}
+                                    />
+                                </View>
                             </View>
 
-                            {/* Suggestion based on income */}
+                            {/* Quick Suggestions */}
                             {balance.totalIncome > 0 && (
-                                <View style={tw`bg-blue-50 rounded-xl p-4 mb-6`}>
-                                    <Text style={tw`text-blue-700 text-xs font-medium mb-2`}>{t('suggestedLimits') || 'Suggested limits:'}</Text>
+                                <View style={tw`bg-blue-50 rounded-2xl p-5 mb-6`}>
+                                    <Text style={tw`text-blue-700 font-semibold mb-3`}>
+                                        Quick Suggestions
+                                    </Text>
                                     <View style={tw`flex-row flex-wrap`}>
-                                        {[10, 20, 30].map((percent) => (
-                                            <TouchableOpacity
-                                                key={percent}
-                                                onPress={() => setLimitAmount(Math.round(balance.totalIncome * percent / 100).toString())}
-                                                style={tw`bg-white px-3 py-2 rounded-lg mr-2 mb-2 border border-blue-200`}
-                                            >
-                                                <Text style={tw`text-blue-700 font-bold text-xs`}>
-                                                    {percent}% = ৳{Math.round(balance.totalIncome * percent / 100).toLocaleString()}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
+                                        {[10, 20, 30].map((percent) => {
+                                            const amount = Math.round(balance.totalIncome * percent / 100);
+                                            return (
+                                                <TouchableOpacity
+                                                    key={percent}
+                                                    onPress={() => setLimitAmount(amount.toString())}
+                                                    style={tw`bg-white px-4 py-3 rounded-xl mr-3 mb-2 border border-blue-200`}
+                                                >
+                                                    <Text style={tw`text-blue-700 font-semibold`}>
+                                                        {percent}% ৳{amount.toLocaleString()}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
                                     </View>
                                 </View>
                             )}
@@ -554,22 +659,29 @@ const BudgetScreen = () => {
                             <TouchableOpacity
                                 onPress={handleSave}
                                 disabled={isSaving || (!isEditing && getAvailableCategories().length === 0)}
-                                activeOpacity={0.9}
-                                style={tw`bg-teal-600 rounded-2xl py-4 items-center shadow-lg ${isSaving || (!isEditing && getAvailableCategories().length === 0) ? 'opacity-70' : ''}`}
+                                style={tw`bg-teal-600 rounded-2xl py-5 items-center shadow-lg ${isSaving || (!isEditing && getAvailableCategories().length === 0) ? 'opacity-50' : ''}`}
                             >
                                 {isSaving ? (
-                                    <ActivityIndicator color={theme.colors.white} />
+                                    <ActivityIndicator color="white" />
                                 ) : (
                                     <Text style={tw`text-white font-bold text-lg`}>
-                                        {isEditing ? (t('updateBudget') || 'Update Budget') : (t('saveBudget') || 'Save Budget')}
+                                        {isEditing ? 'Update Budget' : 'Create Budget'}
                                     </Text>
                                 )}
+                            </TouchableOpacity>
+
+                            {/* Cancel Button */}
+                            <TouchableOpacity
+                                onPress={() => setModalVisible(false)}
+                                style={tw`mt-3 py-4 items-center`}
+                            >
+                                <Text style={tw`text-gray-500 font-semibold`}>Cancel</Text>
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
                 </View>
             </Modal>
-        </View>
+        </GestureHandlerRootView>
     );
 };
 

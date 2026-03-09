@@ -1,4 +1,3 @@
-import EmptyStateMascot from '@/components/EmptyStateMascot';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -43,6 +42,7 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    Image,
     Modal,
     RefreshControl,
     StatusBar,
@@ -424,11 +424,10 @@ const TransactionsScreen = () => {
             {/* --- TRANSACTION LIST --- */}
             {sections.length === 0 ? (
                 <View style={tw`flex-1 justify-center items-center px-6`}>
-                    <EmptyStateMascot
-                        variant="transactions"
-                        title={t('noTransactions')}
-                        subtitle={t('noTransactionsHint')}
-                    />
+                    <Text style={tw`text-gray-500 text-center text-base mb-6`}>
+                        {t('noTransactions')}
+                    </Text>
+                    <Image source={require('@/assets/images/transection.png')} style={tw`w-48 h-48`} resizeMode="contain" />
                 </View>
             ) : (
                 <FlatList
