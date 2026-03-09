@@ -1,4 +1,5 @@
 import { useNetworkStatus } from '@/utils/networkStatus';
+import { theme } from '@/constants/theme';
 import { WifiOff } from 'lucide-react-native';
 import React from 'react';
 import { Text, View } from 'react-native';
@@ -11,8 +12,8 @@ const OfflineBanner = () => {
 
     return (
         <View style={tw`bg-amber-500 px-4 py-2 flex-row items-center justify-center`}>
-            <WifiOff size={16} color="white" />
-            <Text style={tw`text-white font-medium text-sm ml-2`}>
+            <WifiOff size={16} color={theme.colors.white} />
+            <Text style={[tw`font-medium text-sm ml-2`, { color: theme.colors.white }]}>
                 You are offline. Data is saved locally.
             </Text>
         </View>

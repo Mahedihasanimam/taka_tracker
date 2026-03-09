@@ -222,7 +222,7 @@ const CategoryManagementScreen = () => {
             >
                 <View style={tw`flex-row justify-between items-center mb-6`}>
                     <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2.5 rounded-full`}>
-                        <ArrowLeft size={22} color="white" />
+                        <ArrowLeft size={22} color={theme.colors.white} />
                     </TouchableOpacity>
                     <Text style={tw`text-white text-xl font-extrabold tracking-wide`}>
                         {t('manageCategories')}
@@ -360,7 +360,7 @@ const CategoryManagementScreen = () => {
                                         { backgroundColor: selectedColor }
                                     ]}
                                 >
-                                    {React.createElement(getIconComponent(selectedIconName), { size: 36, color: 'white' })}
+                                    {React.createElement(getIconComponent(selectedIconName), { size: 36, color: theme.colors.white })}
                                 </View>
                                 <Text style={tw`text-gray-800 font-bold text-lg`}>
                                     {name || t('categoryName')}
@@ -411,7 +411,7 @@ const CategoryManagementScreen = () => {
                                             selectedColor === color && tw`border-2 border-white shadow-lg`
                                         ]}
                                     >
-                                        {selectedColor === color && <Check size={18} color="white" />}
+                                        {selectedColor === color && <Check size={18} color={theme.colors.white} />}
                                     </TouchableOpacity>
                                 ))}
                             </View>

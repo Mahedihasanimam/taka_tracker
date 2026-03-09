@@ -1,7 +1,7 @@
-import { useAuth } from '@/context/AuthContext';
-import { theme } from "@/constants/theme";
-import { useLanguage } from '@/context/LanguageContext';
 import EmptyStateMascot from '@/components/EmptyStateMascot';
+import { theme } from "@/constants/theme";
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
     addBudget,
     deleteBudget,
@@ -558,7 +558,7 @@ const BudgetScreen = () => {
                                 style={tw`bg-teal-600 rounded-2xl py-4 items-center shadow-lg ${isSaving || (!isEditing && getAvailableCategories().length === 0) ? 'opacity-70' : ''}`}
                             >
                                 {isSaving ? (
-                                    <ActivityIndicator color="white" />
+                                    <ActivityIndicator color={theme.colors.white} />
                                 ) : (
                                     <Text style={tw`text-white font-bold text-lg`}>
                                         {isEditing ? (t('updateBudget') || 'Update Budget') : (t('saveBudget') || 'Save Budget')}

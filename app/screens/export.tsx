@@ -104,7 +104,7 @@ const ExportScreen = () => {
             <Text style={tw`text-xs font-bold ${range === id ? 'text-white' : 'text-gray-600'}`}>
                 {label}
             </Text>
-            {range === id && <CheckCircle size={14} color="white" />}
+            {range === id && <CheckCircle size={14} color={theme.colors.white} />}
         </TouchableOpacity>
     );
 
@@ -118,10 +118,10 @@ const ExportScreen = () => {
             >
                 <View style={tw`flex-row justify-between items-center mb-4`}>
                     <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2 rounded-full`}>
-                        <ArrowLeft size={24} color="white" />
+                        <ArrowLeft size={24} color={theme.colors.white} />
                     </TouchableOpacity>
                     <View style={tw`bg-white/20 p-2 rounded-full`}>
-                        <ShieldCheck size={24} color="white" />
+                        <ShieldCheck size={24} color={theme.colors.white} />
                     </View>
                 </View>
 
@@ -216,9 +216,9 @@ const ExportScreen = () => {
                             ]}
                         >
                             {isExporting ? (
-                                <ActivityIndicator color="white" size="small" style={tw`mr-2`} />
+                                <ActivityIndicator color={theme.colors.white} size="small" style={tw`mr-2`} />
                             ) : (
-                                <Download size={20} color="white" style={tw`mr-2`} />
+                                <Download size={20} color={theme.colors.white} style={tw`mr-2`} />
                             )}
                             <Text style={tw`text-white font-bold text-lg tracking-wide`}>
                                 {isExporting ? t('exporting') : t('exportBtn')}

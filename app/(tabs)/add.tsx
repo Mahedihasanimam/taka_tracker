@@ -231,7 +231,7 @@ const AddTransactionScreen = () => {
             >
                 <View style={tw`flex-row justify-between items-center mb-6`}>
                     <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2.5 rounded-full`}>
-                        <ArrowLeft size={22} color="white" />
+                        <ArrowLeft size={22} color={theme.colors.white} />
                     </TouchableOpacity>
                     <Text style={tw`text-white text-lg font-bold`}>{t('addTransaction')}</Text>
                     <View style={tw`w-10`} />
@@ -247,7 +247,7 @@ const AddTransactionScreen = () => {
                             value={amount}
                             onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
                             placeholder="0"
-                            placeholderTextColor="rgba(255,255,255,0.5)"
+                            placeholderTextColor={`${theme.colors.white}80`}
                             keyboardType="decimal-pad"
                             style={tw`text-white text-5xl font-extrabold min-w-20 text-center`}
                             maxLength={10}
@@ -378,10 +378,10 @@ const AddTransactionScreen = () => {
                                 onPress={handleSave}
                             >
                                 {isSaving ? (
-                                    <ActivityIndicator color="white" />
+                                    <ActivityIndicator color={theme.colors.white} />
                                 ) : (
                                     <View style={tw`flex-row items-center`}>
-                                        <CheckCircle size={20} color="white" style={tw`mr-2`} />
+                                        <CheckCircle size={20} color={theme.colors.white} style={tw`mr-2`} />
                                         <Text style={tw`text-white font-bold text-lg tracking-wide`}>
                                             {t('saveTransaction')}
                                         </Text>

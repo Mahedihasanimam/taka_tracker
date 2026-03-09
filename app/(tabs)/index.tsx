@@ -1,643 +1,355 @@
-import EmptyStateMascot from '@/components/EmptyStateMascot';
+// 
+
+import { bluestar, colorStar, seetingicon } from '@/assets/icons/Icon';
+import tw from '@/assets/lib/tailwind';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
 import { getBalance, getBudgets, getCategories, getTransactions, getTransactionsByCategory } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import {
-  AlertTriangle,
+  Book,
   Briefcase,
-  Calendar,
   Car,
   Coffee,
-  Download,
-  Folder,
+  Dumbbell,
+  Gamepad2,
   Gift,
+  GraduationCap,
+  Heart,
   Home,
   MoreHorizontal,
-  PieChart as PieIcon,
-  PlusCircle,
-  Settings,
+  Music,
+  Pill,
+  Plane,
+  Shirt,
   ShoppingBag,
+  Smartphone,
   Utensils,
-  Wallet
+  Wifi,
+  Zap
 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { BarChart, LineChart, PieChart } from "react-native-gifted-charts";
-import tw from 'twrnc';
+import { Image, RefreshControl, SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { BarChart, PieChart } from "react-native-gifted-charts";
+import { SvgXml } from 'react-native-svg';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.90;
-
-// Icon mapping
 const iconMap: Record<string, any> = {
-  Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Coffee, MoreHorizontal
+  Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Wifi, Zap,
+  Smartphone, Coffee, Heart, Plane, Book, Music, Gamepad2,
+  Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal
 };
 
-interface Transaction {
-  id: number;
-  amount: number;
-  type: string;
-  category: string;
-  date: string;
-  note?: string;
-  icon?: string;
-  color?: string;
+interface Category {
+  name: string;
+  icon: string;
+  color: string;
 }
 
 interface Budget {
-  id: number;
   category: string;
   limit_amount: number;
-  spent?: number;
-  icon?: string;
-  color?: string;
 }
 
 const HomeScreen = () => {
-  const { lang, switchLanguage, t } = useLanguage();
   const { user } = useAuth();
-  const primaryColor = theme.colors.primary;
 
-  // State
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Data States
   const [balance, setBalance] = useState({ totalIncome: 0, totalExpense: 0 });
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [todayData, setTodayData] = useState({ spent: 0, categories: [] as any[] });
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [todaySpent, setTodaySpent] = useState(0);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [budgetUsageMap, setBudgetUsageMap] = useState<Record<string, { spent: number; limit: number }>>({});
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch all data
   const fetchData = useCallback(async () => {
     try {
-      const [balanceData, txnData, allTxnData, budgetData, categoryData] = await Promise.all([
+      const [balanceData, txnData, categoryData, budgetData] = await Promise.all([
         getBalance(user?.id),
         getTransactions(user?.id),
-        getTransactions(user?.id, { all: true }),
+        getCategories('expense', user?.id),
         getBudgets(user?.id),
-        getCategories('expense', user?.id)
       ]);
-
       setBalance(balanceData);
-      setTransactions(txnData as Transaction[]);
+      setTransactions(txnData);
+      setCategories((categoryData as Category[]) || []);
 
-      // Process budgets with spent amounts
-      const budgetsWithSpent = await Promise.all(
-        (budgetData as Budget[]).map(async (budget) => {
+      // Calculate Today's Spending
+      const today = new Date().toDateString();
+      const todaySum = txnData
+        .filter((t: any) => new Date(t.date).toDateString() === today && t.type === 'expense')
+        .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+      setTodaySpent(todaySum);
+
+      // Use the exact same budget usage source as budget.tsx
+      const usageEntries = await Promise.all(
+        ((budgetData as Budget[]) || []).map(async (budget) => {
           const spent = await getTransactionsByCategory(budget.category, 'expense', user?.id);
-          const category = (categoryData as any[]).find(c => c.name === budget.category);
-          return {
-            ...budget,
+          return [budget.category.trim().toLowerCase(), {
             spent: spent || 0,
-            icon: category?.icon || 'MoreHorizontal',
-            color: category?.color || theme.colors.mutedText
-          };
+            limit: Number(budget.limit_amount) || 0
+          }] as const;
         })
       );
-      setBudgets(budgetsWithSpent);
+      setBudgetUsageMap(Object.fromEntries(usageEntries));
 
-      // Process today's data
-      const today = new Date().toDateString();
-      const todayTxns = (txnData as Transaction[]).filter(
-        t => new Date(t.date).toDateString() === today && t.type === 'expense'
-      );
-      const todaySpent = todayTxns.reduce((sum, t) => sum + t.amount, 0);
-
-      // Group by category for today
-      const categorySpending: Record<string, { amount: number; color: string }> = {};
-      todayTxns.forEach(txn => {
-        if (!categorySpending[txn.category]) {
-          const cat = (categoryData as any[]).find(c => c.name === txn.category);
-          categorySpending[txn.category] = { amount: 0, color: cat?.color || theme.colors.mutedText };
-        }
-        categorySpending[txn.category].amount += txn.amount;
-      });
-
-      const todayCategories = Object.entries(categorySpending).map(([name, data]) => ({
-        label: name,
-        value: data.amount,
-        color: data.color
-      }));
-
-      setTodayData({ spent: todaySpent, categories: todayCategories });
-
-      // Process weekly data (last 7 days)
+      // Weekly Data for Chart
       const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
       const weeklySpending = [];
       for (let i = 6; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
-        const dayTxns = (txnData as Transaction[]).filter(
-          t => new Date(t.date).toDateString() === date.toDateString() && t.type === 'expense'
-        );
-        const daySpent = dayTxns.reduce((sum, t) => sum + t.amount, 0);
-        weeklySpending.push({
-          value: daySpent,
-          label: weekDays[date.getDay()],
-          frontColor: primaryColor
-        });
+        const daySpent = txnData
+          .filter((t: any) => new Date(t.date).toDateString() === date.toDateString() && t.type === 'expense')
+          .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+        weeklySpending.push({ value: daySpent, label: weekDays[date.getDay()], frontColor: '#FFFFFF' });
       }
       setWeeklyData(weeklySpending);
-
-      // Process monthly data (trend)
-      const monthlyTrend = [];
-      const now = new Date();
-      for (let i = 7; i >= 0; i--) {
-        const weekStart = new Date(now);
-        weekStart.setDate(weekStart.getDate() - (i * 7));
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-
-        const weekTxns = (allTxnData as Transaction[]).filter(t => {
-          const txnDate = new Date(t.date);
-          return txnDate >= weekStart && txnDate < weekEnd && t.type === 'expense';
-        });
-        const weekSpent = weekTxns.reduce((sum, t) => sum + t.amount, 0);
-        monthlyTrend.push({ value: weekSpent / 1000 });
-      }
-      setMonthlyData(monthlyTrend);
-
     } catch (error) {
-      console.error('Failed to fetch home data:', error);
+      console.error(error);
     } finally {
-      setIsLoading(false);
       setRefreshing(false);
     }
-  }, [primaryColor, user?.id]);
+  }, [user?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [fetchData])
-  );
+  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+  const getCategoryDetails = (categoryName: string) =>
+    categories.find((item) => item.name === categoryName) || null;
+
+  const getTransactionIcon = (transaction: any) => {
+    if (transaction?.icon && iconMap[transaction.icon]) {
+      return iconMap[transaction.icon];
+    }
+    const category = getCategoryDetails(transaction?.category);
+    if (category?.icon && iconMap[category.icon]) {
+      return iconMap[category.icon];
+    }
+    return MoreHorizontal;
   };
 
-  // Calculate derived values
-  const totalBalance = balance.totalIncome - balance.totalExpense;
-  const weeklyTotal = weeklyData.reduce((sum, d) => sum + d.value, 0);
-  const highestDay = weeklyData.reduce((max, d) => d.value > max.value ? d : max, { value: 0, label: '' });
+  const getTransactionColor = (transaction: any) => {
+    if (transaction?.color) return transaction.color;
+    const category = getCategoryDetails(transaction?.category);
+    return category?.color || '#5E59B3';
+  };
 
-  // Prepare pie chart data for today
-  const dailyBudget = budgets.length > 0
-    ? Math.round(budgets.reduce((sum, b) => sum + b.limit_amount, 0) / 30)
-    : 0;
+  const getStatusColor = (spent: number, limit: number) => {
+    if (!limit || limit === 0) return theme.colors.mutedText;
+    const percentage = (spent / limit) * 100;
+    if (percentage >= 100) return theme.colors.danger;
+    if (percentage >= 80) return theme.colors.warning;
+    return theme.colors.success;
+  };
 
-  const getDailyPieData = () => {
-    if (dailyBudget === 0 || todayData.categories.length === 0) {
-      return [{ value: 1, color: theme.colors.gray200, text: '0%' }];
+  const getBudgetProgressData = (transaction: any) => {
+    const categoryKey = String(transaction?.category || '').trim().toLowerCase();
+    const usage = budgetUsageMap[categoryKey];
+
+    if (transaction?.type !== 'expense' || !usage?.limit) {
+      return { percent: 0, color: theme.colors.mutedText };
     }
 
-    const remaining = Math.max(0, dailyBudget - todayData.spent);
-    const pieData = todayData.categories.map(cat => ({
-      value: cat.value,
-      color: cat.color,
-      text: `${Math.round((cat.value / dailyBudget) * 100)}%`
-    }));
-
-    if (remaining > 0) {
-      pieData.push({ value: remaining, color: theme.colors.gray200, text: `${Math.round((remaining / dailyBudget) * 100)}%` });
-    }
-
-    return pieData;
+    const percent = Math.min((usage.spent / usage.limit) * 100, 100);
+    return { percent, color: getStatusColor(usage.spent, usage.limit) };
   };
 
-  // Center label for donut chart
-  const renderCenterLabel = () => {
-    const remaining = Math.max(0, dailyBudget - todayData.spent);
-    return (
-      <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={tw`text-xs text-gray-500 font-bold`}>{t('left')}</Text>
-        <Text style={tw`text-lg font-extrabold text-gray-800`}>৳{remaining.toLocaleString()}</Text>
-      </View>
-    );
-  };
-
-  // Get recent transactions
-  const recentTransactions = transactions.slice(0, 3);
-
-  // Get budget alerts (over 80%)
-  const budgetAlerts = budgets.filter(b => b.spent && b.limit_amount && (b.spent / b.limit_amount) >= 0.8);
-
-  // Quick Actions
-  const quickActions = [
-    { id: 1, onPress: () => router.push('/add'), label: t('addExpense'), icon: PlusCircle, color: theme.colors.danger, bg: 'bg-red-50' },
-    { id: 2, onPress: () => router.push('/budget'), label: t('setBudget'), icon: PieIcon, color: theme.colors.purple, bg: 'bg-purple-50' },
-    { id: 3, onPress: () => router.push('/screens/categories'), label: t('categories'), icon: Folder, color: theme.colors.success, bg: 'bg-green-50' },
-    { id: 4, onPress: () => router.push('/screens/export'), label: t('export'), icon: Download, color: theme.colors.warning, bg: 'bg-amber-50' },
-  ];
-
-  // Dashboard cards data
-  const dashboardData = [
-    {
-      id: 'daily',
-      title: t('today'),
-      amountLabel: t('spentToday'),
-      amount: `৳ ${todayData.spent.toLocaleString()}`,
-      type: 'donut',
-      subText: dailyBudget > 0 ? `${t('budget')}: ৳${dailyBudget.toLocaleString()}` : t('noBudgetsSet'),
-      legend: todayData.categories.slice(0, 3)
-    },
-    {
-      id: 'weekly',
-      title: t('thisWeek'),
-      amountLabel: t('weeklySpent'),
-      amount: `৳ ${weeklyTotal.toLocaleString()}`,
-      type: 'bar',
-      subText: `${t('highest')}: ${highestDay.label || '-'}`
-    },
-    {
-      id: 'monthly',
-      title: t('thisMonth'),
-      amountLabel: t('totalSavings'),
-      amount: `৳ ${totalBalance.toLocaleString()}`,
-      type: 'line',
-      subText: totalBalance >= 0 ? t('trendingUp') : t('trendingDown')
-    },
-  ];
-
-  if (isLoading) {
-    return (
-      <View style={tw`flex-1 bg-slate-50 justify-center items-center`}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
+  const recentTransactions = transactions.slice(0, 10);
 
   return (
-    <View style={tw`flex-1 bg-slate-50`}>
-      <StatusBar backgroundColor={theme.colors.primaryDark} barStyle="light-content" />
+    <View style={tw`flex-1 bg-[#F1F1F1]`}>
+      <StatusBar barStyle="light-content" />
 
-      {/* --- HEADER --- */}
+      {/* Decorative Background Circle */}
       <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryDark]}
-        style={tw`h-60 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg`}
-      >
-        <View style={tw`flex-row justify-between items-start`}>
-          <View>
-            <Text style={tw`text-white text-2xl font-extrabold tracking-wide`}>{t('appName')}</Text>
-            <Text style={tw`text-white/80 text-lg font-medium`}>{t('appSub')}</Text>
-          </View>
-          {/* Language Toggle */}
-          <View style={tw`flex-row bg-white/20 rounded-full p-1 border border-white/30`}>
-            <TouchableOpacity onPress={() => switchLanguage('bn')} style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white' : 'bg-transparent'}`}>
-              <Text style={tw`text-[10px] font-bold ${lang === 'bn' ? 'text-teal-600' : 'text-white'}`}>বাংলা</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => switchLanguage('en')} style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white' : 'bg-transparent'}`}>
-              <Text style={tw`text-[10px] font-bold ${lang === 'en' ? 'text-teal-600' : 'text-white'}`}>ENG</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </LinearGradient>
+        colors={['#3F3A8A', '#5E59B3', '#4E9F98']}
+        locations={[0, 0.5, 1]}
+        start={{ x: 1, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={[tw`absolute`, { width: 1155, height: 1155, left: -357, top: -920, borderRadius: 9999 }]}
+      />
 
-      {/* --- MAIN CONTENT --- */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`pb-32`}
-        style={{ marginTop: -96 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
-        }
-      >
-        {/* --- HORIZONTAL CARDS --- */}
+      <SafeAreaView style={tw`flex-1 mt-4`}>
+        {/* Header Section */}
+        <View style={tw`px-5 pt-3 flex-row justify-between items-center pb-3 mt-4`}>
+          <View style={tw`flex-row items-center gap-3 mt-6`}>
+            <Image
+              source={require('@/assets/images/avatar.png')}
+              style={tw`w-12 h-12 rounded-full bg-gray-300`}
+            />
+            <View>
+              <Text style={tw`text-white text-xl font-bold`}>{user?.name || 'Abid Hasan'}</Text>
+              <Text style={tw`text-white/70 text-sm`}>{user?.phone}</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={tw`w-12 h-12 bg-white rounded-full justify-center items-center shadow-md`}>
+            <SvgXml xml={seetingicon} />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2. Main Vertical Scroll Area */}
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={tw`px-5 pb-6`}
-          decelerationRate="fast"
-          snapToInterval={CARD_WIDTH + 16}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={tw`pb-10`}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
         >
-          {dashboardData.map((item) => (
-            <View
-              key={item.id}
-              style={[
-                tw`bg-white rounded-[32px] p-6 mr-4 mb-2 overflow-hidden`,
-                {
-                  width: CARD_WIDTH,
-                  shadowColor: theme.colors.black,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 12,
-                  elevation: 8,
-                }
-              ]}
-            >
-              {/* Card Header */}
-              <View style={tw`flex-row justify-between items-center mb-4 border-b border-gray-100 pb-3`}>
-                <View style={tw`flex-row items-center`}>
-                  <View style={tw`bg-teal-50 p-2 rounded-full mr-2`}>
-                    <Wallet size={18} color={theme.colors.primary} />
-                  </View>
-                  <Text style={tw`text-lg font-bold text-gray-800`}>{item.title}</Text>
-                </View>
-                <View style={tw`bg-gray-50 px-2 py-1 rounded-md flex-row items-center`}>
-                  <Calendar size={12} color={theme.colors.gray400} style={tw`mr-1`} />
-                  <Text style={tw`text-[10px] font-bold text-gray-500`}>{item.subText}</Text>
-                </View>
-              </View>
+          <View style={{ position: 'relative' }}>
+            {/* 1. Horizontal Card Slider */}
+            <View style={{ zIndex: 1 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`px-5 mt-4 gap-3`}>
 
-              <View style={tw`flex-row justify-between items-center`}>
-                {/* LEFT SIDE: Stats & Legend */}
-                <View style={tw`w-[40%]`}>
-                  <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1 tracking-widest`}>
-                    {item.amountLabel}
-                  </Text>
-                  <Text style={tw`text-2xl font-extrabold text-gray-900 mb-3`}>{item.amount}</Text>
-
-                  {item.id === 'daily' && item.legend && item.legend.length > 0 ? (
+                {/* CARD 1: MAIN BALANCE */}
+                <LinearGradient colors={['#5E59B3', '#4E9F98']} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={tw`w-[340px] h-[221px] rounded-2xl border border-white/30 p-5`}>
+                  <View style={tw`flex-row justify-between h-[221px] items-start`}>
                     <View>
-                      {item.legend.map((l: any, i: number) => (
-                        <View key={i} style={tw`flex-row items-center mb-1`}>
-                          <View style={[tw`w-2 h-2 rounded-full mr-1.5`, { backgroundColor: l.color }]} />
-                          <Text style={tw`text-[10px] text-gray-500 font-medium`}>{l.label}: </Text>
-                          <Text style={tw`text-[10px] text-gray-800 font-bold`}>৳{l.value.toLocaleString()}</Text>
-                        </View>
-                      ))}
+                      <Text style={tw`text-white/70 text-base`}>Main balance</Text>
+                      <Text style={tw`text-white text-[40px] font-bold`}>৳{(balance.totalIncome - balance.totalExpense).toLocaleString()}</Text>
                     </View>
-                  ) : (
-                    <View style={tw`${totalBalance >= 0 ? 'bg-green-50' : 'bg-red-50'} self-start px-2 py-1 rounded-md`}>
-                      <Text style={tw`text-[10px] ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'} font-bold`}>
-                        {totalBalance >= 0 ? '+' : ''}{((totalBalance / (balance.totalIncome || 1)) * 100).toFixed(0)}% vs last
-                      </Text>
+                    <View style={tw`px-3 py-1 rounded-full border border-white/30`}>
+                      <Text style={tw`text-white text-base`}>BDT</Text>
                     </View>
-                  )}
-                </View>
+                  </View>
+                  <View style={[tw`absolute`, { width: 25, height: 25, right: 70, bottom: 80 }]}><SvgXml xml={colorStar} /></View>
+                  <View style={[tw`absolute`, { width: 27, height: 27, right: 20, bottom: 40 }]}><SvgXml xml={bluestar} /></View>
+                </LinearGradient>
 
-                {/* RIGHT SIDE: Charts */}
-                <View style={tw`flex-1 items-end justify-center`}>
-                  {item.type === 'donut' && (
+                {/* CARD 2: TODAY'S USE WITH CHART */}
+                <LinearGradient colors={['#5E59B3', '#4E9F98']} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={tw`w-[340px] h-[221px] rounded-2xl border border-white/30 p-5`}>
+                  <View style={tw`flex-row justify-between`}>
+                    <View>
+                      <Text style={tw`text-white/70 text-base`}>Today&apos;s Use</Text>
+                      <Text style={tw`text-white text-[32px] font-bold`}>৳{todaySpent.toLocaleString()}</Text>
+                    </View>
                     <PieChart
-                      data={getDailyPieData()}
                       donut
-                      radius={55}
-                      innerRadius={42}
-                      centerLabelComponent={renderCenterLabel}
-                      isAnimated
-                      animationDuration={1500}
+                      radius={40}
+                      innerRadius={30}
+                      data={[{ value: todaySpent, color: '#FFFFFF' }, { value: 5000, color: 'rgba(255,255,255,0.2)' }]}
                     />
-                  )}
+                  </View>
+                  <View style={[tw`absolute`, { right: 20, bottom: 20 }]}><SvgXml xml={bluestar} /></View>
+                </LinearGradient>
 
-                  {item.type === 'bar' && weeklyData.length > 0 && (
-                    <BarChart
-                      data={weeklyData}
-                      barWidth={12}
-                      spacing={14}
-                      roundedTop
-                      roundedBottom
-                      hideRules
-                      xAxisThickness={0}
-                      yAxisThickness={0}
-                      yAxisTextStyle={{ color: 'gray', fontSize: 10 }}
-                      noOfSections={3}
-                      maxValue={Math.max(...weeklyData.map(d => d.value), 100)}
-                      isAnimated
-                      animationDuration={1500}
-                      height={90}
-                      width={160}
-                    />
-                  )}
-
-                  {item.type === 'line' && monthlyData.length > 0 && (
-                    <LineChart
-                      data={monthlyData}
-                      areaChart
-                      curved
-                      color={primaryColor}
-                      startFillColor={primaryColor}
-                      endFillColor={theme.colors.white}
-                      startOpacity={0.4}
-                      endOpacity={0.0}
-                      hideRules
-                      hideDataPoints={false}
-                      dataPointsColor={primaryColor}
-                      xAxisThickness={0}
-                      yAxisThickness={0}
-                      yAxisTextStyle={{ color: 'gray', fontSize: 10 }}
-                      noOfSections={3}
-                      isAnimated
-                      animationDuration={2000}
-                      height={80}
-                      width={160}
-                    />
-                  )}
-                </View>
-              </View>
+                {/* CARD 3: WEEKLY ANALYSIS */}
+                <LinearGradient colors={['#5E59B3', '#4E9F98']} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={tw`w-[340px] h-[221px] rounded-2xl border border-white/30 p-5`}>
+                  <Text style={tw`text-white/70 text-base mb-2`}>Weekly Analysis</Text>
+                  <BarChart
+                    data={weeklyData}
+                    barWidth={18}
+                    initialSpacing={10}
+                    spacing={15}
+                    hideRules
+                    hideYAxisText
+                    xAxisThickness={0}
+                    yAxisThickness={0}
+                    height={100}
+                    width={250}
+                    barBorderRadius={4}
+                    xAxisLabelTextStyle={tw`text-white/70 text-xs`}
+                  />
+                </LinearGradient>
+              </ScrollView>
             </View>
-          ))}
-        </ScrollView>
 
-        {/* --- TRACKING QUICK ACTIONS --- */}
-        <View style={tw`px-5 mb-8`}>
-          <Text style={tw`text-sm font-bold text-gray-800 mb-4 px-1`}>{t('fastActions')}</Text>
-          <View style={tw`flex-row justify-between`}>
-            {quickActions.map((action) => (
-              <TouchableOpacity onPress={action.onPress} key={action.id} style={tw`items-center w-[23%]`} activeOpacity={0.7}>
-                <View style={tw`w-14 h-14 rounded-2xl ${action.bg} items-center justify-center mb-2 shadow-sm`}>
-                  <action.icon size={22} color={action.color} />
-                </View>
-                <Text style={tw`text-[11px] font-bold text-gray-600 text-center`}>{action.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {/* THE CAT IMAGE */}
+            <View pointerEvents="none" style={[tw`absolute w-full items-center`, { bottom: -290, zIndex: 10 }]}>
+              <Image
+                source={require('@/assets/images/homecat.png')}
+                style={tw`w-[380px] h-[500px] transform rotate-12`}
+                resizeMode="contain"
+              />
+            </View>
           </View>
-        </View>
 
-        {/* --- BOTTOM GRID (Activity & Budget) --- */}
-        <View style={tw`flex-row justify-between px-5`}>
-          {/* Recent Activity */}
-          <View style={tw`bg-white rounded-2xl p-4 shadow-sm shadow-gray-200 w-[48%]`}>
-            <View style={tw`flex-row justify-between items-center mb-4 border-b border-gray-100 pb-2`}>
-              <Text style={tw`text-sm font-bold text-gray-800`}>{t('recentActivity')}</Text>
-              <TouchableOpacity onPress={() => router.push('/transactions')}>
-                <Settings size={14} color={theme.colors.gray400} />
-              </TouchableOpacity>
-            </View>
+          {/* 3. Transaction List Section */}
+          <View style={[tw`mx-5 bg-white rounded-3xl pb-20 p-6 shadow-xl mt-24`, { zIndex: 20 }]}>
+            <Text style={tw`text-black text-xl font-semibold mb-6`}>Recent transactions</Text>
+
             {recentTransactions.length === 0 ? (
-              <EmptyStateMascot compact variant="general" title={t('noRecentActivity')} />
+              <View style={tw`py-6`}>
+                <Text style={tw`text-center text-gray-500`}>No transactions yet</Text>
+
+                <Image
+                  source={require('@/assets/images/find.jpeg')}
+                  style={tw`w-40 h-40 mx-auto mt-4`}
+                  resizeMode="contain"
+                />
+
+              </View>
             ) : (
-              recentTransactions.map((txn) => {
-                const IconComp = iconMap[txn.icon || ''] || Briefcase;
+              recentTransactions.map((item, index) => {
+                const IconComponent = getTransactionIcon(item);
+                const color = getTransactionColor(item);
+                const budgetProgress = getBudgetProgressData(item);
+
                 return (
-                  <View key={txn.id} style={tw`flex-row items-center mb-5`}>
-                    <View style={[tw`w-8 h-8 rounded-full items-center justify-center mr-2`, { backgroundColor: (txn.color || theme.colors.mutedText) + '20' }]}>
-                      <IconComp size={14} color={txn.color || theme.colors.mutedText} />
+                  <View
+                    key={index}
+                    style={tw`flex-row items-center gap-4 mb-4 w-full`}
+                  >
+                    {/* Icon Circle */}
+                    <View
+                      style={[
+                        tw`w-14 h-14 rounded-full justify-center items-center`,
+                        { backgroundColor: `${color}1F` }, // semi-transparent background
+                      ]}
+                    >
+                      <IconComponent size={28} color={color} />
                     </View>
-                    <View style={tw`flex-1`}>
-                      <Text style={tw`text-[11px] font-bold text-gray-800`} numberOfLines={1}>{txn.category}</Text>
-                      <Text style={tw`text-[10px] font-bold ${txn.type === 'expense' ? 'text-red-500' : 'text-green-500'}`}>
-                        {txn.type === 'expense' ? '-' : '+'} ৳{txn.amount.toLocaleString()}
-                      </Text>
+
+                    {/* Content Column */}
+                    <View style={tw`flex-1 flex-col gap-2`}>
+                      {/* Title & Amount Row */}
+                      <View style={tw`flex-row justify-between items-center`}>
+                        <Text style={tw`text-black text-[20px] font-semibold`}>
+                          {item.category || item.title}
+                        </Text>
+                        <Text
+                          style={[
+                            tw`text-[20px] font-semibold`,
+                            { color: item.type === 'expense' ? '#CE5347' : '#4E9F98' },
+                          ]}
+                        >
+                          {item.type === 'expense' ? '-' : '+'} {item.amount} TK
+                        </Text>
+                      </View>
+
+                      {/* Spending Row */}
+                      <View style={tw`flex-row justify-between items-center`}>
+                        <Text style={tw`text-black/50 text-[14px] font-medium`}>
+                          BDT {budgetUsageMap[item.category?.toLowerCase()]?.spent || 0}
+                        </Text>
+                        <Text style={tw`text-black/50 text-[14px] font-medium`}>
+                          BDT {budgetUsageMap[item.category?.toLowerCase()]?.limit || 0}
+                        </Text>
+                      </View>
+
+                      {/* Progress Bar */}
+                      <View
+                        style={[
+                          tw`h-2 w-full rounded-full bg-gray-200 mt-1`,
+                        ]}
+                      >
+                        <View
+                          style={{
+                            width: `${budgetProgress.percent}%`,
+                            height: '100%',
+                            borderRadius: 999,
+                            backgroundColor: budgetProgress.color,
+                          }}
+                        />
+                      </View>
                     </View>
                   </View>
                 );
               })
             )}
           </View>
-
-          {/* Budget Status */}
-          <View style={tw`bg-white rounded-2xl p-4 shadow-sm shadow-gray-200 w-[48%]`}>
-            <Text style={tw`text-sm font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2`}>
-              {t('budgetStatus')}
-            </Text>
-            {budgets.length === 0 ? (
-              <EmptyStateMascot compact variant="budget" title={t('noBudgetsSet')} />
-            ) : (
-              <>
-                {budgets.slice(0, 2).map((item) => {
-                  const percent = item.limit_amount > 0 ? Math.min((item.spent || 0) / item.limit_amount * 100, 100) : 0;
-                  const isOver = percent >= 100;
-                  return (
-                    <View key={item.id} style={tw`mb-4`}>
-                      <View style={tw`flex-row justify-between mb-1.5`}>
-                        <Text style={tw`text-[10px] font-bold text-gray-600`}>{item.category}</Text>
-                        <Text style={tw`text-[10px] font-bold text-gray-400`}>{percent.toFixed(0)}%</Text>
-                      </View>
-                      <View style={tw`h-1.5 bg-gray-100 rounded-full overflow-hidden`}>
-                        <View style={[tw`h-full rounded-full`, { width: `${percent}%`, backgroundColor: isOver ? theme.colors.danger : percent >= 80 ? theme.colors.warning : theme.colors.success }]} />
-                      </View>
-                    </View>
-                  );
-                })}
-                {budgetAlerts.length > 0 && (
-                  <View style={tw`flex-row items-center bg-orange-50 p-2 rounded-lg mt-1`}>
-                    <AlertTriangle size={12} color={theme.colors.categoryFood} style={tw`mr-1.5`} />
-                    <View>
-                      <Text style={tw`text-[10px] text-orange-700 font-bold`}>{budgetAlerts[0].category}</Text>
-                      <Text style={tw`text-[9px] text-orange-600`}>{t('overBudget')}</Text>
-                    </View>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 };
 
 export default HomeScreen;
-
-
-
-// import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-// import { LinearGradient } from 'expo-linear-gradient';
-// import React from 'react';
-// import { Image, SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
-// import tw from 'twrnc';
-
-// const Home = () => {
-//   return (
-//     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-//       <StatusBar barStyle="dark-content" />
-
-//       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={tw`pb-32`}>
-//         {/* Header Section */}
-//         <View style={tw`px-6 pt-4 flex-row justify-between items-center`}>
-//           <View style={tw`flex-row items-center`}>
-//             <View style={tw`w-12 h-12 rounded-full bg-purple-200 overflow-hidden border-2 border-white`}>
-//               <Image
-//                 source={{ uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
-//                 style={tw`w-full h-full`}
-//               />
-//             </View>
-//             <View style={tw`ml-3`}>
-//               <Text style={tw`text-xl font-bold text-slate-800`}>WALLET BUDDY</Text>
-//               <Text style={tw`text-xs text-slate-500`}>Localized Malaysian title</Text>
-//             </View>
-//           </View>
-//           <TouchableOpacity style={tw`p-2 bg-white rounded-full shadow-sm`}>
-//             <Ionicons name="settings-outline" size={24} color="#64748b" />
-//           </TouchableOpacity>
-//         </View>
-
-//         {/* Main Balance Card */}
-//         <View style={tw`px-6 mt-6`}>
-//           <LinearGradient
-//             colors={['#4ade80', '#3b82f6', '#8b5cf6']}
-//             start={{ x: 0, y: 0 }}
-//             end={{ x: 1, y: 1 }}
-//             style={tw`rounded-3xl p-6 shadow-xl relative overflow-hidden`}
-//           >
-//             <View style={tw`flex-row justify-between`}>
-//               <Text style={tw`text-white text-opacity-80 font-medium`}>Main Balance</Text>
-//               <View style={tw`bg-white bg-opacity-20 px-2 py-1 rounded-lg`}>
-//                 <Text style={tw`text-white text-xs font-bold`}>RM</Text>
-//               </View>
-//             </View>
-//             <Text style={tw`text-white text-3xl font-bold mt-2`}>RM 24,567.89</Text>
-
-//             {/* Decorative Stars/Icons */}
-//             <MaterialCommunityIcons name="star-four-points" size={20} color="rgba(255,255,255,0.4)" style={tw`absolute right-10 top-20`} />
-//             <View style={tw`bg-yellow-400 w-8 h-8 rounded-full items-center justify-center absolute left-10 -bottom-2 border-2 border-white shadow-sm`}>
-//               <Text style={tw`text-white font-bold`}>$</Text>
-//             </View>
-//           </LinearGradient>
-//         </View>
-
-//         {/* Mascot Area */}
-//         <View style={tw`items-center -mt-8 z-10`}>
-//           <Image
-//             source={require('../../assets/images/homecat.png')} // Placeholder Cat Mascot
-//             style={tw`w-48 h-48`}
-//             resizeMode="cover"
-//           />
-//         </View>
-
-//         {/* Transactions List */}
-//         <View style={tw`px-6 -mt-4`}>
-//           <View style={tw`bg-white rounded-3xl p-6 shadow-sm`}>
-//             <Text style={tw`text-lg font-bold text-slate-800 mb-4`}>Recent Transactions</Text>
-
-//             {/* Transaction Item 1 */}
-//             <View style={tw`flex-row items-center justify-between mb-6`}>
-//               <View style={tw`flex-row items-center`}>
-//                 <View style={tw`w-12 h-12 bg-green-50 rounded-2xl items-center justify-center`}>
-//                   <Ionicons name="fast-food" size={24} color="#22c55e" />
-//                 </View>
-//                 <View style={tw`ml-4`}>
-//                   <Text style={tw`font-bold text-slate-800`}>Groceries</Text>
-//                   <Text style={tw`text-xs text-slate-400`}>Groceries</Text>
-//                 </View>
-//               </View>
-//               <Text style={tw`font-bold text-red-500`}>-$85.50</Text>
-//             </View>
-
-//             {/* Transaction Item 2 */}
-//             <View style={tw`flex-row items-center justify-between mb-2`}>
-//               <View style={tw`flex-row items-center`}>
-//                 <View style={tw`w-12 h-12 bg-red-50 rounded-2xl items-center justify-center`}>
-//                   <Ionicons name="home" size={24} color="#ef4444" />
-//                 </View>
-//                 <View style={tw`ml-4`}>
-//                   <Text style={tw`font-bold text-slate-800`}>Rent</Text>
-//                   <Text style={tw`text-xs text-slate-400`}>$11,200.00</Text>
-//                 </View>
-//               </View>
-//               <Text style={tw`font-bold text-red-500`}>-$1,200.00</Text>
-//             </View>
-//           </View>
-//         </View>
-//       </ScrollView>
-
-
-//     </SafeAreaView>
-//   );
-// };
-
-// export default Home;

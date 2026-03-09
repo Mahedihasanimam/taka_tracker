@@ -1,7 +1,9 @@
 export const theme = {
   colors: {
-    primary: "#0D9488",
+    primary: "#0F766E",
     primaryDark: "#0F766E",
+    primaryTeal: "#4E9F98",
+    primaryDeep: "#3F3A8A",
 
     secondary: "#3b82f6",
 
@@ -30,6 +32,7 @@ export const theme = {
     lightDanger: "#fca5a5",
     panelOverlay: "rgba(0,0,0,0.2)",
     overlay: "rgba(0,0,0,0.35)",
+    overlayStrong: "rgba(0,0,0,0.5)",
 
     expense: "#ef4444",
     income: "#16a34a",

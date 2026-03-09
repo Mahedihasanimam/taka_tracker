@@ -84,7 +84,7 @@ const LoginScreen = () => {
               onPress={() => switchLanguage('bn')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'bn' ? theme.colors.primary : 'rgba(255,255,255,0.7)' }]}>
+              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'bn' ? theme.colors.primary : `${theme.colors.white}B3` }]}>
                 বাংলা
               </Text>
             </TouchableOpacity>
@@ -94,7 +94,7 @@ const LoginScreen = () => {
               onPress={() => switchLanguage('en')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'en' ? theme.colors.primary : 'rgba(255,255,255,0.7)' }]}>
+              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'en' ? theme.colors.primary : `${theme.colors.white}B3` }]}>
                 ENG
               </Text>
             </TouchableOpacity>

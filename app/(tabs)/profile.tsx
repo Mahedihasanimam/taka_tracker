@@ -11,11 +11,11 @@ import {
     CreditCard,
     Database,
     Edit3,
+    FileUp,
     Globe,
     HelpCircle,
     Lock,
     LogOut,
-    FileUp,
     RefreshCcw,
     RotateCcw,
     ShieldCheck,
@@ -222,7 +222,7 @@ const ProfileScreen = () => {
     return (
         <View style={tw`flex-1 bg-slate-50`}>
             <LinearGradient
-                colors={theme.gradients.primary}
+                colors={[theme.colors.primary, theme.colors.primaryDark]}
                 style={tw`h-72 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg relative z-0 items-center`}
             >
                 <Text style={tw`text-white text-xl font-bold mb-6`}>{t('profileTitle')}</Text>
@@ -243,7 +243,7 @@ const ProfileScreen = () => {
                         style={tw`absolute bottom-0 right-0 bg-gray-900 p-2 rounded-full border-2 border-white`}
                         onPress={() => router.push('/profile/edit')}
                     >
-                        <Edit3 size={12} color="white" />
+                        <Edit3 size={12} color={theme.colors.white} />
                     </TouchableOpacity>
                 </View>
 

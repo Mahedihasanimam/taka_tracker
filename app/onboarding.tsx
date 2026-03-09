@@ -351,7 +351,7 @@ const OnboardingScreen = () => {
               ]}
             >
               <Text style={tw`text-white text-base font-bold tracking-wider`}>Next</Text>
-              <ArrowRight size={18} color="white" />
+              <ArrowRight size={18} color={theme.colors.white} />
             </TouchableOpacity>
           </View>
         )}

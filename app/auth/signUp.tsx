@@ -84,7 +84,7 @@ const SignUpScreen = () => {
     <View style={tw`flex-1 bg-white`}>
 
       {/* --- HEADER SECTION (Consistent with Login) --- */}
-      <View style={tw`bg-teal-600 h-52 px-6 pt-12 relative`}>
+      <View style={[tw`h-52 px-6 pt-12 relative`, { backgroundColor: theme.colors.primary }]}>
         <View style={tw`flex-row justify-between items-start`}>
           <View>
             <Text style={tw`text-white text-2xl font-bold tracking-wide`}>
@@ -96,13 +96,18 @@ const SignUpScreen = () => {
           </View>
 
           {/* Language Toggle */}
-          <View style={[tw`flex-row bg-teal-700 rounded-full p-1 border`, { borderColor: theme.colors.primaryDark }]}>
+          <View
+            style={[
+              tw`flex-row rounded-full p-1 border`,
+              { backgroundColor: theme.colors.primaryDark, borderColor: theme.colors.primaryDark },
+            ]}
+          >
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => switchLanguage('bn')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'bn' ? 'text-teal-600' : 'text-white/70'}`}>বাংলা</Text>
+              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'bn' ? theme.colors.primary : `${theme.colors.white}B3` }]}>বাংলা</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -110,7 +115,7 @@ const SignUpScreen = () => {
               onPress={() => switchLanguage('en')}
               style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
             >
-              <Text style={tw`text-[12px] font-bold ${lang === 'en' ? 'text-teal-600' : 'text-white/70'}`}>ENG</Text>
+              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'en' ? theme.colors.primary : `${theme.colors.white}B3` }]}>ENG</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -210,7 +215,10 @@ const SignUpScreen = () => {
               activeOpacity={0.8}
               onPress={handleSignUp}
               disabled={isLoading}
-              style={tw`bg-teal-600 rounded-2xl py-4 shadow-lg shadow-teal-300/40 mb-4 ${isLoading ? 'opacity-70' : ''}`}
+              style={[
+                tw`rounded-2xl py-4 shadow-lg mb-4 ${isLoading ? 'opacity-70' : ''}`,
+                { backgroundColor: theme.colors.primary },
+              ]}
             >
               {isLoading ? (
                 <ActivityIndicator color={theme.colors.white} />
@@ -227,7 +235,7 @@ const SignUpScreen = () => {
                 {t('haveAccount')}
               </Text>
               <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/auth/signIn')}>
-                <Text style={tw`text-teal-600 font-bold text-base underline`}>
+                <Text style={[tw`font-bold text-base underline`, { color: theme.colors.primary }]}>
                   {t('logInLink')}
                 </Text>
               </TouchableOpacity>

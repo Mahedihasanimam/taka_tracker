@@ -161,7 +161,7 @@ const EditProfileScreen = () => {
                                     </View>
                                     {/* Camera Badge */}
                                     <View style={[tw`absolute bottom-0 right-0 w-9 h-9 rounded-full items-center justify-center border-3 border-white`, { backgroundColor: theme.colors.primary }]}>
-                                        <Camera size={16} color="white" />
+                                        <Camera size={16} color={theme.colors.white} />
                                     </View>
                                 </View>
                             </TouchableOpacity>

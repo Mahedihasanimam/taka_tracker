@@ -1,7 +1,7 @@
+import EmptyStateMascot from '@/components/EmptyStateMascot';
+import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { theme } from '@/constants/theme';
-import EmptyStateMascot from '@/components/EmptyStateMascot';
 import { deleteTransaction, getCategories, getTransactions } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -332,7 +332,7 @@ const TransactionsScreen = () => {
 
             {/* --- HEADER --- */}
             <LinearGradient
-                colors={theme.gradients.primary}
+                colors={[theme.colors.primary, theme.colors.primaryDark]}
                 style={tw`px-6 pt-12 pb-20 rounded-b-[36px] shadow-lg`}
             >
                 <View style={tw`flex-row justify-between items-center mb-5`}>
@@ -343,7 +343,7 @@ const TransactionsScreen = () => {
                         style={tw`bg-white/20 p-2.5 rounded-full`}
                         onPress={() => router.push('/screens/export')}
                     >
-                        <Download size={20} color="white" />
+                        <Download size={20} color={theme.colors.white} />
                     </TouchableOpacity>
                 </View>
 
@@ -519,7 +519,7 @@ const TransactionsScreen = () => {
                 activeOpacity={0.9}
                 style={tw`absolute bottom-28 right-5 w-14 h-14 bg-teal-600 rounded-2xl items-center justify-center shadow-lg shadow-teal-300`}
             >
-                <Plus size={28} color="white" strokeWidth={2.5} />
+                <Plus size={28} color={theme.colors.white} strokeWidth={2.5} />
             </TouchableOpacity>
 
             {/* --- DATE FILTER MODAL --- */}
@@ -659,36 +659,36 @@ const TransactionsScreen = () => {
                     activeOpacity={1}
                     onPress={() => setShowActionModal(false)}
                 >
-                    <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+                    <TouchableOpacity activeOpacity={1} onPress={() => { }}>
                         <View style={tw`bg-white rounded-t-3xl w-full p-6`}>
-                        <View style={tw`flex-row items-center justify-between mb-4`}>
-                            <Text style={tw`text-lg font-bold text-gray-800`}>
-                            {selectedTransaction?.category}
-                            </Text>
-                            <TouchableOpacity onPress={() => setShowActionModal(false)} style={tw`bg-gray-100 p-2 rounded-full`}>
-                                <X size={18} color={theme.colors.mutedText} />
+                            <View style={tw`flex-row items-center justify-between mb-4`}>
+                                <Text style={tw`text-lg font-bold text-gray-800`}>
+                                    {selectedTransaction?.category}
+                                </Text>
+                                <TouchableOpacity onPress={() => setShowActionModal(false)} style={tw`bg-gray-100 p-2 rounded-full`}>
+                                    <X size={18} color={theme.colors.mutedText} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowActionModal(false);
+                                    router.push('/add');
+                                }}
+                                style={tw`flex-row items-center p-4 bg-gray-50 rounded-xl mb-3`}
+                            >
+                                <Filter size={20} color={theme.colors.mutedText} />
+                                <Text style={tw`ml-3 text-gray-700 font-medium`}>{t('editTransaction')}</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => handleDelete(selectedTransaction)}
+                                style={tw`flex-row items-center p-4 bg-red-50 rounded-xl`}
+                            >
+                                <Trash2 size={20} color={theme.colors.danger} />
+                                <Text style={tw`ml-3 text-red-500 font-medium`}>{t('deleteTransaction')}</Text>
                             </TouchableOpacity>
                         </View>
-
-                        <TouchableOpacity
-                            onPress={() => {
-                                setShowActionModal(false);
-                                router.push('/add');
-                            }}
-                            style={tw`flex-row items-center p-4 bg-gray-50 rounded-xl mb-3`}
-                        >
-                            <Filter size={20} color={theme.colors.mutedText} />
-                            <Text style={tw`ml-3 text-gray-700 font-medium`}>{t('editTransaction')}</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => handleDelete(selectedTransaction)}
-                            style={tw`flex-row items-center p-4 bg-red-50 rounded-xl`}
-                        >
-                            <Trash2 size={20} color={theme.colors.danger} />
-                            <Text style={tw`ml-3 text-red-500 font-medium`}>{t('deleteTransaction')}</Text>
-                        </TouchableOpacity>
-                    </View>
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>

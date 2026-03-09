@@ -76,7 +76,7 @@ const OtpVerify = () => {
           onPress={() => router.back()}
           style={tw`bg-white/20 w-10 h-10 rounded-full items-center justify-center mb-6`}
         >
-          <ArrowLeft size={24} color="white" />
+          <ArrowLeft size={24} color={theme.colors.white} />
         </TouchableOpacity>
 
         <Text style={tw`text-white text-3xl font-extrabold tracking-wide mb-1`}>
