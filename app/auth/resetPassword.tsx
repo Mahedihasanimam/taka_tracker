@@ -1,4 +1,5 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { theme } from "@/constants/theme";
 import { resetPassword } from '@/services/db';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -20,6 +21,7 @@ import tw from 'twrnc';
 
 const ResetPasswordScreen = () => {
     const { lang, t } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { phone } = useLocalSearchParams<{ phone: string }>();
 
     const [password, setPassword] = useState('');
@@ -42,11 +44,11 @@ const ResetPasswordScreen = () => {
         try {
             const result = await resetPassword(phone!, password);
             if (result.success) {
-                Alert.alert(
-                    t('success'),
-                    t('passwordResetSuccess'),
-                    [{ text: 'OK', onPress: () => router.replace('/auth/signIn') }]
-                );
+                showSuccess({
+                    title: t('success'),
+                    message: t('passwordResetSuccess'),
+                    onConfirm: () => router.replace('/auth/signIn'),
+                });
             } else {
                 Alert.alert(t('Opps'), result.message || t('somethingWrong'));
             }

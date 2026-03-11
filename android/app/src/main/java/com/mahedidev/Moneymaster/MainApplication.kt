@@ -1,4 +1,4 @@
-package com.mahedidev.TakaTracker
+package com.mahedidev.Moneymaster
 
 import android.app.Application
 import android.content.res.Configuration

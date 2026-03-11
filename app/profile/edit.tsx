@@ -1,6 +1,7 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { updateUserProfile } from '@/services/db';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -23,6 +24,7 @@ import tw from 'twrnc';
 
 const EditProfileScreen = () => {
     const { t } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { user, avatarUri, updateUser, updateAvatar } = useAuth();
 
     const [name, setName] = useState(user?.name || '');
@@ -107,11 +109,11 @@ const EditProfileScreen = () => {
             if (result.success && result.user) {
                 await updateUser(result.user);
                 await updateAvatar(profileImage);
-                Alert.alert(
-                    t('success'),
-                    t('profileUpdateSuccess'),
-                    [{ text: 'OK', onPress: () => router.back() }]
-                );
+                showSuccess({
+                    title: t('success'),
+                    message: t('profileUpdateSuccess'),
+                    onConfirm: () => router.back(),
+                });
             } else {
                 Alert.alert(t('Opps'), result.message || t('somethingWrong'));
             }

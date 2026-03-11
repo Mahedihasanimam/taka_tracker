@@ -1,6 +1,7 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { backupUserDataToSupabase, importBackupFromJsonFile, restoreLatestUserBackupFromSupabase } from '@/services/backup';
 import { resetUserData } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +38,7 @@ import tw from 'twrnc';
 
 const ProfileScreen = () => {
     const { lang, switchLanguage, t } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { user, avatarUri, logout } = useAuth();
     const router = useRouter();
 
@@ -89,7 +91,14 @@ const ProfileScreen = () => {
         setIsBackingUp(true);
         try {
             const result = await backupUserDataToSupabase(user.id);
-            Alert.alert(result.success ? t('success') : t('Opps'), result.message);
+            if (result.success) {
+                showSuccess({
+                    title: t('success'),
+                    message: result.message,
+                });
+            } else {
+                Alert.alert(t('Opps'), result.message);
+            }
         } finally {
             setIsBackingUp(false);
         }
@@ -110,10 +119,14 @@ const ProfileScreen = () => {
                         setIsResetting(true);
                         try {
                             const success = await resetUserData(user.id);
-                            Alert.alert(
-                                success ? t('success') : t('Opps'),
-                                success ? t('resetDataSuccess') : t('somethingWrong')
-                            );
+                            if (success) {
+                                showSuccess({
+                                    title: t('success'),
+                                    message: t('resetDataSuccess'),
+                                });
+                            } else {
+                                Alert.alert(t('Opps'), t('somethingWrong'));
+                            }
                         } finally {
                             setIsResetting(false);
                         }
@@ -137,7 +150,14 @@ const ProfileScreen = () => {
                         setIsRestoring(true);
                         try {
                             const result = await restoreLatestUserBackupFromSupabase(user.id);
-                            Alert.alert(result.success ? t('success') : t('Opps'), result.message);
+                            if (result.success) {
+                                showSuccess({
+                                    title: t('success'),
+                                    message: result.message,
+                                });
+                            } else {
+                                Alert.alert(t('Opps'), result.message);
+                            }
                         } finally {
                             setIsRestoring(false);
                         }
@@ -152,7 +172,14 @@ const ProfileScreen = () => {
         setIsImporting(true);
         try {
             const result = await importBackupFromJsonFile(user.id);
-            Alert.alert(result.success ? t('success') : t('Opps'), result.message);
+            if (result.success) {
+                showSuccess({
+                    title: t('success'),
+                    message: result.message,
+                });
+            } else {
+                Alert.alert(t('Opps'), result.message);
+            }
         } finally {
             setIsImporting(false);
         }

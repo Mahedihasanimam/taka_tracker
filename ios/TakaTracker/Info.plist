@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>TakaTracker</string>
+    <string>MoneyMaster</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,8 +27,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>TakaTracker</string>
-          <string>com.mahedidev.TakaTracker</string>
+          <string>MoneyMaster</string>
+          <string>com.mahedidev.Moneymaster</string>
         </array>
       </dict>
     </array>

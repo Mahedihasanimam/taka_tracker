@@ -1,11 +1,11 @@
-import { TransactionRecord } from '@/services/db';
 import { theme } from "@/constants/theme";
-import * as FileSystem from 'expo-file-system';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { TransactionRecord } from "@/services/db";
+import * as FileSystem from "expo-file-system";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
-type ExportFormat = 'csv' | 'pdf';
-type ExportRange = '7days' | '30days' | 'month' | 'all';
+type ExportFormat = "csv" | "pdf";
+type ExportRange = "7days" | "30days" | "month" | "all";
 
 const sanitizeDate = (value: string) => {
   const date = new Date(value);
@@ -15,10 +15,10 @@ const sanitizeDate = (value: string) => {
 const getRangeStartDate = (range: ExportRange): Date | null => {
   const now = new Date();
 
-  if (range === 'all') return null;
-  if (range === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (range === "all") return null;
+  if (range === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const days = range === '7days' ? 7 : 30;
+  const days = range === "7days" ? 7 : 30;
   const date = new Date(now);
   date.setDate(now.getDate() - days);
   date.setHours(0, 0, 0, 0);
@@ -39,16 +39,19 @@ export const filterTransactionsByRange = (
 };
 
 const csvEscape = (value: string | number | null | undefined): string => {
-  const raw = value === null || value === undefined ? '' : String(value);
-  if (raw.includes(',') || raw.includes('"') || raw.includes('\n')) {
+  const raw = value === null || value === undefined ? "" : String(value);
+  if (raw.includes(",") || raw.includes('"') || raw.includes("\n")) {
     return `"${raw.replace(/"/g, '""')}"`;
   }
   return raw;
 };
 
-const buildCsv = (transactions: TransactionRecord[], includeReceipts: boolean): string => {
-  const baseHeaders = ['Date', 'Type', 'Category', 'Amount'];
-  const headers = includeReceipts ? [...baseHeaders, 'Note'] : baseHeaders;
+const buildCsv = (
+  transactions: TransactionRecord[],
+  includeReceipts: boolean,
+): string => {
+  const baseHeaders = ["Date", "Type", "Category", "Amount"];
+  const headers = includeReceipts ? [...baseHeaders, "Note"] : baseHeaders;
 
   const rows = transactions.map((transaction) => {
     const values = [
@@ -59,13 +62,13 @@ const buildCsv = (transactions: TransactionRecord[], includeReceipts: boolean): 
     ];
 
     if (includeReceipts) {
-      values.push(transaction.note || '');
+      values.push(transaction.note || "");
     }
 
-    return values.map((value) => csvEscape(value)).join(',');
+    return values.map((value) => csvEscape(value)).join(",");
   });
 
-  return [headers.join(','), ...rows].join('\n');
+  return [headers.join(","), ...rows].join("\n");
 };
 
 const buildPdfHtml = (
@@ -77,8 +80,8 @@ const buildPdfHtml = (
   const rows = transactions
     .map((transaction) => {
       const noteCell = includeReceipts
-        ? `<td style=\"padding:8px;border-bottom:1px solid ${theme.colors.borderLight};\">${transaction.note || '-'}</td>`
-        : '';
+        ? `<td style=\"padding:8px;border-bottom:1px solid ${theme.colors.borderLight};\">${transaction.note || "-"}</td>`
+        : "";
 
       return `
         <tr>
@@ -90,12 +93,12 @@ const buildPdfHtml = (
         </tr>
       `;
     })
-    .join('');
+    .join("");
 
   return `
     <html>
       <body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;color:${theme.colors.darkSlate};\">
-        <h2 style=\"margin:0 0 8px 0;\">TakaTracker Export</h2>
+        <h2 style=\"margin:0 0 8px 0;\">MoneyMaster Export</h2>
         <p style=\"margin:0 0 16px 0;color:${theme.colors.mutedText};\">Generated at ${new Date().toLocaleString()}</p>
 
         <div style=\"display:flex;gap:16px;margin-bottom:16px;\">
@@ -110,7 +113,7 @@ const buildPdfHtml = (
               <th style=\"padding:8px;\">Type</th>
               <th style=\"padding:8px;\">Category</th>
               <th style=\"padding:8px;\">Amount</th>
-              ${includeReceipts ? '<th style=\"padding:8px;\">Note</th>' : ''}
+              ${includeReceipts ? '<th style=\"padding:8px;\">Note</th>' : ""}
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -134,24 +137,34 @@ export const exportTransactionsToFile = async ({
   try {
     const shareAvailable = await Sharing.isAvailableAsync();
     if (!shareAvailable) {
-      return { success: false, message: 'Sharing is not available on this device.' };
+      return {
+        success: false,
+        message: "Sharing is not available on this device.",
+      };
     }
 
-    const safePrefix = filenamePrefix || 'takatracker-export';
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const safePrefix = filenamePrefix || "MoneyMaster-export";
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
-    if (format === 'csv') {
+    if (format === "csv") {
       const csv = buildCsv(transactions, includeReceipts);
       const uri = `${FileSystem.cacheDirectory}${safePrefix}-${timestamp}.csv`;
-      await FileSystem.writeAsStringAsync(uri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-      await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Export CSV' });
-      return { success: true, message: 'CSV export ready.', uri };
+      await FileSystem.writeAsStringAsync(uri, csv, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      await Sharing.shareAsync(uri, {
+        mimeType: "text/csv",
+        dialogTitle: "Export CSV",
+      });
+      return { success: true, message: "CSV export ready.", uri };
     }
 
     const totals = transactions.reduce(
       (acc, transaction) => {
-        if (transaction.type === 'income') acc.totalIncome += Number(transaction.amount) || 0;
-        if (transaction.type === 'expense') acc.totalExpense += Number(transaction.amount) || 0;
+        if (transaction.type === "income")
+          acc.totalIncome += Number(transaction.amount) || 0;
+        if (transaction.type === "expense")
+          acc.totalExpense += Number(transaction.amount) || 0;
         return acc;
       },
       { totalIncome: 0, totalExpense: 0 },
@@ -166,15 +179,15 @@ export const exportTransactionsToFile = async ({
 
     const { uri } = await Print.printToFileAsync({ html, base64: false });
     await Sharing.shareAsync(uri, {
-      mimeType: 'application/pdf',
-      dialogTitle: 'Export PDF',
-      UTI: 'com.adobe.pdf',
+      mimeType: "application/pdf",
+      dialogTitle: "Export PDF",
+      UTI: "com.adobe.pdf",
     });
-    return { success: true, message: 'PDF export ready.', uri };
+    return { success: true, message: "PDF export ready.", uri };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Export failed.',
+      message: error instanceof Error ? error.message : "Export failed.",
     };
   }
 };

@@ -1,7 +1,7 @@
 import { theme } from '@/constants/theme';
-import { Audio } from 'expo-av'; // ✅ import expo-av
+import { Audio } from 'expo-av';
 import { Cat, Heart, Sparkles } from 'lucide-react-native';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import tw from 'twrnc';
 
@@ -29,24 +29,28 @@ const FloatingCatMascot = ({
 }) => {
   const { Icon, label } = getVariant(variant);
 
-  // Ref for audio sound
   const soundRef = useRef<Audio.Sound | null>(null);
 
   const handleMeow = async () => {
+    if (variant !== 'cat') return;
+
     try {
-      // Load the sound
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+
       const { sound } = await Audio.Sound.createAsync(
-        require('@/assets/images/catsound.wav') // ✅ your audio file
+        require('@/assets/images/meow.wav')
       );
       soundRef.current = sound;
 
-      // Play it
-      await soundRef.current.playAsync();
+      await sound.playAsync();
 
-      // Unload when done
-      soundRef.current.setOnPlaybackStatusUpdate((status) => {
+      sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           soundRef.current?.unloadAsync();
+          soundRef.current = null;
         }
       });
     } catch (error) {
@@ -54,8 +58,17 @@ const FloatingCatMascot = ({
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
   return (
-    <View pointerEvents="none" style={getPosition(position)}>
+    <View pointerEvents="box-none" style={getPosition(position)}>
       <TouchableOpacity
         onPress={handleMeow}
         style={[tw`px-3 py-2 rounded-2xl shadow-lg`, { backgroundColor: theme.colors.card }]}

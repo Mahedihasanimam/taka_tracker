@@ -146,7 +146,8 @@ export default function CustomTabBar() {
 
             {/* QUICK ACTIONS MODAL */}
             <Modal transparent visible={showCreateModal} animationType="none" onRequestClose={() => setShowCreateModal(false)}>
-                <Pressable style={tw`flex-1 blur-xl`} onPress={() => setShowCreateModal(false)}>
+                <Pressable style={tw`flex-1`} onPress={() => setShowCreateModal(false)}>
+                    <View style={[tw`absolute inset-0`,]} />
                     <Animated.View
                         style={[
                             tw`absolute right-5 bottom-32 w-72 rounded-[32px] p-5 shadow-2xl border`,

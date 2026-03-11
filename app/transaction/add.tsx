@@ -1,6 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { addTransaction, getCategories } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
@@ -52,6 +53,7 @@ const iconMap: Record<string, any> = {
 
 const AddTransactionScreen = () => {
     const { t } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { user } = useAuth();
 
     const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -103,11 +105,11 @@ const AddTransactionScreen = () => {
                 selectedCategory.icon,
                 selectedCategory.color
             );
-            Alert.alert(
-                t('success'),
-                t('transactionAdded'),
-                [{ text: 'OK', onPress: () => router.back() }]
-            );
+            showSuccess({
+                title: t('success'),
+                message: t('transactionAdded'),
+                onConfirm: () => router.back(),
+            });
         } catch (error) {
             Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {

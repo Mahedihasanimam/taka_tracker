@@ -1,6 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { addTransaction, getCategories } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -82,6 +83,7 @@ interface Category {
 
 const AddTransactionScreen = () => {
     const { t, lang } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { user } = useAuth();
     const router = useRouter();
     const params = useLocalSearchParams<{ type?: string }>();
@@ -175,25 +177,19 @@ const AddTransactionScreen = () => {
                 selectedCategory.color
             );
 
-            Alert.alert(
-                t('success'),
-                t('transactionAdded'),
-                [
-                    {
-                        text: t('addAnother'),
-                        onPress: () => {
-                            setAmount('');
-                            setSelectedCategory(null);
-                            setNote('');
-                            setDate(new Date());
-                        }
-                    },
-                    {
-                        text: t('done'),
-                        onPress: () => router.push('/(tabs)/transactions')
-                    }
-                ]
-            );
+            showSuccess({
+                title: t('success'),
+                message: t('transactionAdded'),
+                buttonText: t('done'),
+                onConfirm: () => router.push('/(tabs)/transactions'),
+                secondaryButtonText: t('addAnother'),
+                onSecondaryConfirm: () => {
+                    setAmount('');
+                    setSelectedCategory(null);
+                    setNote('');
+                    setDate(new Date());
+                },
+            });
         } catch (error) {
             console.error('Failed to save transaction:', error);
             Alert.alert(t('Opps'), t('somethingWrong'));

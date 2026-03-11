@@ -1,9 +1,13 @@
+import {
+  getUserBackupPayload,
+  restoreUserDataFromBackup,
+  UserBackupPayload,
+} from "@/services/db";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import { getUserBackupPayload, restoreUserDataFromBackup, UserBackupPayload } from "@/services/db";
+import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as DocumentPicker from "expo-document-picker";
 
 interface SupabaseConfig {
   url?: string;
@@ -16,9 +20,27 @@ const getSupabaseConfig = (): SupabaseConfig => {
     supabaseAnonKey?: string;
   };
 
+  const envUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const envAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
+  const extraUrl = extra.supabaseUrl;
+  const extraAnonKey = extra.supabaseAnonKey;
+
+  if (__DEV__) {
+    if (envUrl && extraUrl && envUrl !== extraUrl) {
+      console.warn(
+        "Supabase URL mismatch between EXPO_PUBLIC_SUPABASE_URL and expo.extra.supabaseUrl. Using EXPO_PUBLIC_SUPABASE_URL.",
+      );
+    }
+    if (envAnonKey && extraAnonKey && envAnonKey !== extraAnonKey) {
+      console.warn(
+        "Supabase key mismatch between EXPO_PUBLIC_SUPABASE_KEY and expo.extra.supabaseAnonKey. Using EXPO_PUBLIC_SUPABASE_KEY.",
+      );
+    }
+  }
+
   return {
-    url: extra.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL,
-    anonKey: extra.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_KEY,
+    url: envUrl || extraUrl,
+    anonKey: envAnonKey || extraAnonKey,
   };
 };
 
@@ -60,7 +82,10 @@ export const backupUserDataToSupabase = async (userId: number) => {
 
   try {
     const payload = await getUserBackupPayload(userId);
-    await AsyncStorage.setItem(getLocalBackupKey(userId), JSON.stringify(payload));
+    await AsyncStorage.setItem(
+      getLocalBackupKey(userId),
+      JSON.stringify(payload),
+    );
 
     const response = await fetch(`${url}/rest/v1/user_backups`, {
       method: "POST",
@@ -79,7 +104,10 @@ export const backupUserDataToSupabase = async (userId: number) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      if (errorText.includes("PGRST205") || errorText.includes("user_backups")) {
+      if (
+        errorText.includes("PGRST205") ||
+        errorText.includes("user_backups")
+      ) {
         return await backupUserDataLocally(userId, payload);
       }
       return {
@@ -96,7 +124,9 @@ export const backupUserDataToSupabase = async (userId: number) => {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Backup failed due to an unexpected error.",
+        error instanceof Error
+          ? error.message
+          : "Backup failed due to an unexpected error.",
     };
   }
 };
@@ -116,9 +146,12 @@ const backupUserDataLocally = async (
     }
 
     const backup = payload ?? (await getUserBackupPayload(userId));
-    await AsyncStorage.setItem(getLocalBackupKey(userId), JSON.stringify(backup));
+    await AsyncStorage.setItem(
+      getLocalBackupKey(userId),
+      JSON.stringify(backup),
+    );
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const uri = `${FileSystem.cacheDirectory}takatracker-backup-${userId}-${timestamp}.json`;
+    const uri = `${FileSystem.cacheDirectory}MoneyMaster-backup-${userId}-${timestamp}.json`;
     await FileSystem.writeAsStringAsync(uri, JSON.stringify(backup, null, 2), {
       encoding: FileSystem.EncodingType.UTF8,
     });
@@ -201,10 +234,13 @@ export const restoreLatestUserBackupFromSupabase = async (userId: number) => {
         Authorization: `Bearer ${anonKey}`,
       },
     });
-
+    [];
     if (!response.ok) {
       const errorText = await response.text();
-      if (errorText.includes("PGRST205") || errorText.includes("user_backups")) {
+      if (
+        errorText.includes("PGRST205") ||
+        errorText.includes("user_backups")
+      ) {
         return await restoreFromLocalBackup(userId);
       }
       return {
@@ -225,7 +261,10 @@ export const restoreLatestUserBackupFromSupabase = async (userId: number) => {
       };
     }
 
-    const restored = await restoreUserDataFromBackup(userId, rows[0].backup_data);
+    const restored = await restoreUserDataFromBackup(
+      userId,
+      rows[0].backup_data,
+    );
     if (!restored) {
       return {
         success: false,
@@ -241,7 +280,9 @@ export const restoreLatestUserBackupFromSupabase = async (userId: number) => {
     return {
       success: false,
       message:
-        error instanceof Error ? error.message : "Restore failed due to an unexpected error.",
+        error instanceof Error
+          ? error.message
+          : "Restore failed due to an unexpected error.",
     };
   }
 };
@@ -262,28 +303,43 @@ export const importBackupFromJsonFile = async (userId: number) => {
     const raw = await FileSystem.readAsStringAsync(file.uri, {
       encoding: FileSystem.EncodingType.UTF8,
     });
-    const parsed = JSON.parse(raw) as UserBackupPayload | { backup_data?: UserBackupPayload };
-    const payload = (parsed as { backup_data?: UserBackupPayload })?.backup_data || parsed;
+    const parsed = JSON.parse(raw) as
+      | UserBackupPayload
+      | { backup_data?: UserBackupPayload };
+    const payload =
+      (parsed as { backup_data?: UserBackupPayload })?.backup_data || parsed;
 
     if (!isValidBackupPayload(payload)) {
       return {
         success: false,
         message:
-          "Invalid backup file. Expected a TakaTracker backup JSON with transactions, categories, and budgets.",
+          "Invalid backup file. Expected a MoneyMaster backup JSON with transactions, categories, and budgets.",
       };
     }
 
     const restored = await restoreUserDataFromBackup(userId, payload);
     if (!restored) {
-      return { success: false, message: "Backup file is valid, but restore failed." };
+      return {
+        success: false,
+        message: "Backup file is valid, but restore failed.",
+      };
     }
 
-    await AsyncStorage.setItem(getLocalBackupKey(userId), JSON.stringify(payload));
-    return { success: true, message: "Backup file imported and restored successfully." };
+    await AsyncStorage.setItem(
+      getLocalBackupKey(userId),
+      JSON.stringify(payload),
+    );
+    return {
+      success: true,
+      message: "Backup file imported and restored successfully.",
+    };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Failed to import backup file.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to import backup file.",
     };
   }
 };

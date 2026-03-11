@@ -1,6 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { changeUserPassword } from '@/services/db';
 import { router } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Lock, Shield } from 'lucide-react-native';
@@ -21,6 +22,7 @@ import tw from 'twrnc';
 
 const ChangePasswordScreen = () => {
     const { t } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { user, logout } = useAuth();
 
     const [currentPassword, setCurrentPassword] = useState('');
@@ -69,18 +71,14 @@ const ChangePasswordScreen = () => {
         try {
             const result = await changeUserPassword(user!.id, currentPassword, newPassword);
             if (result.success) {
-                Alert.alert(
-                    t('success'),
-                    t('passwordChangeSuccess'),
-                    [
-                        {
-                            text: t('loginAgain'),
-                            onPress: async () => {
-                                await logout();
-                            }
-                        }
-                    ]
-                );
+                showSuccess({
+                    title: t('success'),
+                    message: t('passwordChangeSuccess'),
+                    buttonText: t('loginAgain'),
+                    onConfirm: async () => {
+                        await logout();
+                    },
+                });
             } else {
                 Alert.alert(t('Opps'), result.message || t('somethingWrong'));
             }

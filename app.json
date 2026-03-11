@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "TakaTracker",
-    "slug": "TakaTracker",
+    "name": "MoneyMaster",
+    "slug": "MoneyMaster",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/androidicon.png",
-    "scheme": "TakaTracker",
+    "scheme": "MoneyMaster",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mahedidev.TakaTracker"
+      "bundleIdentifier": "com.mahedidev.Moneymaster"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.mahedidev.TakaTracker"
+      "package": "com.mahedidev.Moneymaster"
     },
     "web": {
       "bundler": "metro",
@@ -42,8 +42,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "supabaseUrl": "https://nszlclazcguyerhvppdz.supabase.co",
-      "supabaseAnonKey": "sb_publishable_mCd4PJDh6MNzRwTfgm6yKw_V1ud0EQG"
+      "supabaseUrl": "https://cptyqpltmqugttwosqje.supabase.co",
+      "supabaseAnonKey": "sb_publishable_Ez-03gDL3v-sbrbACFq_Kg_kCF-8AvC"
     }
   }
 }

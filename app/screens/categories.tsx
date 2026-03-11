@@ -1,6 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { addCategory, deleteCategory, getCategories, updateCategory } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -62,6 +63,7 @@ interface Category {
 
 const CategoryManagementScreen = () => {
     const { t } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { user } = useAuth();
     const router = useRouter();
 
@@ -171,7 +173,10 @@ const CategoryManagementScreen = () => {
             }
             setModalVisible(false);
             fetchCategories();
-            Alert.alert(t('success'), isEditing ? t('categoryUpdated') : t('categoryAdded'));
+            showSuccess({
+                title: t('success'),
+                message: isEditing ? t('categoryUpdated') : t('categoryAdded'),
+            });
         } catch (error) {
             Alert.alert(t('Opps'), t('somethingWrong'));
         } finally {

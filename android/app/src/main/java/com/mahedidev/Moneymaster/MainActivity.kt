@@ -1,4 +1,4 @@
-package com.mahedidev.TakaTracker
+package com.mahedidev.Moneymaster
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

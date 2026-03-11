@@ -12,8 +12,8 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/takatracker.git
-cd takatracker
+git clone https://github.com/yourusername/MoneyMaster.git
+cd MoneyMaster
 ```
 
 ### 2. Install Dependencies
@@ -52,11 +52,11 @@ npx expo start
 {
   "expo": {
     "name": "TakaTrack",
-    "slug": "takatracker",
+    "slug": "MoneyMaster",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "takatracker",
+    "scheme": "MoneyMaster",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",

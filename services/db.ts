@@ -1,9 +1,79 @@
 import * as Crypto from "expo-crypto";
+import Constants from "expo-constants";
 import * as SQLite from "expo-sqlite";
 
 // Initialize the DB variable
 let db: SQLite.SQLiteDatabase | null = null;
 let dbInitPromise: Promise<boolean> | null = null;
+const DB_NAME = "takatrack.db";
+const DB_INIT_MAX_RETRIES = 2;
+
+const DB_SCHEMA_STATEMENTS = [
+  `PRAGMA journal_mode = WAL;`,
+  `CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );`,
+  `CREATE TABLE IF NOT EXISTS auth_tokens (
+      id INTEGER PRIMARY KEY NOT NULL,
+      user_id INTEGER NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );`,
+  `CREATE TABLE IF NOT EXISTS transactions (
+      id INTEGER PRIMARY KEY NOT NULL,
+      user_id INTEGER,
+      amount REAL NOT NULL,
+      type TEXT NOT NULL,
+      category TEXT NOT NULL,
+      date TEXT NOT NULL,
+      note TEXT,
+      icon TEXT,
+      color TEXT
+    );`,
+  `CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY NOT NULL,
+      user_id INTEGER,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      color TEXT NOT NULL
+    );`,
+  `CREATE TABLE IF NOT EXISTS budgets (
+      id INTEGER PRIMARY KEY NOT NULL,
+      user_id INTEGER,
+      category TEXT NOT NULL,
+      limit_amount REAL NOT NULL
+    );`,
+];
+
+const DB_MIGRATIONS = [
+  { table: "transactions", column: "user_id", type: "INTEGER" },
+  { table: "categories", column: "user_id", type: "INTEGER" },
+  { table: "budgets", column: "user_id", type: "INTEGER" },
+];
+
+const initializeSchema = async (database: SQLite.SQLiteDatabase): Promise<void> => {
+  for (const statement of DB_SCHEMA_STATEMENTS) {
+    await database.execAsync(statement);
+  }
+
+  for (const migration of DB_MIGRATIONS) {
+    try {
+      await database.execAsync(
+        `ALTER TABLE ${migration.table} ADD COLUMN ${migration.column} ${migration.type}`,
+      );
+      console.log(`Added ${migration.column} to ${migration.table}`);
+    } catch {
+      // Column already exists, ignore.
+    }
+  }
+};
 
 // --- USER TYPE ---
 export interface User {
@@ -46,6 +116,153 @@ export interface UserBackupPayload {
   exported_at: string;
 }
 
+interface SupabaseConfig {
+  url?: string;
+  anonKey?: string;
+}
+
+interface SupabaseResponse<T> {
+  ok: boolean;
+  status: number;
+  data?: T;
+  error?: string;
+}
+
+const SUPABASE_USERS_TABLE = "app_users";
+const SUPABASE_TOKENS_TABLE = "app_auth_tokens";
+
+const getSupabaseConfig = (): SupabaseConfig => {
+  const extra = (Constants.expoConfig?.extra || {}) as {
+    supabaseUrl?: string;
+    supabaseAnonKey?: string;
+  };
+
+  const envUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const envAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
+  const extraUrl = extra.supabaseUrl;
+  const extraAnonKey = extra.supabaseAnonKey;
+
+  if (__DEV__) {
+    if (envUrl && extraUrl && envUrl !== extraUrl) {
+      console.warn(
+        "Supabase URL mismatch between EXPO_PUBLIC_SUPABASE_URL and expo.extra.supabaseUrl. Using EXPO_PUBLIC_SUPABASE_URL.",
+      );
+    }
+    if (envAnonKey && extraAnonKey && envAnonKey !== extraAnonKey) {
+      console.warn(
+        "Supabase key mismatch between EXPO_PUBLIC_SUPABASE_KEY and expo.extra.supabaseAnonKey. Using EXPO_PUBLIC_SUPABASE_KEY.",
+      );
+    }
+  }
+
+  return {
+    url: envUrl || extraUrl,
+    anonKey: envAnonKey || extraAnonKey,
+  };
+};
+
+const isSupabaseAuthConfigured = (): boolean => {
+  const { url, anonKey } = getSupabaseConfig();
+  return !!url && !!anonKey;
+};
+
+const supabaseRequest = async <T>(
+  endpoint: string,
+  init?: RequestInit,
+): Promise<SupabaseResponse<T>> => {
+  const { url, anonKey } = getSupabaseConfig();
+  if (!url || !anonKey) {
+    return { ok: false, status: 0, error: "Supabase not configured" };
+  }
+
+  try {
+    const response = await fetch(`${url}/rest/v1/${endpoint}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        ...(init?.headers || {}),
+      },
+    });
+
+    const text = await response.text();
+    let data: T | undefined;
+
+    if (text) {
+      try {
+        data = JSON.parse(text) as T;
+      } catch {
+        return {
+          ok: response.ok,
+          status: response.status,
+          error: text,
+        };
+      }
+    }
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      data,
+      error: response.ok ? undefined : text || response.statusText,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      error: error instanceof Error ? error.message : "Network error",
+    };
+  }
+};
+
+const toUser = (raw: Partial<User> & { id: number | string }): User => ({
+  id: Number(raw.id),
+  name: raw.name || "",
+  phone: raw.phone || "",
+  password: raw.password || "",
+  created_at: raw.created_at || new Date().toISOString(),
+});
+
+const getSupabaseErrorMessage = (error?: string, fallback = "Cloud sync failed"): string =>
+  error?.trim() ? `Cloud auth error: ${error}` : fallback;
+
+const parseSupabaseError = (
+  raw?: string,
+): { code?: string; message?: string; details?: string } | null => {
+  if (!raw?.trim()) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as { code?: string; message?: string; details?: string };
+  } catch {
+    return null;
+  }
+};
+
+const shouldFallbackToLocalAuth = (status: number, error?: string): boolean => {
+  if (status === 0) {
+    return true;
+  }
+
+  const parsed = parseSupabaseError(error);
+  const normalizedError = (error || "").toLowerCase();
+  const normalizedMessage = (parsed?.message || "").toLowerCase();
+  const normalizedDetails = (parsed?.details || "").toLowerCase();
+
+  if (parsed?.code === "PGRST205") {
+    return true;
+  }
+
+  return (
+    normalizedError.includes("pgrst205") ||
+    normalizedMessage.includes("schema cache") ||
+    normalizedMessage.includes("could not find the table") ||
+    normalizedDetails.includes("schema cache")
+  );
+};
+
 // --- INITIALIZE DATABASE & TABLES ---
 export const initDB = async (): Promise<boolean> => {
   // If already initializing, wait for it
@@ -66,86 +283,40 @@ export const initDB = async (): Promise<boolean> => {
   }
 
   dbInitPromise = (async () => {
-    try {
-      db = await SQLite.openDatabaseAsync("takatrack.db");
+    let lastError: unknown = null;
 
-      await db.execAsync(`
-        PRAGMA journal_mode = WAL;
-        
-        CREATE TABLE IF NOT EXISTS users (
-          id INTEGER PRIMARY KEY NOT NULL,
-          name TEXT NOT NULL,
-          phone TEXT NOT NULL UNIQUE,
-          password TEXT NOT NULL,
-          created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
+    for (let attempt = 1; attempt <= DB_INIT_MAX_RETRIES; attempt++) {
+      try {
+        const database = await SQLite.openDatabaseAsync(DB_NAME);
+        await initializeSchema(database);
+        db = database;
+        console.log("Database and Tables initialized successfully");
+        return true;
+      } catch (error) {
+        lastError = error;
+        console.error(`Database initialization failed (attempt ${attempt}):`, error);
 
-        CREATE TABLE IF NOT EXISTS auth_tokens (
-          id INTEGER PRIMARY KEY NOT NULL,
-          user_id INTEGER NOT NULL,
-          token TEXT NOT NULL UNIQUE,
-          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-          expires_at TEXT NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES users(id)
-        );
+        if (db) {
+          try {
+            await db.closeAsync();
+          } catch {
+            // Ignore close errors on failed handles.
+          }
+        }
+        db = null;
 
-        CREATE TABLE IF NOT EXISTS transactions (
-          id INTEGER PRIMARY KEY NOT NULL,
-          user_id INTEGER,
-          amount REAL NOT NULL,
-          type TEXT NOT NULL,
-          category TEXT NOT NULL,
-          date TEXT NOT NULL,
-          note TEXT,
-          icon TEXT,
-          color TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS categories (
-          id INTEGER PRIMARY KEY NOT NULL,
-          user_id INTEGER,
-          name TEXT NOT NULL,
-          type TEXT NOT NULL,
-          icon TEXT NOT NULL,
-          color TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS budgets (
-          id INTEGER PRIMARY KEY NOT NULL,
-          user_id INTEGER,
-          category TEXT NOT NULL,
-          limit_amount REAL NOT NULL
-        );
-      `);
-
-      // Migrations: Add columns if they don't exist
-      const migrations = [
-        { table: "transactions", column: "user_id", type: "INTEGER" },
-        { table: "categories", column: "user_id", type: "INTEGER" },
-        { table: "budgets", column: "user_id", type: "INTEGER" },
-      ];
-
-      for (const migration of migrations) {
-        try {
-          await db.execAsync(
-            `ALTER TABLE ${migration.table} ADD COLUMN ${migration.column} ${migration.type}`,
-          );
-          console.log(`Added ${migration.column} to ${migration.table}`);
-        } catch (e) {
-          // Column already exists, ignore
+        if (attempt < DB_INIT_MAX_RETRIES) {
+          await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
         }
       }
-
-      console.log("Database and Tables initialized successfully");
-      return true;
-    } catch (error) {
-      console.error("Database initialization failed:", error);
-      db = null;
-      throw error;
-    } finally {
-      dbInitPromise = null;
     }
-  })();
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Database initialization failed");
+  })().finally(() => {
+    dbInitPromise = null;
+  });
 
   return dbInitPromise;
 };
@@ -185,25 +356,280 @@ const generateToken = async (): Promise<string> => {
   return token;
 };
 
+const syncLocalUser = async (user: User): Promise<void> => {
+  const database = await ensureDB();
+  const existingByPhone = await database.getFirstAsync<{ id: number }>(
+    `SELECT id FROM users WHERE phone = ?`,
+    [user.phone],
+  );
+
+  await database.withTransactionAsync(async () => {
+    if (existingByPhone && existingByPhone.id !== user.id) {
+      await database.runAsync(
+        `UPDATE transactions SET user_id = ? WHERE user_id = ?`,
+        [user.id, existingByPhone.id],
+      );
+      await database.runAsync(`UPDATE categories SET user_id = ? WHERE user_id = ?`, [
+        user.id,
+        existingByPhone.id,
+      ]);
+      await database.runAsync(`UPDATE budgets SET user_id = ? WHERE user_id = ?`, [
+        user.id,
+        existingByPhone.id,
+      ]);
+      await database.runAsync(
+        `DELETE FROM auth_tokens WHERE user_id IN (?, ?)`,
+        [existingByPhone.id, user.id],
+      );
+      await database.runAsync(`DELETE FROM users WHERE id = ?`, [
+        existingByPhone.id,
+      ]);
+    }
+
+    await database.runAsync(
+      `INSERT OR REPLACE INTO users (id, name, phone, password, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [user.id, user.name, user.phone, user.password, user.created_at],
+    );
+  });
+};
+
+const createAuthTokenLocal = async (
+  userId: number,
+): Promise<{ token: string; expiresAt: string } | null> => {
+  const database = await ensureDB();
+  const token = await generateToken();
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  await database.runAsync(`DELETE FROM auth_tokens WHERE user_id = ?`, [userId]);
+  await database.runAsync(
+    `INSERT INTO auth_tokens (user_id, token, expires_at) VALUES (?, ?, ?)`,
+    [userId, token, expiresAt],
+  );
+  return { token, expiresAt };
+};
+
+const validateTokenLocal = async (
+  token: string,
+): Promise<{ valid: boolean; user?: User }> => {
+  const database = await ensureDB();
+  const tokenData = await database.getFirstAsync<{
+    user_id: number;
+    expires_at: string;
+  }>(`SELECT user_id, expires_at FROM auth_tokens WHERE token = ?`, [token]);
+
+  if (!tokenData) {
+    return { valid: false };
+  }
+
+  if (new Date(tokenData.expires_at) < new Date()) {
+    await database.runAsync(`DELETE FROM auth_tokens WHERE token = ?`, [token]);
+    return { valid: false };
+  }
+
+  const user = await database.getFirstAsync<User>(`SELECT * FROM users WHERE id = ?`, [
+    tokenData.user_id,
+  ]);
+  return user ? { valid: true, user } : { valid: false };
+};
+
+const deleteAuthTokenLocal = async (token: string): Promise<boolean> => {
+  const database = await ensureDB();
+  await database.runAsync(`DELETE FROM auth_tokens WHERE token = ?`, [token]);
+  return true;
+};
+
+const getUserByIdLocal = async (id: number): Promise<User | null> => {
+  const database = await ensureDB();
+  const user = await database.getFirstAsync<User>(`SELECT * FROM users WHERE id = ?`, [
+    id,
+  ]);
+  return user || null;
+};
+
+const registerUserLocal = async (
+  name: string,
+  phone: string,
+  password: string,
+): Promise<{ success: boolean; message: string; userId?: number }> => {
+  const database = await ensureDB();
+
+  const existingUser = await database.getFirstAsync<User>(
+    `SELECT * FROM users WHERE phone = ?`,
+    [phone],
+  );
+
+  if (existingUser) {
+    return { success: false, message: "Phone number already registered" };
+  }
+
+  const result = await database.runAsync(
+    `INSERT INTO users (name, phone, password) VALUES (?, ?, ?)`,
+    [name, phone, password],
+  );
+
+  return {
+    success: true,
+    message: "Registration successful",
+    userId: result.lastInsertRowId,
+  };
+};
+
+const loginUserLocal = async (
+  phone: string,
+  password: string,
+): Promise<{
+  success: boolean;
+  message: string;
+  user?: User;
+  token?: string;
+  expiresAt?: string;
+}> => {
+  const database = await ensureDB();
+  const user = await database.getFirstAsync<User>(
+    `SELECT * FROM users WHERE phone = ? AND password = ?`,
+    [phone, password],
+  );
+
+  if (!user) {
+    return { success: false, message: "Invalid phone or password" };
+  }
+
+  const tokenData = await createAuthTokenLocal(user.id);
+  if (!tokenData) {
+    return { success: true, message: "Login successful", user };
+  }
+
+  return {
+    success: true,
+    message: "Login successful",
+    user,
+    token: tokenData.token,
+    expiresAt: tokenData.expiresAt,
+  };
+};
+
+const checkPhoneExistsLocal = async (phone: string): Promise<boolean> => {
+  const database = await ensureDB();
+  const user = await database.getFirstAsync<User>(`SELECT id FROM users WHERE phone = ?`, [
+    phone,
+  ]);
+  return !!user;
+};
+
+const resetPasswordLocal = async (
+  phone: string,
+  newPassword: string,
+): Promise<{ success: boolean; message: string }> => {
+  const database = await ensureDB();
+  const result = await database.runAsync(
+    `UPDATE users SET password = ? WHERE phone = ?`,
+    [newPassword, phone],
+  );
+
+  if (result.changes > 0) {
+    const user = await database.getFirstAsync<User>(`SELECT id FROM users WHERE phone = ?`, [
+      phone,
+    ]);
+    if (user) {
+      await database.runAsync(`DELETE FROM auth_tokens WHERE user_id = ?`, [user.id]);
+    }
+    return { success: true, message: "Password reset successful" };
+  }
+
+  return { success: false, message: "User not found" };
+};
+
+const changeUserPasswordLocal = async (
+  userId: number,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ success: boolean; message: string }> => {
+  const database = await ensureDB();
+
+  const user = await database.getFirstAsync<User>(
+    `SELECT * FROM users WHERE id = ? AND password = ?`,
+    [userId, currentPassword],
+  );
+
+  if (!user) {
+    return { success: false, message: "Current password is incorrect" };
+  }
+
+  await database.runAsync(`UPDATE users SET password = ? WHERE id = ?`, [
+    newPassword,
+    userId,
+  ]);
+  await database.runAsync(`DELETE FROM auth_tokens WHERE user_id = ?`, [userId]);
+
+  return { success: true, message: "Password changed successfully" };
+};
+
+const updateUserProfileLocal = async (
+  userId: number,
+  name: string,
+): Promise<{ success: boolean; message: string; user?: User }> => {
+  const database = await ensureDB();
+
+  await database.runAsync(`UPDATE users SET name = ? WHERE id = ?`, [name, userId]);
+  const updatedUser = await getUserByIdLocal(userId);
+
+  if (!updatedUser) {
+    return { success: false, message: "Failed to update profile" };
+  }
+
+  return {
+    success: true,
+    message: "Profile updated successfully",
+    user: updatedUser,
+  };
+};
+
+// --- USER AUTHENTICATION ---
+
 export const createAuthToken = async (
   userId: number,
 ): Promise<{ token: string; expiresAt: string } | null> => {
   try {
-    const database = await ensureDB();
     const token = await generateToken();
-    const expiresAt = new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    await database.runAsync(`DELETE FROM auth_tokens WHERE user_id = ?`, [
-      userId,
-    ]);
-    await database.runAsync(
-      `INSERT INTO auth_tokens (user_id, token, expires_at) VALUES (?, ?, ?)`,
-      [userId, token, expiresAt],
-    );
+    if (isSupabaseAuthConfigured()) {
+      const deleteResponse = await supabaseRequest<unknown>(
+        `${SUPABASE_TOKENS_TABLE}?user_id=eq.${userId}`,
+        { method: "DELETE" },
+      );
 
-    return { token, expiresAt };
+      if (
+        deleteResponse.ok ||
+        deleteResponse.status === 404 ||
+        shouldFallbackToLocalAuth(deleteResponse.status, deleteResponse.error)
+      ) {
+        const insertResponse = await supabaseRequest<Array<{ token: string; expires_at: string }>>(
+          `${SUPABASE_TOKENS_TABLE}?select=token,expires_at`,
+          {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify([{ user_id: userId, token, expires_at: expiresAt }]),
+          },
+        );
+
+        if (insertResponse.ok) {
+          return { token, expiresAt };
+        }
+
+        if (shouldFallbackToLocalAuth(insertResponse.status, insertResponse.error)) {
+          return await createAuthTokenLocal(userId);
+        }
+      }
+
+      if (
+        deleteResponse.status > 0 &&
+        !shouldFallbackToLocalAuth(deleteResponse.status, deleteResponse.error)
+      ) {
+        return null;
+      }
+    }
+
+    return await createAuthTokenLocal(userId);
   } catch (error) {
     console.error("Create token error:", error);
     return null;
@@ -214,29 +640,33 @@ export const validateToken = async (
   token: string,
 ): Promise<{ valid: boolean; user?: User }> => {
   try {
-    const database = await ensureDB();
-    const tokenData = await database.getFirstAsync<{
-      user_id: number;
-      expires_at: string;
-    }>(`SELECT user_id, expires_at FROM auth_tokens WHERE token = ?`, [token]);
+    if (isSupabaseAuthConfigured()) {
+      const response = await supabaseRequest<Array<{ user_id: number; expires_at: string }>>(
+        `${SUPABASE_TOKENS_TABLE}?token=eq.${encodeURIComponent(
+          token,
+        )}&select=user_id,expires_at&limit=1`,
+      );
 
-    if (!tokenData) {
-      return { valid: false };
+      if (response.ok && response.data?.length) {
+        const tokenData = response.data[0];
+        if (new Date(tokenData.expires_at) < new Date()) {
+          await supabaseRequest<unknown>(
+            `${SUPABASE_TOKENS_TABLE}?token=eq.${encodeURIComponent(token)}`,
+            { method: "DELETE" },
+          );
+          return { valid: false };
+        }
+
+        const user = await getUserById(tokenData.user_id);
+        return user ? { valid: true, user } : { valid: false };
+      }
+
+      if (response.status > 0 && !shouldFallbackToLocalAuth(response.status, response.error)) {
+        return { valid: false };
+      }
     }
 
-    if (new Date(tokenData.expires_at) < new Date()) {
-      await database.runAsync(`DELETE FROM auth_tokens WHERE token = ?`, [
-        token,
-      ]);
-      return { valid: false };
-    }
-
-    const user = await getUserById(tokenData.user_id);
-    if (!user) {
-      return { valid: false };
-    }
-
-    return { valid: true, user };
+    return await validateTokenLocal(token);
   } catch (error) {
     console.error("Validate token error:", error);
     return { valid: false };
@@ -245,16 +675,26 @@ export const validateToken = async (
 
 export const deleteAuthToken = async (token: string): Promise<boolean> => {
   try {
-    const database = await ensureDB();
-    await database.runAsync(`DELETE FROM auth_tokens WHERE token = ?`, [token]);
-    return true;
+    if (isSupabaseAuthConfigured()) {
+      const response = await supabaseRequest<unknown>(
+        `${SUPABASE_TOKENS_TABLE}?token=eq.${encodeURIComponent(token)}`,
+        { method: "DELETE" },
+      );
+      if (response.ok || response.status === 404) {
+        return true;
+      }
+
+      if (response.status > 0 && !shouldFallbackToLocalAuth(response.status, response.error)) {
+        return false;
+      }
+    }
+
+    return await deleteAuthTokenLocal(token);
   } catch (error) {
     console.error("Delete token error:", error);
     return false;
   }
 };
-
-// --- USER AUTHENTICATION ---
 
 export const registerUser = async (
   name: string,
@@ -262,27 +702,54 @@ export const registerUser = async (
   password: string,
 ): Promise<{ success: boolean; message: string; userId?: number }> => {
   try {
-    const database = await ensureDB();
+    if (isSupabaseAuthConfigured()) {
+      const existing = await supabaseRequest<Array<{ id: number | string }>>(
+        `${SUPABASE_USERS_TABLE}?phone=eq.${encodeURIComponent(phone)}&select=id&limit=1`,
+      );
 
-    const existingUser = await database.getFirstAsync<User>(
-      `SELECT * FROM users WHERE phone = ?`,
-      [phone],
-    );
+      if (
+        !existing.ok &&
+        existing.status > 0 &&
+        !shouldFallbackToLocalAuth(existing.status, existing.error)
+      ) {
+        return {
+          success: false,
+          message: getSupabaseErrorMessage(existing.error, "Registration failed"),
+        };
+      }
 
-    if (existingUser) {
-      return { success: false, message: "Phone number already registered" };
+      if (existing.ok && existing.data?.length) {
+        return { success: false, message: "Phone number already registered" };
+      }
+
+      const create = await supabaseRequest<Array<User>>(
+        `${SUPABASE_USERS_TABLE}?select=id,name,phone,password,created_at`,
+        {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify([{ name, phone, password }]),
+        },
+      );
+
+      if (create.ok && create.data?.length) {
+        const user = toUser(create.data[0]);
+        await syncLocalUser(user);
+        return { success: true, message: "Registration successful", userId: user.id };
+      }
+
+      if (
+        !create.ok &&
+        create.status > 0 &&
+        !shouldFallbackToLocalAuth(create.status, create.error)
+      ) {
+        return {
+          success: false,
+          message: getSupabaseErrorMessage(create.error, "Registration failed"),
+        };
+      }
     }
 
-    const result = await database.runAsync(
-      `INSERT INTO users (name, phone, password) VALUES (?, ?, ?)`,
-      [name, phone, password],
-    );
-
-    return {
-      success: true,
-      message: "Registration successful",
-      userId: result.lastInsertRowId,
-    };
+    return await registerUserLocal(name, phone, password);
   } catch (error) {
     console.error("Registration error:", error);
     return { success: false, message: "Registration failed" };
@@ -300,28 +767,50 @@ export const loginUser = async (
   expiresAt?: string;
 }> => {
   try {
-    const database = await ensureDB();
+    if (isSupabaseAuthConfigured()) {
+      const response = await supabaseRequest<Array<User>>(
+        `${SUPABASE_USERS_TABLE}?phone=eq.${encodeURIComponent(
+          phone,
+        )}&password=eq.${encodeURIComponent(
+          password,
+        )}&select=id,name,phone,password,created_at&limit=1`,
+      );
 
-    const user = await database.getFirstAsync<User>(
-      `SELECT * FROM users WHERE phone = ? AND password = ?`,
-      [phone, password],
-    );
+      if (response.ok && response.data?.length) {
+        const user = toUser(response.data[0]);
+        await syncLocalUser(user);
+        const tokenData = await createAuthToken(user.id);
 
-    if (user) {
-      const tokenData = await createAuthToken(user.id);
-      if (tokenData) {
+        if (tokenData) {
+          return {
+            success: true,
+            message: "Login successful",
+            user,
+            token: tokenData.token,
+            expiresAt: tokenData.expiresAt,
+          };
+        }
+
+        return { success: true, message: "Login successful", user };
+      }
+
+      if (
+        !response.ok &&
+        response.status > 0 &&
+        !shouldFallbackToLocalAuth(response.status, response.error)
+      ) {
         return {
-          success: true,
-          message: "Login successful",
-          user,
-          token: tokenData.token,
-          expiresAt: tokenData.expiresAt,
+          success: false,
+          message: getSupabaseErrorMessage(response.error, "Login failed"),
         };
       }
-      return { success: true, message: "Login successful", user };
-    } else {
-      return { success: false, message: "Invalid phone or password" };
+
+      if (response.ok && !response.data?.length) {
+        return { success: false, message: "Invalid phone or password" };
+      }
     }
+
+    return await loginUserLocal(phone, password);
   } catch (error) {
     console.error("Login error:", error);
     return { success: false, message: "Login failed" };
@@ -330,12 +819,22 @@ export const loginUser = async (
 
 export const getUserById = async (id: number): Promise<User | null> => {
   try {
-    const database = await ensureDB();
-    const user = await database.getFirstAsync<User>(
-      `SELECT * FROM users WHERE id = ?`,
-      [id],
-    );
-    return user || null;
+    if (isSupabaseAuthConfigured()) {
+      const response = await supabaseRequest<Array<User>>(
+        `${SUPABASE_USERS_TABLE}?id=eq.${id}&select=id,name,phone,password,created_at&limit=1`,
+      );
+      if (response.ok && response.data?.length) {
+        const user = toUser(response.data[0]);
+        await syncLocalUser(user);
+        return user;
+      }
+
+      if (response.status > 0 && !shouldFallbackToLocalAuth(response.status, response.error)) {
+        return null;
+      }
+    }
+
+    return await getUserByIdLocal(id);
   } catch (error) {
     console.error("Get user error:", error);
     return null;
@@ -344,12 +843,20 @@ export const getUserById = async (id: number): Promise<User | null> => {
 
 export const checkPhoneExists = async (phone: string): Promise<boolean> => {
   try {
-    const database = await ensureDB();
-    const user = await database.getFirstAsync<User>(
-      `SELECT id FROM users WHERE phone = ?`,
-      [phone],
-    );
-    return !!user;
+    if (isSupabaseAuthConfigured()) {
+      const response = await supabaseRequest<Array<{ id: number }>>(
+        `${SUPABASE_USERS_TABLE}?phone=eq.${encodeURIComponent(phone)}&select=id&limit=1`,
+      );
+      if (response.ok) {
+        return !!response.data?.length;
+      }
+
+      if (response.status > 0 && !shouldFallbackToLocalAuth(response.status, response.error)) {
+        return false;
+      }
+    }
+
+    return await checkPhoneExistsLocal(phone);
   } catch (error) {
     console.error("Check phone error:", error);
     return false;
@@ -361,25 +868,51 @@ export const resetPassword = async (
   newPassword: string,
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const database = await ensureDB();
-    const result = await database.runAsync(
-      `UPDATE users SET password = ? WHERE phone = ?`,
-      [newPassword, phone],
-    );
-
-    if (result.changes > 0) {
-      const user = await database.getFirstAsync<User>(
-        `SELECT id FROM users WHERE phone = ?`,
-        [phone],
+    if (isSupabaseAuthConfigured()) {
+      const update = await supabaseRequest<Array<User>>(
+        `${SUPABASE_USERS_TABLE}?phone=eq.${encodeURIComponent(
+          phone,
+        )}&select=id,name,phone,password,created_at`,
+        {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ password: newPassword }),
+        },
       );
-      if (user) {
+
+      if (update.ok && update.data?.length) {
+        const user = toUser(update.data[0]);
+        await syncLocalUser(user);
+        await supabaseRequest<unknown>(
+          `${SUPABASE_TOKENS_TABLE}?user_id=eq.${user.id}`,
+          {
+            method: "DELETE",
+          },
+        );
+        const database = await ensureDB();
         await database.runAsync(`DELETE FROM auth_tokens WHERE user_id = ?`, [
           user.id,
         ]);
+        return { success: true, message: "Password reset successful" };
       }
-      return { success: true, message: "Password reset successful" };
+
+      if (
+        !update.ok &&
+        update.status > 0 &&
+        !shouldFallbackToLocalAuth(update.status, update.error)
+      ) {
+        return {
+          success: false,
+          message: getSupabaseErrorMessage(update.error, "Password reset failed"),
+        };
+      }
+
+      if (update.ok && !update.data?.length) {
+        return { success: false, message: "User not found" };
+      }
     }
-    return { success: false, message: "User not found" };
+
+    return await resetPasswordLocal(phone, newPassword);
   } catch (error) {
     console.error("Reset password error:", error);
     return { success: false, message: "Password reset failed" };
@@ -392,27 +925,62 @@ export const changeUserPassword = async (
   newPassword: string,
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const database = await ensureDB();
+    if (isSupabaseAuthConfigured()) {
+      const userResponse = await supabaseRequest<Array<User>>(
+        `${SUPABASE_USERS_TABLE}?id=eq.${userId}&password=eq.${encodeURIComponent(
+          currentPassword,
+        )}&select=id,name,phone,password,created_at&limit=1`,
+      );
 
-    const user = await database.getFirstAsync<User>(
-      `SELECT * FROM users WHERE id = ? AND password = ?`,
-      [userId, currentPassword],
-    );
+      if (userResponse.ok && !userResponse.data?.length) {
+        return { success: false, message: "Current password is incorrect" };
+      }
 
-    if (!user) {
-      return { success: false, message: "Current password is incorrect" };
+      if (userResponse.ok && userResponse.data?.length) {
+        const update = await supabaseRequest<Array<User>>(
+          `${SUPABASE_USERS_TABLE}?id=eq.${userId}&select=id,name,phone,password,created_at`,
+          {
+            method: "PATCH",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify({ password: newPassword }),
+          },
+        );
+
+        if (update.ok && update.data?.length) {
+          await syncLocalUser(toUser(update.data[0]));
+          await supabaseRequest<unknown>(`${SUPABASE_TOKENS_TABLE}?user_id=eq.${userId}`, {
+            method: "DELETE",
+          });
+          const database = await ensureDB();
+          await database.runAsync(`DELETE FROM auth_tokens WHERE user_id = ?`, [userId]);
+          return { success: true, message: "Password changed successfully" };
+        }
+
+        if (
+          !update.ok &&
+          update.status > 0 &&
+          !shouldFallbackToLocalAuth(update.status, update.error)
+        ) {
+          return {
+            success: false,
+            message: getSupabaseErrorMessage(update.error, "Failed to change password"),
+          };
+        }
+      }
+
+      if (
+        !userResponse.ok &&
+        userResponse.status > 0 &&
+        !shouldFallbackToLocalAuth(userResponse.status, userResponse.error)
+      ) {
+        return {
+          success: false,
+          message: getSupabaseErrorMessage(userResponse.error, "Failed to change password"),
+        };
+      }
     }
 
-    await database.runAsync(`UPDATE users SET password = ? WHERE id = ?`, [
-      newPassword,
-      userId,
-    ]);
-
-    await database.runAsync(`DELETE FROM auth_tokens WHERE user_id = ?`, [
-      userId,
-    ]);
-
-    return { success: true, message: "Password changed successfully" };
+    return await changeUserPasswordLocal(userId, currentPassword, newPassword);
   } catch (error) {
     console.error("Change password error:", error);
     return { success: false, message: "Failed to change password" };
@@ -424,23 +992,39 @@ export const updateUserProfile = async (
   name: string,
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
-    const database = await ensureDB();
+    if (isSupabaseAuthConfigured()) {
+      const update = await supabaseRequest<Array<User>>(
+        `${SUPABASE_USERS_TABLE}?id=eq.${userId}&select=id,name,phone,password,created_at`,
+        {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ name }),
+        },
+      );
 
-    await database.runAsync(`UPDATE users SET name = ? WHERE id = ?`, [
-      name,
-      userId,
-    ]);
+      if (update.ok && update.data?.length) {
+        const user = toUser(update.data[0]);
+        await syncLocalUser(user);
+        return {
+          success: true,
+          message: "Profile updated successfully",
+          user,
+        };
+      }
 
-    const updatedUser = await getUserById(userId);
-
-    if (updatedUser) {
-      return {
-        success: true,
-        message: "Profile updated successfully",
-        user: updatedUser,
-      };
+      if (
+        !update.ok &&
+        update.status > 0 &&
+        !shouldFallbackToLocalAuth(update.status, update.error)
+      ) {
+        return {
+          success: false,
+          message: getSupabaseErrorMessage(update.error, "Failed to update profile"),
+        };
+      }
     }
-    return { success: false, message: "Failed to update profile" };
+
+    return await updateUserProfileLocal(userId, name);
   } catch (error) {
     console.error("Update profile error:", error);
     return { success: false, message: "Failed to update profile" };
@@ -726,11 +1310,23 @@ export const getUserBackupPayload = async (
       [userId],
     ),
     getTransactions(userId, { all: true }),
-    database.getAllAsync(
+    database.getAllAsync<{
+      id: number;
+      user_id?: number;
+      name: string;
+      type: string;
+      icon: string;
+      color: string;
+    }>(
       `SELECT id, user_id, name, type, icon, color FROM categories WHERE user_id = ?`,
       [userId],
     ),
-    database.getAllAsync(
+    database.getAllAsync<{
+      id: number;
+      user_id?: number;
+      category: string;
+      limit_amount: number;
+    }>(
       `SELECT id, user_id, category, limit_amount FROM budgets WHERE user_id = ?`,
       [userId],
     ),

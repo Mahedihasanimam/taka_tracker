@@ -1,11 +1,11 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { theme } from "@/constants/theme";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Check, Eye, EyeOff, Lock, ShieldCheck, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,6 +19,7 @@ import tw from 'twrnc';
 
 const CreateNewPassword = () => {
   const { t } = useLanguage();
+  const { showSuccess } = useSuccessModal();
   const router = useRouter();
 
   // State
@@ -39,9 +40,11 @@ const CreateNewPassword = () => {
   const handleReset = () => {
     // --- Success Logic ---
     // In a real app, you would make an API call here first
-    Alert.alert('Success', t('successMsg'), [
-      { text: 'OK', onPress: () => router.push('/auth/signIn') }
-    ]);
+    showSuccess({
+      title: 'Success',
+      message: t('successMsg'),
+      onConfirm: () => router.push('/auth/signIn'),
+    });
   };
 
   return (

@@ -1,8 +1,9 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { exportTransactionsToFile, filterTransactionsByRange } from '@/services/export';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { getTransactions, TransactionRecord } from '@/services/db';
+import { exportTransactionsToFile, filterTransactionsByRange } from '@/services/export';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
@@ -30,6 +31,7 @@ import tw from 'twrnc';
 
 const ExportScreen = () => {
     const { t } = useLanguage();
+    const { showSuccess } = useSuccessModal();
     const { user } = useAuth();
     const router = useRouter();
 
@@ -85,10 +87,17 @@ const ExportScreen = () => {
                 transactions: filteredTransactions,
                 format,
                 includeReceipts,
-                filenamePrefix: `takatracker-${range}`,
+                filenamePrefix: `MoneyMaster-${range}`,
             });
 
-            Alert.alert(result.success ? t('success') : t('Opps'), result.message);
+            if (result.success) {
+                showSuccess({
+                    title: t('success'),
+                    message: result.message,
+                });
+            } else {
+                Alert.alert(t('Opps'), result.message);
+            }
         } finally {
             setIsExporting(false);
         }

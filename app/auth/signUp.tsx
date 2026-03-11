@@ -1,4 +1,5 @@
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { theme } from "@/constants/theme";
 import { registerUser } from '@/services/db';
 import { router } from 'expo-router';
@@ -20,6 +21,7 @@ import tw from 'twrnc';
 
 const SignUpScreen = () => {
   const { lang, switchLanguage, t } = useLanguage();
+  const { showSuccess } = useSuccessModal();
 
   // State variables
   const [name, setName] = useState('');
@@ -57,16 +59,11 @@ const SignUpScreen = () => {
       const result = await registerUser(name.trim(), phone.trim(), password);
 
       if (result.success && result.userId) {
-        Alert.alert(
-          t('success') || 'Success',
-          t('registrationSuccess') || 'Registration successful!',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.replace('/auth/signIn'),
-            },
-          ]
-        );
+        showSuccess({
+          title: t('success') || 'Success',
+          message: t('registrationSuccess') || 'Registration successful!',
+          onConfirm: () => router.replace('/auth/signIn'),
+        });
       } else {
         Alert.alert(
           t('Opps') || 'Opps',

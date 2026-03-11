@@ -1,6 +1,7 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useSuccessModal } from '@/context/SuccessModalContext';
 import { loginUser } from '@/services/db';
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff, Lock, Phone } from 'lucide-react-native';
@@ -23,6 +24,7 @@ import tw from 'twrnc';
 const LoginScreen = () => {
   const { lang, switchLanguage, t } = useLanguage();
   const { login } = useAuth();
+  const { showSuccess } = useSuccessModal();
   const router = useRouter();
 
   // Local state
@@ -47,7 +49,10 @@ const LoginScreen = () => {
       const result = await loginUser(phone.trim(), password);
 
       if (result.success && result.user && result.token) {
-        Alert.alert(t('success'), t('loginSuccess'));
+        showSuccess({
+          title: t('success'),
+          message: t('loginSuccess'),
+        });
         await login(result.user, result.token);
 
       } else {

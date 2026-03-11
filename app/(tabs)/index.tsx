@@ -52,7 +52,7 @@ interface Budget {
 }
 
 const HomeScreen = () => {
-  const { user } = useAuth();
+  const { user, avatarUri } = useAuth();
 
   // Data States
   const [balance, setBalance] = useState({ totalIncome: 0, totalExpense: 0 });
@@ -175,7 +175,7 @@ const HomeScreen = () => {
         <View style={tw`px-5 pt-3 flex-row justify-between items-center pb-3 mt-4`}>
           <View style={tw`flex-row items-center gap-3 mt-6`}>
             <Image
-              source={require('@/assets/images/avatar.png')}
+              source={avatarUri ? { uri: avatarUri } : require('@/assets/images/avatar.png')}
               style={tw`w-12 h-12 rounded-full bg-gray-300`}
             />
             <View>
@@ -256,14 +256,14 @@ const HomeScreen = () => {
             <View pointerEvents="none" style={[tw`absolute w-full items-center`, { bottom: -290, zIndex: 10 }]}>
               <Image
                 source={require('@/assets/images/homecat.png')}
-                style={tw`w-[380px] h-[500px] transform rotate-12`}
+                style={[tw`w-[380px] h-[500px]`, { transform: [{ rotate: '12deg' }] }]}
                 resizeMode="contain"
               />
             </View>
           </View>
 
           {/* 3. Transaction List Section */}
-          <View style={[tw`mx-5 bg-white rounded-3xl pb-20 p-6 shadow-xl mt-24`, { zIndex: 20 }]}>
+          <View style={[tw`mx-5 bg-white rounded-3xl pb-20 mb-14 p-6 shadow-xl mt-24`, { zIndex: 20 }]}>
             <Text style={tw`text-black text-xl font-semibold mb-6`}>Recent transactions</Text>
 
             {recentTransactions.length === 0 ? (

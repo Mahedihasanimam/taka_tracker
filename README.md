@@ -131,10 +131,10 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/takatracker.git
+git clone https://github.com/yourusername/MoneyMaster.git
 
 # Navigate to project directory
-cd takatracker
+cd MoneyMaster
 
 # Install dependencies
 npm install
@@ -198,7 +198,7 @@ eas build --platform ios --profile production
 ## 📂 Project Structure
 
 ```
-takatracker/
+MoneyMaster/
 ├── 📁 app/                      # Expo Router screens
 │   ├── 📁 (tabs)/               # Tab navigation
 │   │   ├── _layout.tsx          # Tab configuration
@@ -337,25 +337,25 @@ No environment variables required! TakaTrack is fully offline.
 {
   "expo": {
     "name": "TakaTrack",
-    "slug": "takatracker",
+    "slug": "MoneyMaster",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "takatracker",
+    "scheme": "MoneyMaster",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#e2136e"
     },
     "android": {
-      "package": "com.yourcompany.takatracker",
+      "package": "com.yourcompany.MoneyMaster",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#e2136e"
       }
     },
     "ios": {
-      "bundleIdentifier": "com.yourcompany.takatracker",
+      "bundleIdentifier": "com.yourcompany.MoneyMaster",
       "supportsTablet": true
     }
   }

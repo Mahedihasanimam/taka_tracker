@@ -1,13 +1,15 @@
 import FloatingCatMascot from '@/components/FloatingCatMascot';
+import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { SuccessModalProvider } from '@/context/SuccessModalContext';
 import { initDB } from '@/services/db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
@@ -61,11 +63,7 @@ function RootLayoutNav() {
   ]);
 
   if (isLoading || !onboardingChecked) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.card }}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
+    return <AnimatedSplashScreen />;
   }
 
   const inAuthGroup = segments[0] === 'auth';
@@ -106,6 +104,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -132,13 +131,13 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (!dbReady) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.card }}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 16, color: theme.colors.mutedText }}>Loading...</Text>
-      </View>
-    );
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashDone(true), 1600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!dbReady || !splashDone) {
+    return <AnimatedSplashScreen />;
   }
 
   if (dbError) {
@@ -152,9 +151,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <RootLayoutNav />
-        </AuthProvider>
+        <SuccessModalProvider>
+          <AuthProvider>
+            <RootLayoutNav />
+          </AuthProvider>
+        </SuccessModalProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );
