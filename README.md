@@ -302,6 +302,24 @@ Detailed documentation is available in the `/docs` folder:
 
 ---
 
+## 🛒 Envato Submission Kit
+
+Submission helper docs are available in `envato/`:
+
+- `01-MARKETPLACE-CHOICE.md`
+- `02-SUBMISSION-CHECKLIST.md`
+- `03-ITEM-DESCRIPTION-TEMPLATE.md`
+- `04-PRICING-GUIDE.md`
+- `05-WHAT-YOU-MUST-DO.md`
+
+Build a clean upload package:
+
+```bash
+npm run package:envato
+```
+
+---
+
 ## 🎨 Design System
 
 ### Colors
