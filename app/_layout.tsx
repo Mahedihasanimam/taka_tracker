@@ -2,6 +2,7 @@ import FloatingCatMascot from '@/components/FloatingCatMascot';
 import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from '@/constants/theme';
+import { typography } from '@/constants/typography';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { LanguageProvider } from '@/context/LanguageContext';
@@ -10,7 +11,7 @@ import { initDB } from '@/services/db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
@@ -137,6 +138,15 @@ export default function RootLayout() {
   useEffect(() => {
     const timer = setTimeout(() => setSplashDone(true), 1600);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Apply a consistent, readable font stack globally.
+    Text.defaultProps = Text.defaultProps || {};
+    Text.defaultProps.style = [{ fontFamily: typography.body }, Text.defaultProps.style];
+
+    TextInput.defaultProps = TextInput.defaultProps || {};
+    TextInput.defaultProps.style = [{ fontFamily: typography.body }, TextInput.defaultProps.style];
   }, []);
 
   if (!dbReady || !splashDone) {

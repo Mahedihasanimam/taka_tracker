@@ -1,5 +1,7 @@
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from "@/constants/theme";
+import { typography } from '@/constants/typography';
+import PaywallCard, { BillingCycle, PaywallPlan } from '@/components/onboarding/PaywallCard';
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,21 +9,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   ArrowRight,
-  Car,
-  PieChart,
-  ShoppingBag,
-  TrendingDown,
-  TrendingUp,
-  Utensils,
+  ChartPie,
+  CircleDollarSign,
+  Clock3,
+  Sparkles,
+  Target,
   Wallet,
-  Zap,
 } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Easing,
   FlatList,
-  Image,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -31,201 +31,137 @@ import {
 import tw from 'twrnc';
 
 const { width } = Dimensions.get('window');
-const GLASS_CARD = 'rgba(255,255,255,0.14)';
-const GLASS_CARD_STRONG = 'rgba(255,255,255,0.2)';
-const GLASS_STROKE = 'rgba(255,255,255,0.22)';
 
-// ─── Screen 2 Illustration ───────────────────────────────────────────────────
-const BudgetIllustration = ({ formatAmount }: { formatAmount: (amount: number) => string }) => (
-  <View style={tw`w-full h-full items-center justify-center px-8`}>
-    {/* Floating glow blob */}
-    <View
-      style={[
-        tw`absolute`,
-        { width: 260, height: 260, borderRadius: 130, backgroundColor: theme.colors.tealOverlay, top: 60, alignSelf: 'center' },
-      ]}
-    />
-
-    {/* Card */}
-    <View style={[tw`rounded-3xl p-5 w-full`, { backgroundColor: GLASS_CARD, borderWidth: 1, borderColor: GLASS_STROKE }]}>
-      {/* Card header */}
-      <View style={tw`flex-row items-center mb-4`}>
-        <View style={[tw`p-2 rounded-xl mr-3`, { backgroundColor: GLASS_CARD_STRONG }]}>
-          <PieChart size={20} color={theme.colors.white} />
-        </View>
-        <View>
-          <Text style={[tw`font-extrabold text-base`, { color: theme.colors.white }]}>Monthly Budget</Text>
-          <Text style={[tw`text-xs`, { color: 'rgba(255,255,255,0.72)' }]}>October 2024</Text>
-        </View>
-        <View style={[tw`ml-auto px-2 py-1 rounded-lg`, { backgroundColor: 'rgba(22,163,74,0.2)' }]}>
-          <Text style={[tw`text-xs font-bold`, { color: '#BBF7D0' }]}>On Track</Text>
-        </View>
-      </View>
-
-      {/* Budget rows */}
-      {[
-        { icon: Utensils, color: theme.colors.categoryFood, label: 'Food', pct: 72 },
-        { icon: Car, color: theme.colors.secondary, label: 'Transport', pct: 40 },
-        { icon: ShoppingBag, color: theme.colors.categoryPurple, label: 'Shopping', pct: 55 },
-        { icon: Zap, color: theme.colors.categoryBills, label: 'Utilities', pct: 30 },
-      ].map(({ icon: Icon, color, label, pct }) => (
-        <View key={label} style={tw`mb-3`}>
-          <View style={tw`flex-row items-center justify-between mb-1`}>
-            <View style={tw`flex-row items-center`}>
-              <View
-                style={[
-                  tw`w-7 h-7 rounded-lg items-center justify-center mr-2`,
-                  { backgroundColor: color + '22' },
-                ]}
-              >
-                <Icon size={14} color={color} />
-              </View>
-              <Text style={[tw`text-xs font-semibold`, { color: 'rgba(255,255,255,0.9)' }]}>{label}</Text>
-            </View>
-            <Text style={tw`text-xs font-bold`} />{/*spacer*/}
-            <Text style={[tw`text-xs font-bold`, { color }]}>{pct}%</Text>
-          </View>
-          <View style={[tw`h-2 rounded-full overflow-hidden`, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <View
-              style={[
-                tw`h-full rounded-full`,
-                { width: `${pct}%`, backgroundColor: color },
-              ]}
-            />
-          </View>
-        </View>
-      ))}
-    </View>
-
-    {/* Small floating badge */}
-    <View style={[tw`absolute bottom-20 right-6 rounded-2xl px-3 py-2 flex-row items-center`, { backgroundColor: GLASS_CARD_STRONG, borderWidth: 1, borderColor: GLASS_STROKE }]}>
-      <View style={tw`w-2 h-2 rounded-full bg-green-500 mr-2`} />
-      <Text style={[tw`text-xs font-bold`, { color: theme.colors.white }]}>{formatAmount(12400)} left</Text>
-    </View>
-  </View>
-);
-
-// ─── Screen 3 Illustration ───────────────────────────────────────────────────
-const TransactionIllustration = ({ formatAmount }: { formatAmount: (amount: number) => string }) => (
-  <View style={tw`w-full h-full items-center justify-center px-8`}>
-    {/* Glow blob */}
-    <View
-      style={[
-        tw`absolute`,
-        { width: 260, height: 260, borderRadius: 130, backgroundColor: theme.colors.tealOverlay, top: 60, alignSelf: 'center' },
-      ]}
-    />
-
-    {/* Balance Card */}
-    <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.12)']} style={[tw`w-full rounded-3xl p-5 mb-4`, { borderWidth: 1, borderColor: GLASS_STROKE }]}>
-      <Text style={tw`text-white/70 text-xs font-semibold mb-1`}>Total Balance</Text>
-      <Text style={tw`text-white text-3xl font-extrabold mb-3`}>{formatAmount(48250)}</Text>
-      <View style={tw`flex-row justify-between`}>
-        <View style={tw`flex-row items-center`}>
-          <View style={tw`bg-white/20 p-1.5 rounded-lg mr-2`}>
-            <TrendingUp size={14} color={theme.colors.lightSuccess} />
-          </View>
-          <View>
-            <Text style={tw`text-white/60 text-[10px]`}>Income</Text>
-            <Text style={tw`text-white font-bold text-sm`}>{formatAmount(62000)}</Text>
-          </View>
-        </View>
-        <View style={tw`flex-row items-center`}>
-          <View style={tw`bg-white/20 p-1.5 rounded-lg mr-2`}>
-            <TrendingDown size={14} color={theme.colors.lightDanger} />
-          </View>
-          <View>
-            <Text style={tw`text-white/60 text-[10px]`}>Expense</Text>
-            <Text style={tw`text-white font-bold text-sm`}>{formatAmount(13750)}</Text>
-          </View>
-        </View>
-      </View>
-    </LinearGradient>
-
-    {/* Transaction list card */}
-    <View style={[tw`rounded-3xl p-4 w-full`, { backgroundColor: GLASS_CARD, borderWidth: 1, borderColor: GLASS_STROKE }]}>
-      <Text style={[tw`font-extrabold text-sm mb-3`, { color: theme.colors.white }]}>Recent Transactions</Text>
-      {[
-        { icon: TrendingUp, color: theme.colors.success, label: 'Salary', sub: 'Oct 1', amount: 50000, up: true },
-        { icon: Utensils, color: theme.colors.categoryFood, label: 'Groceries', sub: 'Oct 3', amount: 1200, up: false },
-        { icon: Wallet, color: theme.colors.indigo, label: 'Freelance', sub: 'Oct 5', amount: 12000, up: true },
-        { icon: Car, color: theme.colors.secondary, label: 'Fuel', sub: 'Oct 7', amount: 800, up: false },
-      ].map(({ icon: Icon, color, label, sub, amount, up }) => (
-        <View key={label} style={[tw`flex-row items-center py-2`, { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' }]}>
-          <View
-            style={[
-              tw`w-9 h-9 rounded-xl items-center justify-center mr-3`,
-              { backgroundColor: color + '33' },
-            ]}
-          >
-            <Icon size={16} color={color} />
-          </View>
-          <View style={tw`flex-1`}>
-            <Text style={[tw`text-xs font-bold`, { color: 'rgba(255,255,255,0.95)' }]}>{label}</Text>
-            <Text style={[tw`text-[10px]`, { color: 'rgba(255,255,255,0.65)' }]}>{sub}</Text>
-          </View>
-          <Text style={[tw`text-xs font-extrabold`, { color: up ? theme.colors.success : theme.colors.danger }]}>{up ? '+' : '-'}{formatAmount(amount)}</Text>
-        </View>
-      ))}
-    </View>
-  </View>
-);
-
-// ─── Slide Data ───────────────────────────────────────────────────────────────
-// Unified theme: match splash gradient across onboarding
-const ACCENT = theme.colors.accent;
 const ONBOARDING_BG = [theme.colors.primaryDeep, theme.colors.primaryTeal, theme.colors.primary] as [string, string, string];
+const ACCENT = theme.colors.accent;
 
-const slides = [
+const PROBLEM_OPTIONS = [
+  'I do not know where my money goes',
+  'I overspend before month-end',
+  'I struggle to save consistently',
+  'I forget to track daily expenses',
+];
+
+const PAYWALL_PLANS: Record<BillingCycle, PaywallPlan> = {
+  yearly: {
+    key: 'yearly',
+    label: 'YEARLY',
+    headlinePrice: '$29.99',
+    subPrice: '$2.49 / month',
+    badge: 'SAVE 50%',
+    selectedSummary: '$29.99 / year',
+    billingNote: 'Billed yearly. Cancel anytime.',
+  },
+  monthly: {
+    key: 'monthly',
+    label: 'MONTHLY',
+    headlinePrice: '$4.99',
+    subPrice: 'per month',
+    badge: 'FLEXIBLE',
+    selectedSummary: '$4.99 / month',
+    billingNote: 'Billed monthly. Cancel anytime.',
+  },
+} as const;
+
+type SlideType = 'problem' | 'empathy' | 'solution' | 'wow' | 'paywall';
+
+type Slide = {
+  key: string;
+  type: SlideType;
+  title: string;
+  subtitle: string;
+};
+
+const slides: Slide[] = [
   {
-    key: 'welcome',
-    bgColors: ONBOARDING_BG,
-    title: 'Track Your\nWealth with ',
-    titleAccent: 'Money Master',
-    subtitle: 'Take control of your money, budget smarter, and save effortlessly.',
-    dotColor: ACCENT,
+    key: 'problem',
+    type: 'problem',
+    title: 'What is your biggest money challenge?',
+    subtitle: 'Pick your top pain points so TakaTrack can guide you better.',
   },
   {
-    key: 'budget',
-    bgColors: ONBOARDING_BG,
-    title: 'Smart Budgets,\n',
-    titleAccent: 'Bigger Savings',
-    subtitle: 'Set monthly limits per category, track every spend, and get notified before you overshoot.',
-    dotColor: ACCENT,
+    key: 'empathy',
+    type: 'empathy',
+    title: 'You are not bad with money',
+    subtitle: 'Most people fail because they do not have one clear system. We fix that.',
   },
   {
-    key: 'transactions',
-    bgColors: ONBOARDING_BG,
-    title: 'Every Taka\n',
-    titleAccent: 'Accountable',
-    subtitle: 'Log income and expenses in seconds. See exactly where your money goes, every single day.',
-    dotColor: ACCENT,
+    key: 'solution',
+    type: 'solution',
+    title: 'Track. Budget. Improve.',
+    subtitle: 'Log transactions fast, set category budgets, and see exactly what to change.',
+  },
+  {
+    key: 'wow',
+    type: 'wow',
+    title: 'Your numbers become crystal clear',
+    subtitle: 'In one week, you can spot leaks, control spending, and build savings momentum.',
+  },
+  {
+    key: 'paywall',
+    type: 'paywall',
+    title: 'Unlock Pro and stay in control',
+    subtitle: 'Advanced analytics, premium reports, and smarter money decisions every month.',
   },
 ];
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+const completeOnboarding = async (
+  isAuthenticated: boolean,
+  router: ReturnType<typeof useRouter>,
+) => {
+  await AsyncStorage.setItem(ONBOARDING_DONE_KEY, 'true');
+  if (isAuthenticated) {
+    router.replace('/(tabs)');
+  } else {
+    router.replace('/auth/signIn');
+  }
+};
+
 const OnboardingScreen = () => {
   const { isAuthenticated } = useAuth();
   const { formatAmount } = useCurrency();
   const router = useRouter();
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+  const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
+  const flatListRef = useRef<FlatList<Slide>>(null);
+  const hintPulse = useRef(new Animated.Value(0)).current;
+  const nextArrowShift = useRef(new Animated.Value(0)).current;
 
-  // Floating mascot animation (screen 0 only)
-  const mascotY = useRef(new Animated.Value(0)).current;
+  const isLast = currentIndex === slides.length - 1;
+  const selectedPlan = PAYWALL_PLANS[billingCycle];
+
   React.useEffect(() => {
-    const bounce = Animated.loop(
+    const hintLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(mascotY, { toValue: -8, duration: 1500, useNativeDriver: true }),
-        Animated.timing(mascotY, { toValue: 0, duration: 1500, useNativeDriver: true }),
+        Animated.timing(hintPulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(hintPulse, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ]),
     );
-    bounce.start();
-    return () => bounce.stop();
-  }, [mascotY]);
+    const arrowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(nextArrowShift, { toValue: 1, duration: 420, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(nextArrowShift, { toValue: 0, duration: 420, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    hintLoop.start();
+    arrowLoop.start();
 
-  // Track visible slide
+    return () => {
+      hintLoop.stop();
+      arrowLoop.stop();
+    };
+  }, [hintPulse, nextArrowShift]);
+
+  const toggleProblem = (problem: string) => {
+    setSelectedProblems((prev) =>
+      prev.includes(problem)
+        ? prev.filter((item) => item !== problem)
+        : [...prev, problem],
+    );
+  };
+
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       if (viewableItems.length > 0 && viewableItems[0].index != null) {
@@ -234,65 +170,197 @@ const OnboardingScreen = () => {
     },
   ).current;
 
+  const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 50 }), []);
+
   const goNext = () => {
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
     }
   };
 
-  const handleGetStarted = async () => {
-    await AsyncStorage.setItem(ONBOARDING_DONE_KEY, 'true');
-    if (isAuthenticated) {
-      router.replace('/(tabs)');
-    } else {
-      router.replace('/auth/signIn');
+  const skipToPaywall = () => {
+    flatListRef.current?.scrollToIndex({ index: slides.length - 1, animated: true });
+  };
+
+  const renderIllustration = (type: SlideType) => {
+    if (type === 'problem') {
+      return (
+        <View style={tw`w-full h-full px-7 justify-center`}>
+          <View style={tw`bg-white/15 border border-white/25 rounded-3xl p-5`}>
+            <View style={tw`flex-row items-center mb-4`}>
+              <View style={tw`w-10 h-10 rounded-xl bg-white/20 items-center justify-center mr-3`}>
+                <CircleDollarSign size={20} color={theme.colors.white} />
+              </View>
+              <View style={tw`flex-1`}>
+                <Text style={tw`text-white text-base font-bold`}>Money Stress Check</Text>
+                <Text style={tw`text-white/75 text-xs mt-0.5`}>Tap options to personalize your journey</Text>
+              </View>
+              <Animated.View
+                style={{
+                  opacity: hintPulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] }),
+                  transform: [{ scale: hintPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.08] }) }],
+                }}
+              >
+                <Sparkles size={16} color={theme.colors.accent} />
+              </Animated.View>
+            </View>
+
+            <View style={tw`flex-row flex-wrap`}>
+              {PROBLEM_OPTIONS.map((problem) => {
+                const active = selectedProblems.includes(problem);
+                return (
+                  <TouchableOpacity
+                    key={problem}
+                    activeOpacity={0.8}
+                    onPress={() => toggleProblem(problem)}
+                    style={[
+                      tw`px-3 py-2 rounded-full mr-2 mb-2 border`,
+                      active
+                        ? { backgroundColor: theme.colors.white, borderColor: theme.colors.white }
+                        : { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.26)' },
+                    ]}
+                  >
+                    <Text style={[tw`text-xs font-semibold`, { color: active ? theme.colors.primaryDeep : theme.colors.white }]}>
+                      {problem}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      );
     }
+
+    if (type === 'empathy') {
+      return (
+        <View style={tw`w-full h-full px-8 justify-center`}>
+          <View style={tw`bg-white/15 border border-white/25 rounded-3xl p-6`}>
+            <View style={tw`flex-row items-center mb-4`}>
+              <Clock3 size={20} color={theme.colors.white} />
+              <Text style={tw`text-white text-base font-bold ml-2`}>We have seen this pattern</Text>
+            </View>
+            <Text style={tw`text-white/90 text-sm leading-6`}>
+              Spending happens fast. Tracking usually starts late. That does not mean you failed.
+            </Text>
+            <Text style={tw`text-white/90 text-sm leading-6 mt-3`}>
+              It means you needed a system that works in real life.
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (type === 'solution') {
+      return (
+        <View style={tw`w-full h-full px-8 justify-center`}>
+          <View style={tw`bg-white/15 border border-white/25 rounded-3xl p-5`}>
+            {[
+              { icon: Wallet, label: '1. Add income and expenses in seconds' },
+              { icon: Target, label: '2. Set budget limits by category' },
+              { icon: ChartPie, label: '3. Track progress weekly, monthly, yearly' },
+            ].map(({ icon: Icon, label }) => (
+              <View key={label} style={tw`flex-row items-center py-3 border-b border-white/20 last:border-b-0`}>
+                <View style={tw`w-10 h-10 rounded-xl bg-white/20 items-center justify-center mr-3`}>
+                  <Icon size={18} color={theme.colors.white} />
+                </View>
+                <Text style={tw`text-white text-sm font-semibold flex-1`}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      );
+    }
+
+    if (type === 'wow') {
+      return (
+        <View style={tw`w-full h-full px-8 justify-center`}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.24)', 'rgba(255,255,255,0.12)']}
+            style={tw`rounded-3xl p-5 border border-white/25`}
+          >
+            <View style={tw`flex-row items-center justify-between mb-4`}>
+              <Text style={tw`text-white font-bold text-base`}>7-Day Improvement</Text>
+              <View style={tw`px-2 py-1 rounded-full bg-green-500/20`}>
+                <Text style={tw`text-green-200 text-xs font-bold`}>+42% control</Text>
+              </View>
+            </View>
+
+            <View style={tw`flex-row justify-between mb-3`}>
+              <View>
+                <Text style={tw`text-white/70 text-xs`}>Overspending</Text>
+                <Text style={tw`text-white text-base font-bold`}>- {formatAmount(8300)}</Text>
+              </View>
+              <View>
+                <Text style={tw`text-white/70 text-xs`}>Saved</Text>
+                <Text style={tw`text-white text-base font-bold`}>+ {formatAmount(12400)}</Text>
+              </View>
+            </View>
+
+            <View style={tw`mt-2 flex-row items-center`}>
+              <Sparkles size={16} color={theme.colors.accent} />
+              <Text style={tw`text-white text-xs font-semibold ml-2`}>
+                This is where users usually say: Now I finally get it.
+              </Text>
+            </View>
+          </LinearGradient>
+        </View>
+      );
+    }
+
+    return (
+      <PaywallCard
+        billingCycle={billingCycle}
+        onChangeBillingCycle={setBillingCycle}
+        plans={PAYWALL_PLANS}
+        selectedPlan={selectedPlan}
+      />
+    );
   };
 
-  const skip = async () => {
-    await AsyncStorage.setItem(ONBOARDING_DONE_KEY, 'true');
-  };
-
-  const isLast = currentIndex === slides.length - 1;
-  const accentColor = slides[currentIndex].dotColor;
-
-  const renderSlide = ({ item }: { item: typeof slides[0] }) => (
+  const renderSlide = ({ item }: { item: Slide }) => (
     <View style={[{ width }, tw`flex-1`]}>
-      <LinearGradient colors={item.bgColors} style={tw`absolute inset-0`} />
+      <LinearGradient colors={ONBOARDING_BG} style={tw`absolute inset-0`} />
+      <View style={[tw`absolute`, { width: 240, height: 240, borderRadius: 120, top: -30, right: -90, backgroundColor: 'rgba(255,255,255,0.06)' }]} />
 
-      {/* Top illustration area */}
-      <View style={tw`w-full h-[58%]`}>
-        {item.key === 'welcome' ? (
-          <Animated.View style={[{ transform: [{ translateY: mascotY }] }, tw`w-full h-full`]}>
-            <Image
-              source={require('../assets/images/onbording.png')}
-              style={tw`w-full h-full`}
-              resizeMode="cover"
-            />
-          </Animated.View>
-        ) : item.key === 'budget' ? (
-          <BudgetIllustration formatAmount={formatAmount} />
-        ) : (
-          <TransactionIllustration formatAmount={formatAmount} />
-        )}
-      </View>
+      <View style={tw`w-full h-[58%]`}>{renderIllustration(item.type)}</View>
 
-      {/* Bottom text content */}
-      <View style={tw`flex-1 px-8 pt-6`}>
-        <Text style={[tw`text-3xl font-extrabold text-center mb-3 leading-10`, { color: theme.colors.white }]}>
+      <View style={tw`flex-1 px-8 pt-5`}>
+        <Text
+          style={[
+            tw`text-[32px] font-extrabold text-center mb-3 leading-10`,
+            {
+              color: '#FFFFFF',
+              fontFamily: typography.heading,
+              textShadowColor: 'rgba(0,0,0,0.22)',
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 6,
+            }
+          ]}
+        >
           {item.title}
-          <Text style={{ color: item.dotColor }}>{item.titleAccent}</Text>
         </Text>
-        <Text style={[tw`text-[15px] text-center leading-6 px-2`, { color: 'rgba(255,255,255,0.85)' }]}>{item.subtitle}</Text>
+        <Text
+          style={[
+            tw`text-[16px] text-center leading-7 px-2`,
+            {
+              color: 'rgba(255,255,255,0.96)',
+              textShadowColor: 'rgba(0,0,0,0.18)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 4,
+            }
+          ]}
+        >
+          {item.subtitle}
+        </Text>
       </View>
     </View>
   );
 
   return (
-    <View style={[tw`flex-1`, { backgroundColor: theme.colors.primaryDeep }]}>
+    <View style={[tw`flex-1`, { backgroundColor: theme.colors.primaryDeep }]}> 
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
 
-      {/* Slides */}
       <FlatList
         ref={flatListRef}
         data={slides}
@@ -302,53 +370,65 @@ const OnboardingScreen = () => {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+        viewabilityConfig={viewabilityConfig}
         bounces={false}
         style={tw`flex-1`}
       />
 
-      {/* Bottom controls (fixed, outside FlatList) */}
       <View style={tw`absolute bottom-0 left-0 right-0 px-8 pb-12`}>
-        {/* Dot indicators */}
         <View style={tw`flex-row justify-center items-center mb-8 gap-3`}>
-          {slides.map((s, i) => (
+          {slides.map((slide, index) => (
             <View
-              key={s.key}
+              key={slide.key}
               style={[
                 tw`rounded-full`,
-                i === currentIndex
-                  ? { width: 20, height: 10, backgroundColor: slides[currentIndex].dotColor }
+                index === currentIndex
+                  ? { width: 24, height: 10, backgroundColor: ACCENT }
                   : { width: 10, height: 10, backgroundColor: 'rgba(255,255,255,0.35)' },
               ]}
             />
           ))}
         </View>
 
-        {/* Buttons */}
         {isLast ? (
-          <TouchableOpacity
-            onPress={handleGetStarted}
-            activeOpacity={0.8}
-            style={[tw`w-full rounded-full py-4 items-center`, { backgroundColor: accentColor }]}
-          >
-            <Text style={tw`text-white text-lg font-bold tracking-widest`}>GET STARTED</Text>
-          </TouchableOpacity>
+          <View>
+            <TouchableOpacity
+              onPress={() => completeOnboarding(isAuthenticated, router)}
+              activeOpacity={0.85}
+              style={[tw`w-full rounded-full py-4 items-center mb-3`, { backgroundColor: ACCENT }]}
+            >
+              <Text style={tw`text-white text-base font-bold tracking-wider`}>
+                {billingCycle === 'yearly' ? 'START YEARLY TRIAL' : 'START MONTHLY TRIAL'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => completeOnboarding(isAuthenticated, router)}
+              activeOpacity={0.75}
+              style={tw`w-full rounded-full py-4 items-center border border-white/35`}
+            >
+              <Text style={tw`text-white text-base font-semibold`}>CONTINUE FREE</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={tw`flex-row items-center justify-between`}>
-            <TouchableOpacity onPress={skip} activeOpacity={0.7} style={tw`py-4 px-2`}>
+            <TouchableOpacity onPress={skipToPaywall} activeOpacity={0.7} style={tw`py-4 px-2`}>
               <Text style={[tw`font-semibold text-base`, { color: 'rgba(255,255,255,0.75)' }]}>Skip</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={goNext}
-              activeOpacity={0.8}
-              style={[
-                tw`flex-row items-center rounded-full py-4 px-8 gap-2`,
-                { backgroundColor: accentColor },
-              ]}
+              activeOpacity={0.85}
+              style={[tw`flex-row items-center rounded-full py-4 px-8 gap-2`, { backgroundColor: ACCENT }]}
             >
               <Text style={tw`text-white text-base font-bold tracking-wider`}>Next</Text>
-              <ArrowRight size={18} color={theme.colors.white} />
+              <Animated.View
+                style={{
+                  transform: [{ translateX: nextArrowShift.interpolate({ inputRange: [0, 1], outputRange: [0, 5] }) }],
+                }}
+              >
+                <ArrowRight size={18} color={theme.colors.white} />
+              </Animated.View>
             </TouchableOpacity>
           </View>
         )}
