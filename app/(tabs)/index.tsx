@@ -249,6 +249,21 @@ const HomeScreen = () => {
                     xAxisLabelTextStyle={tw`text-white/70 text-xs`}
                   />
                 </LinearGradient>
+
+                {/* CARD 4: ADVANCED ANALYTICS */}
+                <LinearGradient colors={['#102A43', '#0F766E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={tw`w-[340px] h-[221px] rounded-2xl border border-white/30 p-5`}>
+                  <Text style={tw`text-white/70 text-base`}>Premium insights</Text>
+                  <Text style={tw`text-white text-[28px] font-bold mt-2`}>Week, Month & Year</Text>
+                  <Text style={tw`text-white/80 text-sm mt-3`}>
+                    Separate screen with segment-wise visual analytics.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => router.push('/screens/analytics')}
+                    style={tw`mt-6 self-start bg-white px-4 py-2 rounded-full`}
+                  >
+                    <Text style={tw`text-[#102A43] font-semibold`}>Open Analytics</Text>
+                  </TouchableOpacity>
+                </LinearGradient>
               </ScrollView>
             </View>
 

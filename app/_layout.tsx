@@ -93,6 +93,7 @@ function RootLayoutNav() {
         <Stack.Screen name="transaction/add" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="screens/categories" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="screens/export" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="screens/analytics" options={{ animation: 'slide_from_right' }} />
       </Stack>
       {showMascot && (
         <FloatingCatMascot variant={mascotVariant} position="bottomRight" />
