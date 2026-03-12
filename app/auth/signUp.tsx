@@ -20,7 +20,7 @@ import tw from 'twrnc';
 
 
 const SignUpScreen = () => {
-  const { lang, switchLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const { showSuccess } = useSuccessModal();
 
   // State variables
@@ -85,35 +85,11 @@ const SignUpScreen = () => {
         <View style={tw`flex-row justify-between items-start`}>
           <View>
             <Text style={tw`text-white text-2xl font-bold tracking-wide`}>
-              {lang === 'bn' ? 'টাকাট্র্যাক' : 'TakaTrack'}
+              TakaTrack
             </Text>
             <Text style={tw`text-white text-xl font-medium opacity-90`}>
-              {lang === 'bn' ? 'TakaTrack' : 'টাকাট্র্যাক'}
+              Expense Tracker
             </Text>
-          </View>
-
-          {/* Language Toggle */}
-          <View
-            style={[
-              tw`flex-row rounded-full p-1 border`,
-              { backgroundColor: theme.colors.primaryDark, borderColor: theme.colors.primaryDark },
-            ]}
-          >
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => switchLanguage('bn')}
-              style={tw`px-3 py-1.5 rounded-full ${lang === 'bn' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
-            >
-              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'bn' ? theme.colors.primary : `${theme.colors.white}B3` }]}>বাংলা</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => switchLanguage('en')}
-              style={tw`px-3 py-1.5 rounded-full ${lang === 'en' ? 'bg-white shadow-sm' : 'bg-transparent'}`}
-            >
-              <Text style={[tw`text-[12px] font-bold`, { color: lang === 'en' ? theme.colors.primary : `${theme.colors.white}B3` }]}>ENG</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </View>

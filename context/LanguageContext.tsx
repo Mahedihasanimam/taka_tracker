@@ -4,10 +4,10 @@ import React, { createContext, ReactNode, useContext, useEffect, useState } from
 import { translations } from '../constants/translations';
 
 // Define the shape of our Context
-type TranslationKey = keyof (typeof translations)['en'] | keyof (typeof translations)['bn'];
+type TranslationKey = keyof (typeof translations)['en'];
 type LanguageContextType = {
-    lang: 'bn' | 'en';
-    switchLanguage: (lang: 'bn' | 'en') => void;
+    lang: 'en';
+    switchLanguage: (_lang: 'en') => void;
     t: (key: TranslationKey) => string;
 };
 
@@ -15,15 +15,16 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const LANGUAGE_KEY = 'appLanguage';
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-    const [lang, setLang] = useState<'bn' | 'en'>('en');
+    const [lang, setLang] = useState<'en'>('en');
 
     useEffect(() => {
         const loadLanguage = async () => {
             try {
                 const stored = await AsyncStorage.getItem(LANGUAGE_KEY);
-                if (stored === 'bn' || stored === 'en') {
-                    setLang(stored);
+                if (stored !== 'en') {
+                    await AsyncStorage.setItem(LANGUAGE_KEY, 'en');
                 }
+                setLang('en');
             } catch (error) {
                 console.error('Failed to load language:', error);
             }
@@ -32,15 +33,15 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         loadLanguage();
     }, []);
 
-    const switchLanguage = (language: 'bn' | 'en') => {
-        setLang(language);
-        AsyncStorage.setItem(LANGUAGE_KEY, language).catch((error) => {
+    const switchLanguage = (_lang: 'en') => {
+        setLang('en');
+        AsyncStorage.setItem(LANGUAGE_KEY, 'en').catch((error) => {
             console.error('Failed to save language:', error);
         });
     };
 
     const t = (key: TranslationKey) => {
-        return translations[lang][key] || key;
+        return translations.en[key] || key;
     };
 
     return (

@@ -1,5 +1,6 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useLanguage } from '@/context/LanguageContext';
 import {
     addBudget,
@@ -93,6 +94,7 @@ interface BudgetWithSpent extends Budget {
 const BudgetScreen = () => {
     const { t } = useLanguage();
     const { user } = useAuth();
+    const { formatAmount, currencySymbol } = useCurrency();
 
     // State
     const [budgets, setBudgets] = useState<BudgetWithSpent[]>([]);
@@ -345,13 +347,13 @@ const BudgetScreen = () => {
                         <View style={tw`bg-white/10 rounded-2xl p-4 flex-1 mr-2`}>
                             <Text style={tw`text-white/60 text-xs mb-1`}>Monthly Budget</Text>
                             <Text style={tw`text-white text-2xl font-bold`}>
-                                ৳{totals.totalBudget.toLocaleString()}
+                                {formatAmount(totals.totalBudget)}
                             </Text>
                         </View>
                         <View style={tw`bg-white/10 rounded-2xl p-4 flex-1 ml-2`}>
                             <Text style={tw`text-white/60 text-xs mb-1`}>Remaining</Text>
                             <Text style={tw`text-white text-2xl font-bold`}>
-                                ৳{totals.totalRemaining.toLocaleString()}
+                                {formatAmount(totals.totalRemaining)}
                             </Text>
                         </View>
                     </View>
@@ -430,7 +432,7 @@ const BudgetScreen = () => {
                                         </View>
                                     </View>
                                     <View style={tw`items-end`}>
-                                        <Text style={tw`text-xl font-bold text-gray-900`}>৳{item.limit_amount.toLocaleString()}</Text>
+                                        <Text style={tw`text-xl font-bold text-gray-900`}>{formatAmount(item.limit_amount)}</Text>
                                         <Text style={tw`text-xs text-gray-400`}>limit</Text>
                                     </View>
                                 </View>
@@ -439,7 +441,7 @@ const BudgetScreen = () => {
                                 <View style={tw`mb-3`}>
                                     <View style={tw`flex-row justify-between mb-2`}>
                                         <Text style={tw`text-sm font-medium text-gray-700`}>
-                                            Spent: ৳{item.spent.toLocaleString()}
+                                            Spent: {formatAmount(item.spent)}
                                         </Text>
                                         <Text style={tw`text-sm font-medium text-gray-500`}>
                                             {percent.toFixed(0)}%
@@ -464,7 +466,7 @@ const BudgetScreen = () => {
                                         tw`text-base font-bold`,
                                         remaining >= 0 ? 'text-green-600' : 'text-red-600'
                                     ]}>
-                                        ৳{Math.abs(remaining).toLocaleString()}
+                                        {formatAmount(Math.abs(remaining))}
                                         {remaining < 0 && ' over'}
                                     </Text>
                                 </View>
@@ -618,7 +620,7 @@ const BudgetScreen = () => {
                             </Text>
                             <View style={tw`bg-gray-50 rounded-2xl px-5 py-4 mb-4 border border-gray-200`}>
                                 <View style={tw`flex-row items-center`}>
-                                    <Text style={tw`text-2xl font-bold text-gray-400 mr-2`}>৳</Text>
+                                    <Text style={tw`text-2xl font-bold text-gray-400 mr-2`}>{currencySymbol}</Text>
                                     <TextInput
                                         placeholder="0"
                                         placeholderTextColor={theme.colors.gray400}
@@ -646,7 +648,7 @@ const BudgetScreen = () => {
                                                     style={tw`bg-white px-4 py-3 rounded-xl mr-3 mb-2 border border-blue-200`}
                                                 >
                                                     <Text style={tw`text-blue-700 font-semibold`}>
-                                                        {percent}% ৳{amount.toLocaleString()}
+                                                        {percent}% {formatAmount(amount)}
                                                     </Text>
                                                 </TouchableOpacity>
                                             );

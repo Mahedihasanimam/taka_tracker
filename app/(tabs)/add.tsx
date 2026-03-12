@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
@@ -82,7 +83,8 @@ interface Category {
 }
 
 const AddTransactionScreen = () => {
-    const { t, lang } = useLanguage();
+    const { t } = useLanguage();
+    const { currencySymbol } = useCurrency();
     const { showSuccess } = useSuccessModal();
     const { user } = useAuth();
     const router = useRouter();
@@ -209,7 +211,7 @@ const AddTransactionScreen = () => {
         } else if (d.toDateString() === yesterday.toDateString()) {
             return t('yesterday');
         }
-        return d.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+        return d.toLocaleDateString('en-US', {
             day: '2-digit',
             month: 'short',
             year: 'numeric'
@@ -238,7 +240,7 @@ const AddTransactionScreen = () => {
                         {t('enterAmount')}
                     </Text>
                     <View style={tw`flex-row items-center`}>
-                        <Text style={tw`text-white text-4xl font-bold mr-1`}>৳</Text>
+                        <Text style={tw`text-white text-4xl font-bold mr-1`}>{currencySymbol}</Text>
                         <TextInput
                             value={amount}
                             onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}

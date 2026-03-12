@@ -1,6 +1,7 @@
 import tw from '@/assets/lib/tailwind';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { getTransactions } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -140,6 +141,7 @@ const groupForPeriod = (transactions: Txn[], period: PeriodKey): Bucket[] => {
 
 const AnalyticsScreen = () => {
   const { user } = useAuth();
+  const { formatAmount } = useCurrency();
   const router = useRouter();
 
   const [transactions, setTransactions] = useState<Txn[]>([]);
@@ -355,7 +357,7 @@ const AnalyticsScreen = () => {
                     <View style={[tw`w-3 h-3 rounded-full mr-2`, { backgroundColor: item.color }]} />
                     <Text style={tw`text-slate-700 font-medium`}>{item.name}</Text>
                   </View>
-                  <Text style={tw`text-slate-900 font-bold`}>৳{Math.round(item.value).toLocaleString()}</Text>
+                  <Text style={tw`text-slate-900 font-bold`}>{formatAmount(Math.round(item.value))}</Text>
                 </View>
               ))
             )}

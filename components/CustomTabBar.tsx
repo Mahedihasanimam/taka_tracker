@@ -33,6 +33,7 @@ export default function CustomTabBar() {
         { key: 'income', label: t('createIncome'), icon: 'arrow-up-circle' as const, color: theme.colors.income, bg: theme.colors.greenSoft, onPress: () => router.push({ pathname: '/add', params: { type: 'income' } }) },
         { key: 'category', label: t('createCategory'), icon: 'grid' as const, color: theme.colors.categoryBlue, bg: theme.colors.blueSoft, onPress: () => router.push('/screens/categories') },
         { key: 'budget', label: t('createBudget'), icon: 'flag' as const, color: theme.colors.categoryPurple, bg: theme.colors.purpleSoft, onPress: () => router.push('/budget') },
+        { key: 'currency', label: 'Currency', icon: 'globe-outline' as const, color: theme.colors.primary, bg: theme.colors.teal50, onPress: () => router.push('/screens/currency') },
     ], [router, t]);
 
     // 1. Animation values for each individual list item

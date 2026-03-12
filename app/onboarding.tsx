@@ -1,6 +1,7 @@
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from "@/constants/theme";
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -35,7 +36,7 @@ const GLASS_CARD_STRONG = 'rgba(255,255,255,0.2)';
 const GLASS_STROKE = 'rgba(255,255,255,0.22)';
 
 // ─── Screen 2 Illustration ───────────────────────────────────────────────────
-const BudgetIllustration = () => (
+const BudgetIllustration = ({ formatAmount }: { formatAmount: (amount: number) => string }) => (
   <View style={tw`w-full h-full items-center justify-center px-8`}>
     {/* Floating glow blob */}
     <View
@@ -99,13 +100,13 @@ const BudgetIllustration = () => (
     {/* Small floating badge */}
     <View style={[tw`absolute bottom-20 right-6 rounded-2xl px-3 py-2 flex-row items-center`, { backgroundColor: GLASS_CARD_STRONG, borderWidth: 1, borderColor: GLASS_STROKE }]}>
       <View style={tw`w-2 h-2 rounded-full bg-green-500 mr-2`} />
-      <Text style={[tw`text-xs font-bold`, { color: theme.colors.white }]}>৳12,400 left</Text>
+      <Text style={[tw`text-xs font-bold`, { color: theme.colors.white }]}>{formatAmount(12400)} left</Text>
     </View>
   </View>
 );
 
 // ─── Screen 3 Illustration ───────────────────────────────────────────────────
-const TransactionIllustration = () => (
+const TransactionIllustration = ({ formatAmount }: { formatAmount: (amount: number) => string }) => (
   <View style={tw`w-full h-full items-center justify-center px-8`}>
     {/* Glow blob */}
     <View
@@ -118,7 +119,7 @@ const TransactionIllustration = () => (
     {/* Balance Card */}
     <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.12)']} style={[tw`w-full rounded-3xl p-5 mb-4`, { borderWidth: 1, borderColor: GLASS_STROKE }]}>
       <Text style={tw`text-white/70 text-xs font-semibold mb-1`}>Total Balance</Text>
-      <Text style={tw`text-white text-3xl font-extrabold mb-3`}>৳48,250</Text>
+      <Text style={tw`text-white text-3xl font-extrabold mb-3`}>{formatAmount(48250)}</Text>
       <View style={tw`flex-row justify-between`}>
         <View style={tw`flex-row items-center`}>
           <View style={tw`bg-white/20 p-1.5 rounded-lg mr-2`}>
@@ -126,7 +127,7 @@ const TransactionIllustration = () => (
           </View>
           <View>
             <Text style={tw`text-white/60 text-[10px]`}>Income</Text>
-            <Text style={tw`text-white font-bold text-sm`}>৳62,000</Text>
+            <Text style={tw`text-white font-bold text-sm`}>{formatAmount(62000)}</Text>
           </View>
         </View>
         <View style={tw`flex-row items-center`}>
@@ -135,7 +136,7 @@ const TransactionIllustration = () => (
           </View>
           <View>
             <Text style={tw`text-white/60 text-[10px]`}>Expense</Text>
-            <Text style={tw`text-white font-bold text-sm`}>৳13,750</Text>
+            <Text style={tw`text-white font-bold text-sm`}>{formatAmount(13750)}</Text>
           </View>
         </View>
       </View>
@@ -145,10 +146,10 @@ const TransactionIllustration = () => (
     <View style={[tw`rounded-3xl p-4 w-full`, { backgroundColor: GLASS_CARD, borderWidth: 1, borderColor: GLASS_STROKE }]}>
       <Text style={[tw`font-extrabold text-sm mb-3`, { color: theme.colors.white }]}>Recent Transactions</Text>
       {[
-        { icon: TrendingUp, color: theme.colors.success, label: 'Salary', sub: 'Oct 1', amount: '+৳50,000', up: true },
-        { icon: Utensils, color: theme.colors.categoryFood, label: 'Groceries', sub: 'Oct 3', amount: '-৳1,200', up: false },
-        { icon: Wallet, color: theme.colors.indigo, label: 'Freelance', sub: 'Oct 5', amount: '+৳12,000', up: true },
-        { icon: Car, color: theme.colors.secondary, label: 'Fuel', sub: 'Oct 7', amount: '-৳800', up: false },
+        { icon: TrendingUp, color: theme.colors.success, label: 'Salary', sub: 'Oct 1', amount: 50000, up: true },
+        { icon: Utensils, color: theme.colors.categoryFood, label: 'Groceries', sub: 'Oct 3', amount: 1200, up: false },
+        { icon: Wallet, color: theme.colors.indigo, label: 'Freelance', sub: 'Oct 5', amount: 12000, up: true },
+        { icon: Car, color: theme.colors.secondary, label: 'Fuel', sub: 'Oct 7', amount: 800, up: false },
       ].map(({ icon: Icon, color, label, sub, amount, up }) => (
         <View key={label} style={[tw`flex-row items-center py-2`, { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' }]}>
           <View
@@ -163,7 +164,7 @@ const TransactionIllustration = () => (
             <Text style={[tw`text-xs font-bold`, { color: 'rgba(255,255,255,0.95)' }]}>{label}</Text>
             <Text style={[tw`text-[10px]`, { color: 'rgba(255,255,255,0.65)' }]}>{sub}</Text>
           </View>
-          <Text style={[tw`text-xs font-extrabold`, { color: up ? theme.colors.success : theme.colors.danger }]}>{amount}</Text>
+          <Text style={[tw`text-xs font-extrabold`, { color: up ? theme.colors.success : theme.colors.danger }]}>{up ? '+' : '-'}{formatAmount(amount)}</Text>
         </View>
       ))}
     </View>
@@ -205,6 +206,7 @@ const slides = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 const OnboardingScreen = () => {
   const { isAuthenticated } = useAuth();
+  const { formatAmount } = useCurrency();
   const router = useRouter();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -269,9 +271,9 @@ const OnboardingScreen = () => {
             />
           </Animated.View>
         ) : item.key === 'budget' ? (
-          <BudgetIllustration />
+          <BudgetIllustration formatAmount={formatAmount} />
         ) : (
-          <TransactionIllustration />
+          <TransactionIllustration formatAmount={formatAmount} />
         )}
       </View>
 

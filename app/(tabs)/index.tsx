@@ -4,6 +4,7 @@ import { bluestar, colorStar, seetingicon } from '@/assets/icons/Icon';
 import tw from '@/assets/lib/tailwind';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { getBalance, getBudgets, getCategories, getTransactions, getTransactionsByCategory } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
@@ -53,11 +54,13 @@ interface Budget {
 
 const HomeScreen = () => {
   const { user, avatarUri } = useAuth();
+  const { currency, formatAmount } = useCurrency();
 
   // Data States
   const [balance, setBalance] = useState({ totalIncome: 0, totalExpense: 0 });
   const [transactions, setTransactions] = useState<any[]>([]);
   const [todaySpent, setTodaySpent] = useState(0);
+  const [dailyBenchmark, setDailyBenchmark] = useState(0);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgetUsageMap, setBudgetUsageMap] = useState<Record<string, { spent: number; limit: number }>>({});
@@ -77,10 +80,24 @@ const HomeScreen = () => {
 
       // Calculate Today's Spending
       const today = new Date().toDateString();
-      const todaySum = txnData
-        .filter((t: any) => new Date(t.date).toDateString() === today && t.type === 'expense')
+      const todayTransactions = txnData.filter((t: any) => new Date(t.date).toDateString() === today);
+
+      const todaySum = todayTransactions
+        .filter((t: any) => t.type === 'expense')
         .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+
+      let last7DaysSpent = 0;
+      for (let i = 1; i <= 7; i++) {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - i);
+        const daySpent = txnData
+          .filter((t: any) => new Date(t.date).toDateString() === pastDate.toDateString() && t.type === 'expense')
+          .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+        last7DaysSpent += daySpent;
+      }
+
       setTodaySpent(todaySum);
+      setDailyBenchmark(last7DaysSpent / 7);
 
       // Use the exact same budget usage source as budget.tsx
       const usageEntries = await Promise.all(
@@ -156,6 +173,16 @@ const HomeScreen = () => {
   };
 
   const recentTransactions = transactions.slice(0, 10);
+  const chartBenchmark = Math.max(dailyBenchmark, todaySpent, 1);
+  const todayUseChartData = todaySpent <= chartBenchmark
+    ? [
+      { value: Number(todaySpent) || 0.0001, color: '#7EE7D8' },
+      { value: Math.max(chartBenchmark - todaySpent, 0.0001), color: 'rgba(255,255,255,0.22)' },
+    ]
+    : [
+      { value: chartBenchmark, color: '#7EE7D8' },
+      { value: Math.max(todaySpent - chartBenchmark, 0.0001), color: '#FFD166' },
+    ];
 
   return (
     <View style={tw`flex-1 bg-[#F1F1F1]`}>
@@ -204,11 +231,14 @@ const HomeScreen = () => {
                   <View style={tw`flex-row justify-between h-[221px] items-start`}>
                     <View>
                       <Text style={tw`text-white/70 text-base`}>Main balance</Text>
-                      <Text style={tw`text-white text-[40px] font-bold`}>৳{(balance.totalIncome - balance.totalExpense).toLocaleString()}</Text>
+                      <Text style={tw`text-white text-[40px] font-bold`}>{formatAmount(balance.totalIncome - balance.totalExpense)}</Text>
                     </View>
-                    <View style={tw`px-3 py-1 rounded-full border border-white/30`}>
-                      <Text style={tw`text-white text-base`}>BDT</Text>
-                    </View>
+                    <TouchableOpacity
+                      onPress={() => router.push('/screens/currency')}
+                      style={tw`px-3 py-1 rounded-full border border-white/30`}
+                    >
+                      <Text style={tw`text-white text-base`}>{currency}</Text>
+                    </TouchableOpacity>
                   </View>
                   <View style={[tw`absolute`, { width: 25, height: 25, right: 70, bottom: 80 }]}><SvgXml xml={colorStar} /></View>
                   <View style={[tw`absolute`, { width: 27, height: 27, right: 20, bottom: 40 }]}><SvgXml xml={bluestar} /></View>
@@ -216,16 +246,18 @@ const HomeScreen = () => {
 
                 {/* CARD 2: TODAY'S USE WITH CHART */}
                 <LinearGradient colors={['#5E59B3', '#4E9F98']} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }} style={tw`w-[340px] h-[221px] rounded-2xl border border-white/30 p-5`}>
-                  <View style={tw`flex-row justify-between`}>
+                  <View style={tw`flex-row justify-between items-center`}>
                     <View>
                       <Text style={tw`text-white/70 text-base`}>Today&apos;s Use</Text>
-                      <Text style={tw`text-white text-[32px] font-bold`}>৳{todaySpent.toLocaleString()}</Text>
+                      <Text style={tw`text-white text-[32px] font-bold`}>{formatAmount(todaySpent)}</Text>
+                      <Text style={tw`text-white/80 text-xs mt-1`}>vs 7d avg {formatAmount(Math.round(chartBenchmark))}</Text>
                     </View>
                     <PieChart
                       donut
-                      radius={40}
-                      innerRadius={30}
-                      data={[{ value: todaySpent, color: '#FFFFFF' }, { value: 5000, color: 'rgba(255,255,255,0.2)' }]}
+                      radius={52}
+                      innerRadius={38}
+                      data={todayUseChartData}
+                      innerCircleColor={'#5E59B3'}
                     />
                   </View>
                   <View style={[tw`absolute`, { right: 20, bottom: 20 }]}><SvgXml xml={bluestar} /></View>
@@ -326,17 +358,17 @@ const HomeScreen = () => {
                             { color: item.type === 'expense' ? '#CE5347' : '#4E9F98' },
                           ]}
                         >
-                          {item.type === 'expense' ? '-' : '+'} {item.amount} TK
+                          {item.type === 'expense' ? '-' : '+'} {formatAmount(Number(item.amount) || 0)}
                         </Text>
                       </View>
 
                       {/* Spending Row */}
                       <View style={tw`flex-row justify-between items-center`}>
                         <Text style={tw`text-black/50 text-[14px] font-medium`}>
-                          BDT {budgetUsageMap[item.category?.toLowerCase()]?.spent || 0}
+                          {formatAmount(Number(budgetUsageMap[item.category?.toLowerCase()]?.spent) || 0)}
                         </Text>
                         <Text style={tw`text-black/50 text-[14px] font-medium`}>
-                          BDT {budgetUsageMap[item.category?.toLowerCase()]?.limit || 0}
+                          {formatAmount(Number(budgetUsageMap[item.category?.toLowerCase()]?.limit) || 0)}
                         </Text>
                       </View>
 

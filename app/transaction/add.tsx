@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
@@ -53,6 +54,7 @@ const iconMap: Record<string, any> = {
 
 const AddTransactionScreen = () => {
     const { t } = useLanguage();
+    const { currencySymbol } = useCurrency();
     const { showSuccess } = useSuccessModal();
     const { user } = useAuth();
 
@@ -163,7 +165,7 @@ const AddTransactionScreen = () => {
                     <View style={tw`mb-6`}>
                         <Text style={tw`text-gray-600 text-sm font-semibold mb-2 ml-1`}>{t('amount')}</Text>
                         <View style={tw`flex-row items-center border border-gray-200 rounded-2xl px-4 py-3 bg-gray-50`}>
-                            <Text style={tw`text-2xl font-bold text-gray-400 mr-2`}>৳</Text>
+                            <Text style={tw`text-2xl font-bold text-gray-400 mr-2`}>{currencySymbol}</Text>
                             <TextInput
                                 placeholder="0.00"
                                 placeholderTextColor={theme.colors.gray400}

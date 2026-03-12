@@ -20,7 +20,7 @@ import {
 import tw from 'twrnc';
 
 const ResetPasswordScreen = () => {
-    const { lang, t } = useLanguage();
+    const { t } = useLanguage();
     const { showSuccess } = useSuccessModal();
     const { phone } = useLocalSearchParams<{ phone: string }>();
 
@@ -70,7 +70,7 @@ const ResetPasswordScreen = () => {
                     <Text style={tw`text-white text-lg font-medium ml-2`}>{t('back')}</Text>
                 </TouchableOpacity>
                 <Text style={tw`text-white text-2xl font-bold mt-4`}>
-                    {lang === 'bn' ? 'টাকাট্র্যাক' : 'TakaTrack'}
+                    TakaTrack
                 </Text>
             </View>
 

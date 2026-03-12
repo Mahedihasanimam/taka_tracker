@@ -3,6 +3,7 @@ import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { SuccessModalProvider } from '@/context/SuccessModalContext';
 import { initDB } from '@/services/db';
@@ -93,6 +94,7 @@ function RootLayoutNav() {
         <Stack.Screen name="transaction/add" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="screens/categories" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="screens/export" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="screens/currency" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="screens/analytics" options={{ animation: 'slide_from_right' }} />
       </Stack>
       {showMascot && (
@@ -152,11 +154,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <LanguageProvider>
-        <SuccessModalProvider>
-          <AuthProvider>
-            <RootLayoutNav />
-          </AuthProvider>
-        </SuccessModalProvider>
+        <CurrencyProvider>
+          <SuccessModalProvider>
+            <AuthProvider>
+              <RootLayoutNav />
+            </AuthProvider>
+          </SuccessModalProvider>
+        </CurrencyProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );

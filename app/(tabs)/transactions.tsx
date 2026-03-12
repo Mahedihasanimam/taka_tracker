@@ -1,5 +1,6 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { deleteTransaction, getCategories, getTransactions } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -70,7 +71,8 @@ interface Category {
 }
 
 const TransactionsScreen = () => {
-    const { t, lang } = useLanguage();
+    const { t } = useLanguage();
+    const { formatAmount } = useCurrency();
     const { user } = useAuth();
     const router = useRouter();
     const now = new Date();
@@ -219,7 +221,7 @@ const TransactionsScreen = () => {
             setStartDate(start);
             setEndDate(end);
 
-            const formatDate = (date: Date) => date.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+            const formatDate = (date: Date) => date.toLocaleDateString('en-US', {
                 day: '2-digit',
                 month: 'short'
             });
@@ -255,7 +257,7 @@ const TransactionsScreen = () => {
             let label = date;
             if (date === today) label = t('today') || 'Today';
             else if (date === yesterday) label = t('yesterday') || 'Yesterday';
-            else label = new Date(txn.date).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+            else label = new Date(txn.date).toLocaleDateString('en-US', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric'
@@ -354,14 +356,14 @@ const TransactionsScreen = () => {
                             <ArrowDownLeft size={16} color={theme.colors.lightSuccess} />
                             <Text style={tw`text-white/70 text-xs ml-1 font-medium`}>{t('totalIncome')}</Text>
                         </View>
-                        <Text style={tw`text-white text-lg font-bold`}>৳{totals.income.toLocaleString()}</Text>
+                        <Text style={tw`text-white text-lg font-bold`}>{formatAmount(totals.income)}</Text>
                     </View>
                     <View style={tw`flex-1 bg-white/15 rounded-2xl p-4 ml-2`}>
                         <View style={tw`flex-row items-center mb-1`}>
                             <ArrowUpRight size={16} color={theme.colors.lightDanger} />
                             <Text style={tw`text-white/70 text-xs ml-1 font-medium`}>{t('totalExpense')}</Text>
                         </View>
-                        <Text style={tw`text-white text-lg font-bold`}>৳{totals.expense.toLocaleString()}</Text>
+                        <Text style={tw`text-white text-lg font-bold`}>{formatAmount(totals.expense)}</Text>
                     </View>
                 </View>
             </LinearGradient>
@@ -477,7 +479,7 @@ const TransactionsScreen = () => {
                                                             {transaction.category}
                                                         </Text>
                                                         <Text style={tw`text-base font-bold ${transaction.type === 'expense' ? 'text-red-500' : 'text-green-600'}`}>
-                                                            {transaction.type === 'expense' ? '-' : '+'} ৳{transaction.amount.toLocaleString()}
+                                                            {transaction.type === 'expense' ? '-' : '+'} {formatAmount(Number(transaction.amount) || 0)}
                                                         </Text>
                                                     </View>
                                                     <View style={tw`flex-row justify-between items-center`}>
@@ -491,7 +493,7 @@ const TransactionsScreen = () => {
                                                                 <ArrowDownLeft size={12} color={theme.colors.success} />
                                                             )}
                                                             <Text style={tw`text-[10px] text-gray-400 font-medium ml-1`}>
-                                                                {new Date(transaction.date).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+                                                                {new Date(transaction.date).toLocaleTimeString('en-US', {
                                                                     hour: '2-digit',
                                                                     minute: '2-digit'
                                                                 })}
@@ -575,7 +577,7 @@ const TransactionsScreen = () => {
                                         <Calendar size={16} color={tempStartDate ? theme.colors.primary : theme.colors.mutedText} />
                                         <Text style={tw`ml-2 font-medium ${tempStartDate ? 'text-teal-600' : 'text-gray-800'}`}>
                                             {tempStartDate
-                                                ? tempStartDate.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+                                                ? tempStartDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
                                                 : t('selectDate')
                                             }
                                         </Text>
@@ -590,7 +592,7 @@ const TransactionsScreen = () => {
                                         <Calendar size={16} color={tempEndDate ? theme.colors.primary : theme.colors.mutedText} />
                                         <Text style={tw`ml-2 font-medium ${tempEndDate ? 'text-teal-600' : 'text-gray-800'}`}>
                                             {tempEndDate
-                                                ? tempEndDate.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+                                                ? tempEndDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
                                                 : t('selectDate')
                                             }
                                         </Text>

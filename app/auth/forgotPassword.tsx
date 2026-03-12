@@ -19,7 +19,7 @@ import {
 import tw from 'twrnc';
 
 const ForgotPasswordScreen = () => {
-    const { lang, t } = useLanguage();
+    const { t } = useLanguage();
     const [phone, setPhone] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -59,7 +59,7 @@ const ForgotPasswordScreen = () => {
                     <Text style={tw`text-white text-lg font-medium ml-2`}>{t('back')}</Text>
                 </TouchableOpacity>
                 <Text style={tw`text-white text-2xl font-bold mt-4`}>
-                    {lang === 'bn' ? 'টাকাট্র্যাক' : 'TakaTrack'}
+                    TakaTrack
                 </Text>
             </View>
 

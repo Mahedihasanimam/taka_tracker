@@ -1,5 +1,6 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
 import { backupUserDataToSupabase, importBackupFromJsonFile, restoreLatestUserBackupFromSupabase } from '@/services/backup';
@@ -9,7 +10,6 @@ import { useRouter } from 'expo-router';
 import {
     Bell,
     ChevronRight,
-    CreditCard,
     Database,
     Edit3,
     FileUp,
@@ -37,7 +37,8 @@ import {
 import tw from 'twrnc';
 
 const ProfileScreen = () => {
-    const { lang, switchLanguage, t } = useLanguage();
+    const { t } = useLanguage();
+    const { currency } = useCurrency();
     const { showSuccess } = useSuccessModal();
     const { user, avatarUri, logout } = useAuth();
     const router = useRouter();
@@ -63,27 +64,6 @@ const ProfileScreen = () => {
             return `+880 ${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`;
         }
         return phone;
-    };
-
-    const openLanguageSelector = () => {
-        Alert.alert(
-            t('language'),
-            t('chooseLanguage'),
-            [
-                {
-                    text: 'English',
-                    onPress: () => switchLanguage('en')
-                },
-                {
-                    text: 'বাংলা',
-                    onPress: () => switchLanguage('bn')
-                },
-                {
-                    text: t('cancel'),
-                    style: 'cancel'
-                }
-            ]
-        );
     };
 
     const handleBackup = async () => {
@@ -312,17 +292,12 @@ const ProfileScreen = () => {
                         label={t('editProfile')}
                         onPress={() => router.push('/profile/edit')}
                     />
-                    <MenuItem
-                        icon={CreditCard}
-                        label={t('paymentMethods')}
-                        value={t('comingSoon')}
-                        onPress={() => Alert.alert(t('comingSoon'), t('featureComingSoon'))}
-                    />
+
                     <MenuItem
                         icon={Globe}
-                        label={t('language')}
-                        value={lang === 'bn' ? 'বাংলা' : 'English'}
-                        onPress={openLanguageSelector}
+                        label="Currency"
+                        value={currency}
+                        onPress={() => router.push('/screens/currency')}
                     />
                     <MenuItem
                         icon={Bell}

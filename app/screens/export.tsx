@@ -1,5 +1,6 @@
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
 import { getTransactions, TransactionRecord } from '@/services/db';
@@ -31,6 +32,7 @@ import tw from 'twrnc';
 
 const ExportScreen = () => {
     const { t } = useLanguage();
+    const { currency } = useCurrency();
     const { showSuccess } = useSuccessModal();
     const { user } = useAuth();
     const router = useRouter();
@@ -88,6 +90,7 @@ const ExportScreen = () => {
                 format,
                 includeReceipts,
                 filenamePrefix: `MoneyMaster-${range}`,
+                currency,
             });
 
             if (result.success) {
@@ -237,6 +240,9 @@ const ExportScreen = () => {
                     </View>
 
                     <View style={tw`mt-6 items-center`}>
+                        <Text style={tw`text-gray-400 text-xs text-center`}>
+                            Currency: {currency}
+                        </Text>
                         <Text style={tw`text-gray-400 text-xs text-center`}>
                             Approx file size: {approxSize}
                         </Text>
