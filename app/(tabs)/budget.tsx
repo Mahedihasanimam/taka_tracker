@@ -328,7 +328,7 @@ const BudgetScreen = () => {
                     colors={[theme.colors.primary, '#0F766E']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={tw`flex-1 px-6 pt-14 rounded-b-[32px]`}
+                    style={tw`flex-1 px-6 pt-8 rounded-b-[32px]`}
                 >
                     <View style={tw`flex-row justify-between items-center mb-4`}>
                         <Text style={tw`text-white text-3xl font-bold tracking-tight`}>

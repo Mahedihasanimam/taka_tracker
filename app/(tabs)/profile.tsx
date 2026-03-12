@@ -230,9 +230,9 @@ const ProfileScreen = () => {
         <View style={tw`flex-1 bg-slate-50`}>
             <LinearGradient
                 colors={[theme.colors.primary, theme.colors.primaryDark]}
-                style={tw`h-72 px-6 pt-12 pb-24 rounded-b-[36px] shadow-lg relative z-0 items-center`}
+                style={tw`h-72 px-6 pt-6 pb-24 rounded-b-[36px] shadow-lg relative z-0 items-center`}
             >
-                <Text style={tw`text-white text-xl font-bold mb-6`}>{t('profileTitle')}</Text>
+                <Text style={tw`text-white text-xl font-bold mb-3`}>{t('profileTitle')}</Text>
 
                 <View style={tw`relative`}>
                     <View style={tw`w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-white/30 shadow-xl`}>

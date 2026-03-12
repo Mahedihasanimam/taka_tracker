@@ -14,6 +14,11 @@ export default function TabLayout() {
                 tabBar={() => <CustomTabBar />}
             >
                 <Tabs.Screen name="index" />
+                <Tabs.Screen name="transactions" />
+                <Tabs.Screen name="analytics" />
+                <Tabs.Screen name="profile" />
+                <Tabs.Screen name="budget" options={{ href: null }} />
+                <Tabs.Screen name="add" options={{ href: null }} />
             </Tabs>
         </>
     );

@@ -2,7 +2,7 @@ import { theme } from '@/constants/theme';
 import { useLanguage } from '@/context/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { usePathname, useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import tw from 'twrnc';
@@ -18,7 +18,7 @@ const TAB_COLORS = {
 
 export default function CustomTabBar() {
     const router = useRouter();
-    const pathname = usePathname();
+    const segments = useSegments();
     const { t } = useLanguage();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -43,21 +43,21 @@ export default function CustomTabBar() {
     const tabAnimations = useRef({
         index: new Animated.Value(1),
         transactions: new Animated.Value(1),
-        budget: new Animated.Value(1),
+        analytics: new Animated.Value(1),
         profile: new Animated.Value(1),
     }).current;
 
     const tabBounce = useRef({
         index: new Animated.Value(0),
         transactions: new Animated.Value(0),
-        budget: new Animated.Value(0),
+        analytics: new Animated.Value(0),
         profile: new Animated.Value(0),
     }).current;
 
     const tabs = [
         { name: 'index', label: t('tabHome'), icon: 'home' as const },
         { name: 'transactions', label: t('tabTransactions'), icon: 'list' as const },
-        { name: 'budget', label: t('tabBudget'), icon: 'pie-chart' as const },
+        { name: 'analytics', label: 'Analytics', icon: 'pie-chart' as const },
         { name: 'profile', label: t('tabProfile'), icon: 'person' as const },
     ];
 
@@ -109,7 +109,8 @@ export default function CustomTabBar() {
         name === 'index' ? router.push('/') : router.push(`/${name}` as any);
     };
 
-    const isActive = (name: string) => (pathname === '/' && name === 'index') || pathname.includes(name);
+    const currentSegment = segments[segments.length - 1] || 'index';
+    const isActive = (name: string) => currentSegment === name || (name === 'index' && currentSegment === '(tabs)');
 
     return (
         <View style={tw`absolute bottom-0 w-full`}>

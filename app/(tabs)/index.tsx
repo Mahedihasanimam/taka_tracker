@@ -199,7 +199,7 @@ const HomeScreen = () => {
 
       <SafeAreaView style={tw`flex-1 mt-4`}>
         {/* Header Section */}
-        <View style={tw`px-5 pt-3 flex-row justify-between items-center pb-3 mt-4`}>
+        <View style={tw`px-5  flex-row justify-between items-center pb-3 mt-1`}>
           <View style={tw`flex-row items-center gap-3 mt-6`}>
             <Image
               source={avatarUri ? { uri: avatarUri } : require('@/assets/images/avatar.png')}
@@ -290,7 +290,7 @@ const HomeScreen = () => {
                     Separate screen with segment-wise visual analytics.
                   </Text>
                   <TouchableOpacity
-                    onPress={() => router.push('/screens/analytics')}
+                    onPress={() => router.push('/analytics')}
                     style={tw`mt-6 self-start bg-white px-4 py-2 rounded-full`}
                   >
                     <Text style={tw`text-[#102A43] font-semibold`}>Open Analytics</Text>
