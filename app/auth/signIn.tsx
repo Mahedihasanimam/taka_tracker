@@ -2,7 +2,8 @@ import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
-import { loginUser } from '@/services/db';
+import { loginWithGoogleIdentity, loginUser } from '@/services/db';
+import { signInWithGoogleViaSupabase } from '@/services/googleAuth';
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff, Lock, Phone } from 'lucide-react-native';
 import React, { useState } from 'react';
@@ -32,6 +33,7 @@ const LoginScreen = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Handle Login
   const handleLogin = async () => {
@@ -62,6 +64,34 @@ const LoginScreen = () => {
       Alert.alert(t('Opps'), t('somethingWrong'));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (isGoogleLoading) return;
+
+    setIsGoogleLoading(true);
+    try {
+      const oauthResult = await signInWithGoogleViaSupabase();
+      if (!oauthResult.success || !oauthResult.profile) {
+        Alert.alert(t('Opps'), oauthResult.message || t('somethingWrong'));
+        return;
+      }
+
+      const appLoginResult = await loginWithGoogleIdentity(oauthResult.profile);
+      if (appLoginResult.success && appLoginResult.user && appLoginResult.token) {
+        showSuccess({
+          title: t('success'),
+          message: t('loginSuccess'),
+        });
+        await login(appLoginResult.user, appLoginResult.token);
+      } else {
+        Alert.alert(t('Opps'), appLoginResult.message || t('loginFailed'));
+      }
+    } catch {
+      Alert.alert(t('Opps'), t('somethingWrong'));
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -174,6 +204,23 @@ const LoginScreen = () => {
               ) : (
                 <Text style={tw`text-white text-center font-bold text-lg tracking-wide`}>
                   {t('loginBtn')}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleGoogleLogin}
+              disabled={isGoogleLoading}
+              activeOpacity={0.8}
+              style={[
+                tw`rounded-2xl py-4 mt-3 border border-gray-200 bg-white ${isGoogleLoading ? 'opacity-70' : ''}`,
+              ]}
+            >
+              {isGoogleLoading ? (
+                <ActivityIndicator color={theme.colors.primary} />
+              ) : (
+                <Text style={tw`text-gray-800 text-center font-bold text-base tracking-wide`}>
+                  Continue with Google
                 </Text>
               )}
             </TouchableOpacity>

@@ -1,5 +1,5 @@
-import FloatingCatMascot from '@/components/FloatingCatMascot';
 import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
+import FloatingCatMascot from '@/components/FloatingCatMascot';
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
@@ -9,10 +9,11 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { SuccessModalProvider } from '@/context/SuccessModalContext';
 import { initDB } from '@/services/db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as NavigationBar from 'expo-navigation-bar';
 import { Stack, usePathname, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Platform, StatusBar, Text, TextInput, View } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -39,22 +40,39 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === 'auth';
     const inOnboarding = segments[0] === 'onboarding';
+    let active = true;
 
-    if (!isAuthenticated) {
-      if (!hasSeenOnboarding && !inOnboarding && !inAuthGroup) {
-        router.replace('/onboarding');
-        return;
+    const resolveRoute = async () => {
+      if (!isAuthenticated) {
+        // Re-check persisted value to avoid stale in-memory onboarding state
+        // right after completing onboarding.
+        if (!hasSeenOnboarding) {
+          const latestSeen = (await AsyncStorage.getItem(ONBOARDING_DONE_KEY)) === 'true';
+          if (latestSeen && active) {
+            setHasSeenOnboarding(true);
+          }
+          if (!latestSeen && !inOnboarding && !inAuthGroup) {
+            router.replace('/onboarding');
+            return;
+          }
+          if (latestSeen && inOnboarding) {
+            router.replace('/(tabs)');
+            return;
+          }
+        } else if (inOnboarding) {
+          router.replace('/(tabs)');
+          return;
+        }
+      } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
+        router.replace('/(tabs)');
       }
-      if (hasSeenOnboarding && !inAuthGroup && !inOnboarding) {
-        router.replace('/auth/signIn');
-        return;
-      }
-      if (inOnboarding && hasSeenOnboarding) {
-        router.replace('/auth/signIn');
-      }
-    } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
-      router.replace('/(tabs)');
-    }
+    };
+
+    resolveRoute();
+
+    return () => {
+      active = false;
+    };
   }, [
     hasSeenOnboarding,
     isAuthenticated,
@@ -70,7 +88,7 @@ function RootLayoutNav() {
 
   const inAuthGroup = segments[0] === 'auth';
   const inOnboarding = segments[0] === 'onboarding';
-  const showMascot = isAuthenticated && !inAuthGroup && !inOnboarding;
+  const showMascot = !inAuthGroup && !inOnboarding;
   const mascotVariant = pathname.includes('budget')
     ? 'heart'
     : pathname.includes('transactions')
@@ -101,6 +119,30 @@ function RootLayoutNav() {
       {showMascot && (
         <FloatingCatMascot variant={mascotVariant} position="bottomRight" />
       )}
+    </View>
+  );
+}
+
+function AppSafeAreaShell() {
+  const { bottom } = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    NavigationBar.setPositionAsync('absolute').catch(() => {});
+    NavigationBar.setBackgroundColorAsync('transparent').catch(() => {});
+    NavigationBar.setButtonStyleAsync('light').catch(() => {});
+  }, []);
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingBottom: bottom,
+      }}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <RootLayoutNav />
     </View>
   );
 }
@@ -167,7 +209,7 @@ export default function RootLayout() {
         <CurrencyProvider>
           <SuccessModalProvider>
             <AuthProvider>
-              <RootLayoutNav />
+              <AppSafeAreaShell />
             </AuthProvider>
           </SuccessModalProvider>
         </CurrencyProvider>

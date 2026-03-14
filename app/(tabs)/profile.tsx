@@ -16,6 +16,7 @@ import {
     Globe,
     HelpCircle,
     Lock,
+    LogIn,
     LogOut,
     RefreshCcw,
     RotateCcw,
@@ -40,7 +41,7 @@ const ProfileScreen = () => {
     const { t } = useLanguage();
     const { currency } = useCurrency();
     const { showSuccess } = useSuccessModal();
-    const { user, avatarUri, logout } = useAuth();
+    const { user, avatarUri, logout, isAuthenticated } = useAuth();
     const router = useRouter();
 
     // Toggles State
@@ -66,8 +67,22 @@ const ProfileScreen = () => {
         return phone;
     };
 
+    const promptLoginForSync = () => {
+        Alert.alert(
+            'Login required',
+            'Please login to sync, backup, restore, and manage account settings.',
+            [
+                { text: t('cancel'), style: 'cancel' },
+                { text: 'Login', onPress: () => router.push('/auth/signIn') },
+            ]
+        );
+    };
+
     const handleBackup = async () => {
-        if (!user?.id || isBackingUp) return;
+        if (!user?.id || isBackingUp) {
+            promptLoginForSync();
+            return;
+        }
         setIsBackingUp(true);
         try {
             const result = await backupUserDataToSupabase(user.id);
@@ -85,7 +100,10 @@ const ProfileScreen = () => {
     };
 
     const handleResetData = () => {
-        if (!user?.id || isResetting) return;
+        if (!user?.id || isResetting) {
+            promptLoginForSync();
+            return;
+        }
 
         Alert.alert(
             t('resetData'),
@@ -117,7 +135,10 @@ const ProfileScreen = () => {
     };
 
     const handleRestoreData = () => {
-        if (!user?.id || isRestoring) return;
+        if (!user?.id || isRestoring) {
+            promptLoginForSync();
+            return;
+        }
 
         Alert.alert(
             t('restoreData'),
@@ -148,7 +169,10 @@ const ProfileScreen = () => {
     };
 
     const handleImportBackup = async () => {
-        if (!user?.id || isImporting) return;
+        if (!user?.id || isImporting) {
+            promptLoginForSync();
+            return;
+        }
         setIsImporting(true);
         try {
             const result = await importBackupFromJsonFile(user.id);
@@ -248,7 +272,13 @@ const ProfileScreen = () => {
                     </View>
                     <TouchableOpacity
                         style={tw`absolute bottom-0 right-0 bg-gray-900 p-2 rounded-full border-2 border-white`}
-                        onPress={() => router.push('/profile/edit')}
+                        onPress={() => {
+                            if (!isAuthenticated) {
+                                promptLoginForSync();
+                                return;
+                            }
+                            router.push('/profile/edit');
+                        }}
                     >
                         <Edit3 size={12} color={theme.colors.white} />
                     </TouchableOpacity>
@@ -278,11 +308,24 @@ const ProfileScreen = () => {
                     <View style={tw`flex-1 bg-white p-4 rounded-2xl shadow-sm shadow-gray-200 ml-2 items-center`}>
                         <Text style={tw`text-gray-400 text-[10px] font-bold uppercase mb-1`}>{t('status')}</Text>
                         <View style={tw`flex-row items-center`}>
-                            <ShieldCheck size={14} color={theme.colors.success} style={tw`mr-1`} />
-                            <Text style={tw`text-green-600 font-bold`}>{t('verified')}</Text>
+                            <ShieldCheck size={14} color={isAuthenticated ? theme.colors.success : theme.colors.mutedText} style={tw`mr-1`} />
+                            <Text style={tw`font-bold ${isAuthenticated ? 'text-green-600' : 'text-gray-500'}`}>
+                                {isAuthenticated ? t('verified') : 'Guest'}
+                            </Text>
                         </View>
                     </View>
                 </View>
+
+                {!isAuthenticated && (
+                    <TouchableOpacity
+                        style={[tw`rounded-2xl px-5 py-4 mb-6 flex-row items-center justify-center`, { backgroundColor: theme.colors.primary }]}
+                        onPress={() => router.push('/auth/signIn')}
+                        activeOpacity={0.85}
+                    >
+                        <LogIn size={18} color={theme.colors.white} />
+                        <Text style={tw`text-white font-bold text-base ml-2`}>Login to sync your data</Text>
+                    </TouchableOpacity>
+                )}
 
                 <View style={tw`bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 mb-6`}>
                     <Text style={tw`text-gray-400 text-xs font-bold uppercase mb-2 ml-1`}>{t('general')}</Text>
@@ -290,7 +333,13 @@ const ProfileScreen = () => {
                     <MenuItem
                         icon={User}
                         label={t('editProfile')}
-                        onPress={() => router.push('/profile/edit')}
+                        onPress={() => {
+                            if (!isAuthenticated) {
+                                promptLoginForSync();
+                                return;
+                            }
+                            router.push('/profile/edit');
+                        }}
                     />
 
                     <MenuItem
@@ -315,7 +364,13 @@ const ProfileScreen = () => {
                     <MenuItem
                         icon={Lock}
                         label={t('changePassword')}
-                        onPress={() => router.push('/profile/changePassword')}
+                        onPress={() => {
+                            if (!isAuthenticated) {
+                                promptLoginForSync();
+                                return;
+                            }
+                            router.push('/profile/changePassword');
+                        }}
                     />
                     <MenuItem
                         icon={Smartphone}
@@ -377,14 +432,23 @@ const ProfileScreen = () => {
                         label={t('privacy')}
                         onPress={() => Alert.alert(t('privacy'), t('privacyInfo'))}
                     />
-                    <MenuItem
-                        icon={LogOut}
-                        label={t('logout')}
-                        isDestructive
-                        showChevron={false}
-                        isLoading={isLoggingOut}
-                        onPress={handleLogout}
-                    />
+                    {isAuthenticated ? (
+                        <MenuItem
+                            icon={LogOut}
+                            label={t('logout')}
+                            isDestructive
+                            showChevron={false}
+                            isLoading={isLoggingOut}
+                            onPress={handleLogout}
+                        />
+                    ) : (
+                        <MenuItem
+                            icon={LogIn}
+                            label="Login for cloud sync"
+                            showChevron={false}
+                            onPress={() => router.push('/auth/signIn')}
+                        />
+                    )}
                 </View>
 
                 <View style={tw`items-center mb-4`}>

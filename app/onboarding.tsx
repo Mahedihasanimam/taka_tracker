@@ -2,7 +2,6 @@ import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from "@/constants/theme";
 import { typography } from '@/constants/typography';
 import PaywallCard, { BillingCycle, PaywallPlan } from '@/components/onboarding/PaywallCard';
-import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -105,20 +104,12 @@ const slides: Slide[] = [
   },
 ];
 
-const completeOnboarding = async (
-  isAuthenticated: boolean,
-  router: ReturnType<typeof useRouter>,
-) => {
+const completeOnboarding = async (router: ReturnType<typeof useRouter>) => {
   await AsyncStorage.setItem(ONBOARDING_DONE_KEY, 'true');
-  if (isAuthenticated) {
-    router.replace('/(tabs)');
-  } else {
-    router.replace('/auth/signIn');
-  }
+  router.replace('/(tabs)');
 };
 
 const OnboardingScreen = () => {
-  const { isAuthenticated } = useAuth();
   const { formatAmount } = useCurrency();
   const router = useRouter();
 
@@ -393,7 +384,7 @@ const OnboardingScreen = () => {
         {isLast ? (
           <View>
             <TouchableOpacity
-              onPress={() => completeOnboarding(isAuthenticated, router)}
+              onPress={() => completeOnboarding(router)}
               activeOpacity={0.85}
               style={[tw`w-full rounded-full py-4 items-center mb-3`, { backgroundColor: ACCENT }]}
             >
@@ -403,7 +394,7 @@ const OnboardingScreen = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => completeOnboarding(isAuthenticated, router)}
+              onPress={() => completeOnboarding(router)}
               activeOpacity={0.75}
               style={tw`w-full rounded-full py-4 items-center border border-white/35`}
             >

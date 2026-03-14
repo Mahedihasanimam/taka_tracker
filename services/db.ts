@@ -58,6 +58,36 @@ const DB_MIGRATIONS = [
   { table: "budgets", column: "user_id", type: "INTEGER" },
 ];
 
+const DEFAULT_EXPENSE_CATEGORIES: Array<{ name: string; icon: string; color: string }> = [
+  { name: "Food & Dining", icon: "Utensils", color: "#f97316" },
+  { name: "Transport", icon: "Car", color: "#3b82f6" },
+  { name: "Rent", icon: "Home", color: "#06b6d4" },
+  { name: "Groceries", icon: "ShoppingBag", color: "#a855f7" },
+  { name: "Utilities", icon: "Zap", color: "#eab308" },
+  { name: "Internet", icon: "Wifi", color: "#0ea5e9" },
+  { name: "Mobile", icon: "Smartphone", color: "#6366f1" },
+  { name: "Coffee & Snacks", icon: "Coffee", color: "#b45309" },
+  { name: "Healthcare", icon: "Pill", color: "#ef4444" },
+  { name: "Shopping", icon: "Shirt", color: "#8b5cf6" },
+  { name: "Education", icon: "GraduationCap", color: "#0f766e" },
+  { name: "Entertainment", icon: "Gamepad2", color: "#ec4899" },
+  { name: "Fitness", icon: "Dumbbell", color: "#16a34a" },
+  { name: "Travel", icon: "Plane", color: "#0891b2" },
+  { name: "Gifts & Charity", icon: "Gift", color: "#f43f5e" },
+  { name: "Other", icon: "MoreHorizontal", color: "#6b7280" },
+];
+
+const DEFAULT_INCOME_CATEGORIES: Array<{ name: string; icon: string; color: string }> = [
+  { name: "Salary", icon: "Briefcase", color: "#16a34a" },
+  { name: "Freelance", icon: "Smartphone", color: "#0f766e" },
+  { name: "Business", icon: "Briefcase", color: "#15803d" },
+  { name: "Bonus", icon: "Gift", color: "#10b981" },
+  { name: "Investment", icon: "Zap", color: "#2563eb" },
+  { name: "Rental Income", icon: "Home", color: "#0ea5e9" },
+  { name: "Refund", icon: "Gift", color: "#8b5cf6" },
+  { name: "Other Income", icon: "MoreHorizontal", color: "#6b7280" },
+];
+
 const initializeSchema = async (database: SQLite.SQLiteDatabase): Promise<void> => {
   for (const statement of DB_SCHEMA_STATEMENTS) {
     await database.execAsync(statement);
@@ -114,6 +144,12 @@ export interface UserBackupPayload {
     limit_amount: number;
   }[];
   exported_at: string;
+}
+
+export interface GoogleIdentityPayload {
+  providerUserId: string;
+  email?: string;
+  name?: string;
 }
 
 interface SupabaseConfig {
@@ -261,6 +297,46 @@ const shouldFallbackToLocalAuth = (status: number, error?: string): boolean => {
     normalizedMessage.includes("could not find the table") ||
     normalizedDetails.includes("schema cache")
   );
+};
+
+const buildGooglePhoneKey = (providerUserId: string): string => {
+  const normalized = providerUserId.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  return `google_${normalized || "user"}`;
+};
+
+const ensureDefaultCategoriesForUser = async (
+  database: SQLite.SQLiteDatabase,
+  userId: number,
+): Promise<void> => {
+  const expenseCountRow = await database.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM categories WHERE type = 'expense' AND user_id = ?`,
+    [userId],
+  );
+  const incomeCountRow = await database.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) as count FROM categories WHERE type = 'income' AND user_id = ?`,
+    [userId],
+  );
+
+  const expenseCount = Number(expenseCountRow?.count || 0);
+  const incomeCount = Number(incomeCountRow?.count || 0);
+
+  if (expenseCount === 0) {
+    for (const category of DEFAULT_EXPENSE_CATEGORIES) {
+      await database.runAsync(
+        `INSERT INTO categories (user_id, name, type, icon, color) VALUES (?, ?, 'expense', ?, ?)`,
+        [userId, category.name, category.icon, category.color],
+      );
+    }
+  }
+
+  if (incomeCount === 0) {
+    for (const category of DEFAULT_INCOME_CATEGORIES) {
+      await database.runAsync(
+        `INSERT INTO categories (user_id, name, type, icon, color) VALUES (?, ?, 'income', ?, ?)`,
+        [userId, category.name, category.icon, category.color],
+      );
+    }
+  }
 };
 
 // --- INITIALIZE DATABASE & TABLES ---
@@ -817,6 +893,131 @@ export const loginUser = async (
   }
 };
 
+export const loginWithGoogleIdentity = async (
+  payload: GoogleIdentityPayload,
+): Promise<{
+  success: boolean;
+  message: string;
+  user?: User;
+  token?: string;
+  expiresAt?: string;
+}> => {
+  try {
+    const phoneKey = buildGooglePhoneKey(payload.providerUserId);
+    const displayName =
+      payload.name?.trim() ||
+      payload.email?.trim() ||
+      "Google User";
+    const oauthPassword = `oauth_google_${payload.providerUserId}`;
+
+    if (isSupabaseAuthConfigured()) {
+      const existing = await supabaseRequest<Array<User>>(
+        `${SUPABASE_USERS_TABLE}?phone=eq.${encodeURIComponent(
+          phoneKey,
+        )}&select=id,name,phone,password,created_at&limit=1`,
+      );
+
+      if (
+        !existing.ok &&
+        existing.status > 0 &&
+        !shouldFallbackToLocalAuth(existing.status, existing.error)
+      ) {
+        return {
+          success: false,
+          message: getSupabaseErrorMessage(existing.error, "Google login failed"),
+        };
+      }
+
+      let user: User | null = null;
+      if (existing.ok && existing.data?.length) {
+        user = toUser(existing.data[0]);
+      } else {
+        const create = await supabaseRequest<Array<User>>(
+          `${SUPABASE_USERS_TABLE}?select=id,name,phone,password,created_at`,
+          {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify([
+              { name: displayName, phone: phoneKey, password: oauthPassword },
+            ]),
+          },
+        );
+
+        if (
+          !create.ok &&
+          create.status > 0 &&
+          !shouldFallbackToLocalAuth(create.status, create.error)
+        ) {
+          return {
+            success: false,
+            message: getSupabaseErrorMessage(create.error, "Google login failed"),
+          };
+        }
+
+        if (create.ok && create.data?.length) {
+          user = toUser(create.data[0]);
+        }
+      }
+
+      if (user) {
+        await syncLocalUser(user);
+        const tokenData = await createAuthToken(user.id);
+        if (!tokenData) {
+          return {
+            success: false,
+            message: "Google login failed: unable to create session token.",
+          };
+        }
+        return {
+          success: true,
+          message: "Login successful",
+          user,
+          token: tokenData.token,
+          expiresAt: tokenData.expiresAt,
+        };
+      }
+    }
+
+    const database = await ensureDB();
+    let user = await database.getFirstAsync<User>(
+      `SELECT * FROM users WHERE phone = ? LIMIT 1`,
+      [phoneKey],
+    );
+
+    if (!user) {
+      const result = await database.runAsync(
+        `INSERT INTO users (name, phone, password) VALUES (?, ?, ?)`,
+        [displayName, phoneKey, oauthPassword],
+      );
+      const newUserId = Number(result.lastInsertRowId);
+      user = await getUserByIdLocal(newUserId);
+    }
+
+    if (!user) {
+      return { success: false, message: "Google login failed." };
+    }
+
+    const tokenData = await createAuthTokenLocal(user.id);
+    if (!tokenData) {
+      return { success: false, message: "Google login failed: unable to create session token." };
+    }
+
+    return {
+      success: true,
+      message: "Login successful",
+      user,
+      token: tokenData.token,
+      expiresAt: tokenData.expiresAt,
+    };
+  } catch (error) {
+    console.error("Google login error:", error);
+    return {
+      success: false,
+      message: "Google login failed.",
+    };
+  }
+};
+
 export const getUserById = async (id: number): Promise<User | null> => {
   try {
     if (isSupabaseAuthConfigured()) {
@@ -1080,9 +1281,10 @@ export const getTransactions = async (
 ) => {
   const database = await ensureDB();
   const targetMonth = options?.month ?? new Date();
+  const hasUserScope = userId !== undefined && userId !== null;
 
   let rows: TransactionRecord[];
-  if (userId) {
+  if (hasUserScope) {
     rows = await database.getAllAsync<TransactionRecord>(
       `SELECT * FROM transactions WHERE user_id = ?`,
       [userId],
@@ -1172,6 +1374,7 @@ export const addCategory = async (
 
 export const getCategories = async (type?: string, userId?: number) => {
   const database = await ensureDB();
+  const hasUserScope = userId !== undefined && userId !== null;
 
   // Check if user_id column exists
   let hasUserIdColumn = true;
@@ -1192,8 +1395,12 @@ export const getCategories = async (type?: string, userId?: number) => {
     return await database.getAllAsync(`SELECT * FROM categories ORDER BY name`);
   }
 
+  if (hasUserScope) {
+    await ensureDefaultCategoriesForUser(database, userId as number);
+  }
+
   // New schema with user_id
-  if (type && userId) {
+  if (type && hasUserScope) {
     return await database.getAllAsync(
       `SELECT * FROM categories WHERE type = ? AND (user_id = ? OR user_id IS NULL) ORDER BY name`,
       [type, userId],
@@ -1205,7 +1412,7 @@ export const getCategories = async (type?: string, userId?: number) => {
       [type],
     );
   }
-  if (userId) {
+  if (hasUserScope) {
     return await database.getAllAsync(
       `SELECT * FROM categories WHERE user_id = ? OR user_id IS NULL ORDER BY name`,
       [userId],
@@ -1255,7 +1462,7 @@ export const addBudget = async (
 
 export const getBudgets = async (userId?: number) => {
   const database = await ensureDB();
-  if (userId) {
+  if (userId !== undefined && userId !== null) {
     return await database.getAllAsync(
       `SELECT * FROM budgets WHERE user_id = ? OR user_id IS NULL`,
       [userId],

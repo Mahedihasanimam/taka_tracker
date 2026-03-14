@@ -105,6 +105,7 @@ const CategoryManagementScreen = () => {
         { name: 'Pill', icon: Pill },
         { name: 'GraduationCap', icon: GraduationCap },
         { name: 'Dumbbell', icon: Dumbbell },
+        { name: 'Banknote', icon: Banknote },
         { name: 'MoreHorizontal', icon: MoreHorizontal },
     ];
 
@@ -117,8 +118,8 @@ const CategoryManagementScreen = () => {
     // --- FETCH CATEGORIES ---
     const fetchCategories = useCallback(async () => {
         try {
-            const expense = await getCategories('expense', user?.id);
-            const income = await getCategories('income', user?.id);
+            const expense = await getCategories('expense', user?.id || 0);
+            const income = await getCategories('income', user?.id || 0);
             setExpenseCategories(expense as Category[]);
             setIncomeCategories(income as Category[]);
         } catch (error) {

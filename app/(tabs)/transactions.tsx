@@ -9,6 +9,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import {
     ArrowDownLeft,
     ArrowUpRight,
+    Banknote,
     Book,
     Briefcase,
     Calendar,
@@ -58,7 +59,7 @@ import tw from 'twrnc';
 const iconMap: Record<string, any> = {
     Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Wifi, Zap,
     Smartphone, Coffee, Heart, Plane, Book, Music, Gamepad2,
-    Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal
+    Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal, Banknote
 };
 
 // Category interface
@@ -105,8 +106,8 @@ const TransactionsScreen = () => {
     const fetchData = useCallback(async () => {
         try {
             const [txnData, catData] = await Promise.all([
-                getTransactions(user?.id, { all: true }),
-                getCategories(undefined, user?.id)
+                getTransactions(user?.id || 0, { all: true }),
+                getCategories(undefined, user?.id || 0)
             ]);
             setTransactions(txnData as any[]);
             setCategories(catData as Category[]);

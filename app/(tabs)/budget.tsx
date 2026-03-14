@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import {
+    Banknote,
     Book,
     Briefcase,
     Car,
@@ -67,7 +68,7 @@ const { width } = Dimensions.get('window');
 const iconMap: Record<string, any> = {
     Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Wifi, Zap,
     Smartphone, Coffee, Heart, Plane, Book, Music, Gamepad2,
-    Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal
+    Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal, Banknote
 };
 
 interface Budget {
@@ -124,9 +125,9 @@ const BudgetScreen = () => {
         try {
             setIsLoading(true);
             const [budgetData, categoryData, balanceData] = await Promise.all([
-                getBudgets(user?.id),
-                getCategories('expense', user?.id),
-                getBalance(user?.id)
+                getBudgets(user?.id || 0),
+                getCategories('expense', user?.id || 0),
+                getBalance(user?.id || 0)
             ]);
 
             const cats = (categoryData || []) as Category[];

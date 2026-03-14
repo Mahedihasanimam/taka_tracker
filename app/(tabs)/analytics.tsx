@@ -9,7 +9,6 @@ import { ArrowLeft, CalendarRange, TrendingUp } from 'lucide-react-native';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   Text,
@@ -150,7 +149,7 @@ const AnalyticsScreen = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const data = (await getTransactions(user?.id, { all: true })) as Txn[];
+      const data = (await getTransactions(user?.id || 0, { all: true })) as Txn[];
       setTransactions(data || []);
     } catch (error) {
       console.error('Failed to load analytics:', error);
@@ -233,7 +232,7 @@ const AnalyticsScreen = () => {
         style={[tw`absolute`, { width: 900, height: 900, left: -250, top: -720, borderRadius: 9999 }]}
       />
 
-      <SafeAreaView style={tw`flex-1 mt-3`}>
+      <View style={tw`flex-1 mt-3`}>
         <View style={tw`px-5 pt-6 pb-4`}>
           <View style={tw`flex-row items-center justify-between`}>
             <TouchableOpacity
@@ -363,7 +362,7 @@ const AnalyticsScreen = () => {
             )}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };

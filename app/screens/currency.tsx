@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Check, ChevronLeft } from 'lucide-react-native';
 import React from 'react';
-import { SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 
 const CurrencyScreen = () => {
   const router = useRouter();
@@ -27,7 +27,7 @@ const CurrencyScreen = () => {
         </View>
       </LinearGradient>
 
-      <SafeAreaView style={tw`flex-1`}>
+      <View style={tw`flex-1`}>
         <ScrollView contentContainerStyle={tw`p-5 pb-24`} showsVerticalScrollIndicator={false}>
           <View style={tw`bg-white rounded-2xl overflow-hidden border border-slate-100`}>
             {currencyOptions.map((option, index) => {
@@ -48,7 +48,7 @@ const CurrencyScreen = () => {
             })}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };

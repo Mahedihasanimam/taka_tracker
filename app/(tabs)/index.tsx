@@ -9,6 +9,7 @@ import { getBalance, getBudgets, getCategories, getTransactions, getTransactions
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import {
+  Banknote,
   Book,
   Briefcase,
   Car,
@@ -31,14 +32,14 @@ import {
   Zap
 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
-import { Image, RefreshControl, SafeAreaView, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { Image, RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { BarChart, PieChart } from "react-native-gifted-charts";
 import { SvgXml } from 'react-native-svg';
 
 const iconMap: Record<string, any> = {
   Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Wifi, Zap,
   Smartphone, Coffee, Heart, Plane, Book, Music, Gamepad2,
-  Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal
+  Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal, Banknote
 };
 
 interface Category {
@@ -69,10 +70,10 @@ const HomeScreen = () => {
   const fetchData = useCallback(async () => {
     try {
       const [balanceData, txnData, categoryData, budgetData] = await Promise.all([
-        getBalance(user?.id),
-        getTransactions(user?.id),
-        getCategories('expense', user?.id),
-        getBudgets(user?.id),
+        getBalance(user?.id || 0),
+        getTransactions(user?.id || 0),
+        getCategories('expense', user?.id || 0),
+        getBudgets(user?.id || 0),
       ]);
       setBalance(balanceData);
       setTransactions(txnData);
@@ -197,7 +198,7 @@ const HomeScreen = () => {
         style={[tw`absolute`, { width: 1155, height: 1155, left: -357, top: -920, borderRadius: 9999 }]}
       />
 
-      <SafeAreaView style={tw`flex-1 mt-4`}>
+      <View style={tw`flex-1 mt-4`}>
         {/* Header Section */}
         <View style={tw`px-5  flex-row justify-between items-center pb-3 mt-1`}>
           <View style={tw`flex-row items-center gap-3 mt-6`}>
@@ -394,7 +395,7 @@ const HomeScreen = () => {
             )}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };

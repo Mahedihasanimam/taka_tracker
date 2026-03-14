@@ -42,16 +42,16 @@ const ExportScreen = () => {
     const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
     const [includeReceipts, setIncludeReceipts] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const dataScopeUserId = user?.id || 0;
 
     const loadTransactions = useCallback(async () => {
-        if (!user?.id) return;
         try {
-            const rows = (await getTransactions(user.id, { all: true })) as TransactionRecord[];
+            const rows = (await getTransactions(dataScopeUserId, { all: true })) as TransactionRecord[];
             setTransactions(rows || []);
         } catch (error) {
             console.error('Failed to load export transactions:', error);
         }
-    }, [user?.id]);
+    }, [dataScopeUserId]);
 
     useFocusEffect(
         useCallback(() => {
@@ -73,11 +73,6 @@ const ExportScreen = () => {
     }, [filteredTransactions.length, format]);
 
     const handleExport = async () => {
-        if (!user?.id) {
-            Alert.alert(t('Opps'), t('somethingWrong'));
-            return;
-        }
-
         if (!filteredTransactions.length) {
             Alert.alert(t('Opps'), t('noDataToExport'));
             return;
