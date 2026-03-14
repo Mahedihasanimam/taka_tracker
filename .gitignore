@@ -39,3 +39,6 @@ assets/client_secret*
 app-example
 
 .env
+
+*.json
+client_secret*
