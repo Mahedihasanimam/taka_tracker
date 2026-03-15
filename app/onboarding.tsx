@@ -1,7 +1,7 @@
+import PaywallCard, { BillingCycle, PaywallPlan } from '@/components/onboarding/PaywallCard';
 import { ONBOARDING_DONE_KEY } from '@/constants/storageKeys';
 import { theme } from "@/constants/theme";
 import { typography } from '@/constants/typography';
-import PaywallCard, { BillingCycle, PaywallPlan } from '@/components/onboarding/PaywallCard';
 import { useCurrency } from '@/context/CurrencyContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -100,7 +100,7 @@ const slides: Slide[] = [
     key: 'paywall',
     type: 'paywall',
     title: 'Unlock Pro and stay in control',
-    subtitle: 'Advanced analytics, premium reports, and smarter money decisions every month.',
+    subtitle: 'Subscribe to unlock all features. No commitment, cancel anytime.',
   },
 ];
 
@@ -314,12 +314,12 @@ const OnboardingScreen = () => {
       <LinearGradient colors={ONBOARDING_BG} style={tw`absolute inset-0`} />
       <View style={[tw`absolute`, { width: 240, height: 240, borderRadius: 120, top: -30, right: -90, backgroundColor: 'rgba(255,255,255,0.06)' }]} />
 
-      <View style={tw`w-full h-[58%]`}>{renderIllustration(item.type)}</View>
+      <View style={tw`w-full ${item.type === 'paywall' ? 'h-[64%]' : 'h-[58%]'}`}>{renderIllustration(item.type)}</View>
 
-      <View style={tw`flex-1 px-8 pt-5`}>
+      <View style={tw`flex-1 ${item.type === 'paywall' ? 'px-4 pt-0' : 'px-8 pt-5'} `}>
         <Text
           style={[
-            tw`text-[32px] font-extrabold text-center mb-3 leading-10`,
+            tw` font-extrabold text-center ${item.type === 'paywall' ? 'mb-1 text-[27px]' : 'mb-3 text-[32px]'} leading-10`,
             {
               color: '#FFFFFF',
               fontFamily: typography.heading,
@@ -349,7 +349,7 @@ const OnboardingScreen = () => {
   );
 
   return (
-    <View style={[tw`flex-1`, { backgroundColor: theme.colors.primaryDeep }]}> 
+    <View style={[tw`flex-1`, { backgroundColor: theme.colors.primaryDeep }]}>
       <StatusBar backgroundColor="transparent" translucent barStyle="light-content" />
 
       <FlatList

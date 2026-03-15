@@ -29,7 +29,7 @@ const FEATURES = ['Advanced Analytics', 'Premium Reports', 'Unlimited Exports', 
 
 const PaywallCard = ({ billingCycle, onChangeBillingCycle, plans, selectedPlan }: Props) => {
   return (
-    <View style={tw`w-full h-full px-6 justify-center`}>
+    <View style={tw`w-full h-full px-4 justify-center`}>
       <LinearGradient
         colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.06)']}
         style={tw`rounded-3xl p-5 border border-white/20`}

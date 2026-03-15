@@ -86,9 +86,8 @@ function RootLayoutNav() {
     return <AnimatedSplashScreen />;
   }
 
-  const inAuthGroup = segments[0] === 'auth';
-  const inOnboarding = segments[0] === 'onboarding';
-  const showMascot = !inAuthGroup && !inOnboarding;
+  const inTabsGroup = segments[0] === '(tabs)';
+  const showMascot = inTabsGroup;
   const mascotVariant = pathname.includes('budget')
     ? 'heart'
     : pathname.includes('transactions')
@@ -97,7 +96,9 @@ function RootLayoutNav() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack initialRouteName="index" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        {/* Root index splash while destination is being resolved */}
+        <Stack.Screen name="index" options={{ animation: 'none' }} />
         {/* Tabs root: fade — no slide since tabs handle their own navigation */}
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         {/* Onboarding: clean fade in */}
