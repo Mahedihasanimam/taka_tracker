@@ -1,8 +1,9 @@
+import { googleicon } from '@/assets/icons/Icon';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
-import { loginWithGoogleIdentity, loginUser } from '@/services/db';
+import { loginUser, loginWithGoogleIdentity } from '@/services/db';
 import { signInWithGoogleViaSupabase } from '@/services/googleAuth';
 import { useRouter } from 'expo-router';
 import { Eye, EyeOff, Lock, Phone } from 'lucide-react-native';
@@ -20,6 +21,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 import tw from 'twrnc';
 
 const LoginScreen = () => {
@@ -105,7 +107,7 @@ const LoginScreen = () => {
           {/* App Name in Header */}
           <View>
             <Text style={tw`text-white text-2xl font-bold tracking-wide`}>
-              TakaTrack
+              MoneyMaster
             </Text>
             <Text style={tw`text-white text-xl font-medium opacity-90`}>
               Expense Tracker
@@ -213,15 +215,18 @@ const LoginScreen = () => {
               disabled={isGoogleLoading}
               activeOpacity={0.8}
               style={[
-                tw`rounded-2xl py-4 mt-3 border border-gray-200 bg-white ${isGoogleLoading ? 'opacity-70' : ''}`,
+                tw`rounded-2xl py-3.5 mt-3 border border-gray-300 bg-white ${isGoogleLoading ? 'opacity-70' : ''}`,
               ]}
             >
               {isGoogleLoading ? (
                 <ActivityIndicator color={theme.colors.primary} />
               ) : (
-                <Text style={tw`text-gray-800 text-center font-bold text-base tracking-wide`}>
-                  Continue with Google
-                </Text>
+                <View style={tw`flex-row items-center justify-center`}>
+                  <SvgXml xml={googleicon} width={20} height={20} />
+                  <Text style={tw`text-gray-800 text-center font-semibold text-base ml-3`}>
+                    Sign in with Google
+                  </Text>
+                </View>
               )}
             </TouchableOpacity>
 

@@ -5,9 +5,10 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { getTransactions } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ArrowLeft, CalendarRange, TrendingUp } from 'lucide-react-native';
-import React, { useCallback, useMemo, useState } from 'react';
+import { ArrowLeft, CalendarRange, ChevronDown, TrendingUp } from 'lucide-react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  Dimensions,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -39,6 +40,7 @@ const PERIODS: { key: PeriodKey; label: string }[] = [
   { key: 'year', label: 'Year' },
 ];
 
+const CATEGORY_ALL = 'All categories';
 const parseDate = (value?: string): Date | null => {
   if (!value) return null;
   const direct = new Date(value);
@@ -145,7 +147,12 @@ const AnalyticsScreen = () => {
 
   const [transactions, setTransactions] = useState<Txn[]>([]);
   const [period, setPeriod] = useState<PeriodKey>('week');
+  const [zoomScale, setZoomScale] = useState(1);
+  const [categoryFilter, setCategoryFilter] = useState<string>(CATEGORY_ALL);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const pinchStartDistanceRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef(1);
 
   const fetchData = useCallback(async () => {
     try {
@@ -165,7 +172,26 @@ const AnalyticsScreen = () => {
     }, [fetchData]),
   );
 
-  const buckets = useMemo(() => groupForPeriod(transactions, period), [transactions, period]);
+  const expenseCategories = useMemo(() => {
+    const names = transactions
+      .filter((txn) => txn.type === 'expense')
+      .map((txn) => (txn.category || 'Other').trim())
+      .filter(Boolean);
+    const unique = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+    return [CATEGORY_ALL, ...unique];
+  }, [transactions]);
+
+  const filteredTransactions = useMemo(() => {
+    if (categoryFilter === CATEGORY_ALL) return transactions;
+
+    const target = categoryFilter.trim().toLowerCase();
+    return transactions.filter((txn) => {
+      if (txn.type !== 'expense') return false;
+      return (txn.category || 'Other').trim().toLowerCase() === target;
+    });
+  }, [transactions, categoryFilter]);
+
+  const buckets = useMemo(() => groupForPeriod(filteredTransactions, period), [filteredTransactions, period]);
 
   const totals = useMemo(() => {
     return buckets.reduce(
@@ -200,7 +226,7 @@ const AnalyticsScreen = () => {
       return normalized >= start && normalized <= end;
     };
 
-    const grouped = transactions.reduce<Record<string, number>>((acc, txn) => {
+    const grouped = filteredTransactions.reduce<Record<string, number>>((acc, txn) => {
       if (txn.type !== 'expense') return acc;
       const txnDate = parseDate(txn.date);
       if (!txnDate || !inRange(txnDate)) return acc;
@@ -219,7 +245,51 @@ const AnalyticsScreen = () => {
         value,
         color: palette[index % palette.length],
       }));
-  }, [transactions, period]);
+  }, [filteredTransactions, period]);
+
+  const baseSpacing = period === 'year' ? 16 : period === 'month' ? 10 : 36;
+  const chartSpacing = Math.max(8, Math.round(baseSpacing * zoomScale));
+  const chartMinWidth = Dimensions.get('window').width - 64;
+  const chartWidth = Math.max(chartMinWidth, trendData.length * chartSpacing + 70);
+
+  const getTouchDistance = (touches: any[]) => {
+    if (!touches || touches.length < 2) return null;
+    const [a, b] = touches;
+    const dx = (a.pageX || 0) - (b.pageX || 0);
+    const dy = (a.pageY || 0) - (b.pageY || 0);
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleChartTouchStart = (event: any) => {
+    const touches = event?.nativeEvent?.touches;
+    if (!touches || touches.length < 2) return;
+    const distance = getTouchDistance(touches);
+    if (!distance) return;
+    pinchStartDistanceRef.current = distance;
+    pinchStartZoomRef.current = zoomScale;
+  };
+
+  const handleChartTouchMove = (event: any) => {
+    const touches = event?.nativeEvent?.touches;
+    if (!touches || touches.length < 2 || !pinchStartDistanceRef.current) return;
+    const currentDistance = getTouchDistance(touches);
+    if (!currentDistance) return;
+
+    const ratio = currentDistance / pinchStartDistanceRef.current;
+    const nextZoom = Math.max(0.7, Math.min(2.2, pinchStartZoomRef.current * ratio));
+    setZoomScale(nextZoom);
+  };
+
+  const handleChartTouchEnd = () => {
+    pinchStartDistanceRef.current = null;
+  };
+
+  const handleCalendarPress = () => {
+    const currentIndex = PERIODS.findIndex((item) => item.key === period);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % PERIODS.length : 0;
+    setPeriod(PERIODS[nextIndex].key);
+    setShowCategoryDropdown(false);
+  };
 
   return (
     <View style={tw`flex-1 bg-[#EEF2F7]`}>
@@ -247,9 +317,13 @@ const AnalyticsScreen = () => {
               <Text style={tw`text-white text-[22px] font-bold`}>Analytics</Text>
             </View>
 
-            <View style={tw`w-11 h-11 rounded-full bg-white/20 items-center justify-center`}>
+            <TouchableOpacity
+              onPress={handleCalendarPress}
+              activeOpacity={0.85}
+              style={tw`w-11 h-11 rounded-full bg-white/20 items-center justify-center`}
+            >
               <CalendarRange color="#fff" size={18} />
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={tw`mt-6 bg-white/15 border border-white/20 rounded-2xl p-1 flex-row`}>
@@ -269,49 +343,126 @@ const AnalyticsScreen = () => {
               );
             })}
           </View>
-        </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={tw`px-5 pb-32 pt-2`}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
-        >
-          <View style={tw`bg-white rounded-3xl p-5 shadow-xl mb-4 border border-slate-100`}>
-            <View style={tw`flex-row items-center justify-between mb-4`}>
-              <Text style={tw`text-slate-800 text-lg font-bold`}>Expense Trend</Text>
-              <View style={tw`flex-row items-center bg-teal-50 px-3 py-1 rounded-full`}>
-                <TrendingUp size={14} color={theme.colors.primary} />
-                <Text style={tw`text-teal-700 text-xs font-semibold ml-1`}>Live period</Text>
+          <View style={tw`mt-3 relative`}>
+            <Text style={tw`text-white/90 text-[11px] font-semibold mb-1 ml-1 uppercase tracking-wide`}>
+              Category
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setShowCategoryDropdown((prev) => !prev)}
+              style={tw`bg-white border border-white rounded-xl px-3 py-2.5 flex-row items-center justify-between`}
+            >
+              <Text style={tw`text-slate-800 text-sm font-semibold flex-1 mr-2`} numberOfLines={1}>
+                {categoryFilter}
+              </Text>
+              <ChevronDown size={16} color="#0F172A" />
+            </TouchableOpacity>
+
+            {showCategoryDropdown ? (
+              <View style={tw`absolute left-0 right-0 top-[68px] bg-white rounded-xl border border-slate-200 overflow-hidden z-50 shadow-lg`}>
+                <ScrollView style={{ maxHeight: 190 }} nestedScrollEnabled>
+                  {expenseCategories.map((item) => {
+                    const active = item === categoryFilter;
+                    return (
+                      <TouchableOpacity
+                        key={item}
+                        onPress={() => {
+                          setCategoryFilter(item);
+                          setShowCategoryDropdown(false);
+                        }}
+                        style={[
+                          tw`px-3 py-2.5 border-b border-slate-100`,
+                          active ? { backgroundColor: '#ECFEFF' } : null,
+                        ]}
+                      >
+                        <Text style={[tw`text-sm font-medium`, { color: active ? '#0F766E' : '#334155' }]}>{item}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               </View>
+            ) : null}
+          </View>
+        </View>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => showCategoryDropdown && setShowCategoryDropdown(false)}
+          style={tw`flex-1`}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={tw`px-5 pb-32 pt-2`}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
+          >
+            <View style={tw`bg-white rounded-3xl p-5 shadow-xl mb-4 border border-slate-100`}>
+              <View style={tw`flex-row items-center justify-between mb-4`}>
+                <Text style={tw`text-slate-800 text-lg font-bold`}>Expense Trend</Text>
+                <View style={tw`flex-row items-center bg-teal-50 px-3 py-1 rounded-full`}>
+                  <TrendingUp size={14} color={theme.colors.primary} />
+                  <Text style={tw`text-teal-700 text-xs font-semibold ml-1`}>Live period</Text>
+                </View>
+              </View>
+
+              <View
+                onTouchStart={handleChartTouchStart}
+                onTouchMove={handleChartTouchMove}
+                onTouchEnd={handleChartTouchEnd}
+                onTouchCancel={handleChartTouchEnd}
+              >
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <LineChart
+                    width={chartWidth}
+                    areaChart
+                    data={trendData.length > 0 ? trendData : [{ value: 0, label: '' }]}
+                    startFillColor="rgba(15,118,110,0.22)"
+                    endFillColor="rgba(15,118,110,0.02)"
+                    startOpacity={0.9}
+                    endOpacity={0.1}
+                    color={theme.colors.primary}
+                    thickness={3}
+                    hideDataPoints={false}
+                    dataPointsColor={theme.colors.primary}
+                    yAxisColor="transparent"
+                    xAxisColor="transparent"
+                    noOfSections={4}
+                    yAxisTextStyle={{ color: '#64748B', fontSize: 11 }}
+                    xAxisLabelTextStyle={{ color: '#64748B', fontSize: 11 }}
+                    spacing={chartSpacing}
+                    initialSpacing={period === 'week' ? 14 : 8}
+                    maxValue={Math.max(200, ...trendData.map((item) => item.value))}
+                    pointerConfig={{
+                      activatePointersOnLongPress: true,
+                      autoAdjustPointerLabelPosition: true,
+                      pointerColor: theme.colors.primary,
+                      pointerStripColor: '#94A3B8',
+                      pointerStripWidth: 1,
+                      radius: 4,
+                      pointerLabelWidth: 110,
+                      pointerLabelHeight: 42,
+                      pointerLabelComponent: (items: any) => (
+                        <View style={tw`bg-slate-900 px-2.5 py-1.5 rounded-lg`}>
+                          <Text style={tw`text-white text-xs font-semibold`}>
+                            {formatAmount(Math.round(items?.[0]?.value || 0))}
+                          </Text>
+                        </View>
+                      ),
+                    }}
+                    isAnimated
+                    animateOnDataChange
+                    animationDuration={500}
+                  />
+                </ScrollView>
+              </View>
+              <Text style={tw`text-[11px] text-slate-500 mt-2`}>
+                Pinch with 2 fingers to zoom. Long-press a point for exact value.
+              </Text>
             </View>
 
-            <LineChart
-              areaChart
-              data={trendData.length > 0 ? trendData : [{ value: 0, label: '' }]}
-              startFillColor="rgba(15,118,110,0.22)"
-              endFillColor="rgba(15,118,110,0.02)"
-              startOpacity={0.9}
-              endOpacity={0.1}
-              color={theme.colors.primary}
-              thickness={3}
-              hideDataPoints={false}
-              dataPointsColor={theme.colors.primary}
-              yAxisColor="transparent"
-              xAxisColor="transparent"
-              noOfSections={4}
-              yAxisTextStyle={{ color: '#64748B', fontSize: 11 }}
-              xAxisLabelTextStyle={{ color: '#64748B', fontSize: 11 }}
-              spacing={period === 'year' ? 16 : period === 'month' ? 10 : 36}
-              initialSpacing={period === 'week' ? 14 : 8}
-              maxValue={Math.max(200, ...trendData.map((item) => item.value))}
-              isAnimated
-              animateOnDataChange
-              animationDuration={500}
-            />
-          </View>
-
           <View style={tw`bg-white rounded-3xl p-5 shadow-xl mb-4 border border-slate-100`}>
-            <Text style={tw`text-slate-800 text-lg font-bold mb-4`}>Income vs Expense</Text>
+            <Text style={tw`text-slate-800 text-lg font-bold mb-4`}>
+              {categoryFilter === CATEGORY_ALL ? 'Income vs Expense' : `${categoryFilter} (Filtered)`}
+            </Text>
             <BarChart
               data={[
                 { value: Math.round(totals.income), label: 'Income', frontColor: '#16A34A' },
@@ -361,7 +512,8 @@ const AnalyticsScreen = () => {
               ))
             )}
           </View>
-        </ScrollView>
+          </ScrollView>
+        </TouchableOpacity>
       </View>
     </View>
   );

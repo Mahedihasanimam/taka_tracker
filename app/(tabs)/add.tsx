@@ -1,6 +1,6 @@
+import { theme } from "@/constants/theme";
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
-import { theme } from "@/constants/theme";
 import { useLanguage } from '@/context/LanguageContext';
 import { addTransaction, getCategories } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -49,14 +49,12 @@ import {
 } from 'react-native';
 import tw from 'twrnc';
 
-// Icon mapping
 const iconMap: Record<string, any> = {
     Utensils, Car, Briefcase, ShoppingBag, Home, Gift, Wifi, Zap,
     Smartphone, Coffee, Heart, Plane, Book, Music, Gamepad2,
     Shirt, Pill, GraduationCap, Dumbbell, MoreHorizontal, Banknote
 };
 
-// Default categories (fallback)
 const defaultExpenseCategories = [
     { id: 'd1', name: 'Food & Dining', icon: 'Utensils', color: theme.colors.categoryFood },
     { id: 'd2', name: 'Transport', icon: 'Car', color: theme.colors.categoryPurple },
@@ -97,23 +95,20 @@ const AddTransactionScreen = () => {
     const { user } = useAuth();
     const router = useRouter();
     const params = useLocalSearchParams<{ type?: string }>();
+    const scrollRef = useRef<ScrollView>(null);
     const amountInputRef = useRef<TextInput>(null);
 
-    // State
     const [type, setType] = useState<'expense' | 'income'>('expense');
     const [amount, setAmount] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [note, setNote] = useState('');
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
-    // Categories
     const [expenseCategories, setExpenseCategories] = useState<Category[]>(defaultExpenseCategories);
     const [incomeCategories, setIncomeCategories] = useState<Category[]>(defaultIncomeCategories);
 
-    // Fetch categories
     const fetchCategories = useCallback(async () => {
         setIsLoadingCategories(true);
         try {
@@ -122,12 +117,8 @@ const AddTransactionScreen = () => {
                 getCategories('income', user?.id || 0)
             ]);
 
-            if (expenseCats && expenseCats.length > 0) {
-                setExpenseCategories(expenseCats as Category[]);
-            }
-            if (incomeCats && incomeCats.length > 0) {
-                setIncomeCategories(incomeCats as Category[]);
-            }
+            if (expenseCats && expenseCats.length > 0) setExpenseCategories(expenseCats as Category[]);
+            if (incomeCats && incomeCats.length > 0) setIncomeCategories(incomeCats as Category[]);
         } catch (error) {
             console.error('Failed to fetch categories:', error);
         } finally {
@@ -138,11 +129,11 @@ const AddTransactionScreen = () => {
     useFocusEffect(
         useCallback(() => {
             fetchCategories();
-            // Reset form on focus
             setAmount('');
             setSelectedCategory(null);
             setNote('');
             setDate(new Date());
+
             if (params.type === 'income' || params.type === 'expense') {
                 setType(params.type);
             } else {
@@ -151,22 +142,44 @@ const AddTransactionScreen = () => {
         }, [fetchCategories, params.type])
     );
 
-    // Get current categories based on type
     const currentCategories = type === 'expense' ? expenseCategories : incomeCategories;
-    const quickCategories = useMemo(() => currentCategories.slice(0, 6), [currentCategories]);
+    const visibleCategories = useMemo(() => currentCategories.slice(0, 12), [currentCategories]);
 
-    // Get icon component
+    const accentColor = type === 'expense' ? theme.colors.primary : theme.colors.success;
+    const accentSoft = type === 'expense' ? '#CCFBF1' : '#DCFCE7';
+    const gradientColors = type === 'expense'
+        ? [theme.colors.primaryDeep, theme.colors.primary]
+        : [theme.colors.successDark, theme.colors.success];
+
     const getIconComponent = (iconName: string) => iconMap[iconName] || MoreHorizontal;
 
-    // Handle type change
     const handleTypeChange = (newType: 'expense' | 'income') => {
         setType(newType);
         setSelectedCategory(null);
     };
 
-    // Handle save
+    const focusAmountInput = useCallback(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+        requestAnimationFrame(() => {
+            setTimeout(() => amountInputRef.current?.focus(), 180);
+        });
+    }, []);
+
+    const sanitizeAmount = (value: string) => {
+        const cleaned = value.replace(/[^0-9.]/g, '');
+        const [whole, ...decimalParts] = cleaned.split('.');
+        if (decimalParts.length === 0) return whole;
+        return `${whole}.${decimalParts.join('').slice(0, 2)}`;
+    };
+
+    const applyQuickAmount = (quickValue: string) => {
+        setAmount(quickValue);
+        focusAmountInput();
+    };
+
+    const quickAmounts = type === 'expense' ? ['100', '500', '1000'] : ['1000', '5000', '10000'];
+
     const handleSave = async () => {
-        // Validation
         if (!amount || parseFloat(amount) <= 0) {
             Alert.alert(t('Opps'), t('enterValidAmount'));
             return;
@@ -176,38 +189,29 @@ const AddTransactionScreen = () => {
             return;
         }
 
-        setIsSaving(true);
-        try {
-            await addTransaction(
-                user?.id || 0,
-                parseFloat(amount),
-                type,
-                selectedCategory.name,
-                date.toISOString(),
-                note.trim(),
-                selectedCategory.icon,
-                selectedCategory.color
-            );
-            router.replace('/(tabs)/transactions');
-        } catch (error) {
+        router.replace('/(tabs)/transactions');
+        addTransaction(
+            user?.id || 0,
+            parseFloat(amount),
+            type,
+            selectedCategory.name,
+            date.toISOString(),
+            note.trim(),
+            selectedCategory.icon,
+            selectedCategory.color
+        ).catch((error) => {
             console.error('Failed to save transaction:', error);
-            Alert.alert(t('Opps'), t('somethingWrong'));
-        } finally {
-            setIsSaving(false);
-        }
+        });
     };
 
-    // Format date for display
     const formatDate = (d: Date) => {
         const today = new Date();
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        if (d.toDateString() === today.toDateString()) {
-            return t('today');
-        } else if (d.toDateString() === yesterday.toDateString()) {
-            return t('yesterday');
-        }
+        if (d.toDateString() === today.toDateString()) return t('today');
+        if (d.toDateString() === yesterday.toDateString()) return t('yesterday');
+
         return d.toLocaleDateString('en-US', {
             day: '2-digit',
             month: 'short',
@@ -216,176 +220,208 @@ const AddTransactionScreen = () => {
     };
 
     return (
-        <View style={tw`flex-1 bg-white`}>
-            <StatusBar backgroundColor={type === 'expense' ? theme.colors.primary : theme.colors.success} barStyle="light-content" />
+        <View style={tw`flex-1 bg-slate-50`}>
+            <StatusBar backgroundColor={accentColor} barStyle="light-content" />
 
-            {/* Header */}
-            <LinearGradient
-                colors={type === 'expense' ? [theme.colors.primary, theme.colors.primaryDark] : [theme.colors.success, theme.colors.successDark]}
-                style={tw`h-40 px-6 pt-12 rounded-b-[36px] shadow-lg z-10`}
-            >
-                <View style={tw`flex-row justify-between items-center mb-3`}>
-                    <TouchableOpacity onPress={() => router.back()} style={tw`bg-white/20 p-2.5 rounded-full`}>
-                        <ArrowLeft size={22} color={theme.colors.white} />
-                    </TouchableOpacity>
-                    <Text style={tw`text-white text-lg font-bold`}>{t('addTransaction')}</Text>
-                    <View style={tw`w-10`} />
-                </View>
-            </LinearGradient>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={tw`flex-1`}>
+                <ScrollView
+                    ref={scrollRef}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={tw`pb-8`}
+                >
+                    <LinearGradient
+                        colors={gradientColors as [string, string]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={tw`px-5 pt-10 pb-7 h-[150px] rounded-b-[34px]`}
+                    >
+                        <View style={tw`flex-row items-center justify-between`}>
+                            <TouchableOpacity onPress={() => router.back()} style={tw`w-10 h-10 rounded-full bg-white/20 items-center justify-center`}>
+                                <ArrowLeft size={20} color={theme.colors.white} />
+                            </TouchableOpacity>
+                            <Text style={tw`text-white text-lg font-extrabold`}>{t('addTransaction')}</Text>
+                            <View style={tw`w-10`} />
+                        </View>
 
-            {/* Form Content */}
-            <View style={tw`flex-1 `}>
-                <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={tw`flex-1`}>
-                    <View style={tw`flex-1 px-5 pb-5`}>
-                        <View style={tw`bg-white rounded-3xl p-4 shadow-xl shadow-gray-200/80 flex-1`}>
+                    </LinearGradient>
 
-                            {/* Type Toggle */}
-                            <View style={tw`bg-gray-100 p-1.5 rounded-2xl flex-row mb-4`}>
+                    <View style={tw`px-5 -mt-10`}>
+                        <View style={tw`bg-white rounded-3xl p-4 shadow-xl shadow-slate-200/70`}>
+                            <View style={tw`bg-slate-100 p-1 rounded-2xl flex-row mb-4`}>
                                 <TouchableOpacity
                                     onPress={() => handleTypeChange('expense')}
-                                    style={tw`flex-1 py-2.5 rounded-xl items-center flex-row justify-center ${type === 'expense' ? 'bg-white shadow-sm' : ''}`}
+                                    style={tw`flex-1 py-2.5 rounded-xl items-center flex-row justify-center ${type === 'expense' ? 'bg-white' : ''}`}
                                 >
                                     <ShoppingBag size={16} color={type === 'expense' ? theme.colors.primary : theme.colors.gray400} style={tw`mr-2`} />
-                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-teal-600' : 'text-gray-500'}`}>{t('expense')}</Text>
+                                    <Text style={tw`font-bold ${type === 'expense' ? 'text-teal-700' : 'text-slate-500'}`}>{t('expense')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => handleTypeChange('income')}
-                                    style={tw`flex-1 py-2.5 rounded-xl items-center flex-row justify-center ${type === 'income' ? 'bg-white shadow-sm' : ''}`}
+                                    style={tw`flex-1 py-2.5 rounded-xl items-center flex-row justify-center ${type === 'income' ? 'bg-white' : ''}`}
                                 >
                                     <Banknote size={16} color={type === 'income' ? theme.colors.success : theme.colors.gray400} style={tw`mr-2`} />
-                                    <Text style={tw`font-bold ${type === 'income' ? 'text-green-600' : 'text-gray-500'}`}>{t('income')}</Text>
+                                    <Text style={tw`font-bold ${type === 'income' ? 'text-green-700' : 'text-slate-500'}`}>{t('income')}</Text>
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Category Selection (quick grid, no scroll needed) */}
-                            <View style={tw`flex-row justify-between items-center mb-3`}>
-                                <Text style={tw`text-gray-600 text-sm font-bold ml-1`}>{t('category')}</Text>
-                                <TouchableOpacity onPress={() => router.push('/screens/categories')} style={tw`flex-row items-center`}>
-                                    <Plus size={14} color={theme.colors.primary} />
-                                    <Text style={tw`text-teal-600 text-xs font-bold ml-1`}>{t('manage')}</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {isLoadingCategories ? (
-                                <View style={tw`h-16 items-center justify-center`}>
-                                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                            <View style={tw`mb-4`}>
+                                <View style={tw`flex-row justify-between items-center mb-2`}>
+                                    <Text style={tw`text-slate-700 text-sm font-bold`}>{t('category')}</Text>
+                                    <TouchableOpacity onPress={() => router.push('/screens/categories')} style={tw`flex-row items-center`}>
+                                        <Plus size={14} color={accentColor} />
+                                        <Text style={[tw`text-xs font-bold ml-1`, { color: accentColor }]}>{t('manage')}</Text>
+                                    </TouchableOpacity>
                                 </View>
-                            ) : (
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={tw`pr-3 mb-2`}
-                                >
-                                    {quickCategories.map((cat) => {
-                                        const IconComp = getIconComponent(cat.icon);
-                                        const isSelected = selectedCategory?.name === cat.name;
-                                        return (
-                                            <TouchableOpacity
-                                                key={cat.id}
-                                                onPress={() => {
-                                                    setSelectedCategory(cat);
-                                                    setTimeout(() => amountInputRef.current?.focus(), 50);
-                                                }}
-                                                style={tw`mr-2.5`}
-                                            >
-                                                <View
-                                                    style={[
-                                                        tw`w-11 h-11 rounded-xl items-center justify-center`,
-                                                        {
-                                                            backgroundColor: isSelected
-                                                                ? (type === 'expense' ? theme.colors.primary : theme.colors.success)
-                                                                : cat.color + '20'
-                                                        }
-                                                    ]}
+
+                                {isLoadingCategories ? (
+                                    <View style={tw`h-20 items-center justify-center`}>
+                                        <ActivityIndicator size="small" color={accentColor} />
+                                    </View>
+                                ) : (
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={tw`pr-2`}
+                                    >
+                                        {visibleCategories.map((cat) => {
+                                            const IconComp = getIconComponent(cat.icon);
+                                            const isSelected = selectedCategory?.id === cat.id;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={cat.id}
+                                                    onPress={() => {
+                                                        setSelectedCategory(cat);
+                                                        focusAmountInput();
+                                                    }}
+                                                    style={tw`mr-3 items-center`}
                                                 >
-                                                    <IconComp size={18} color={isSelected ? 'white' : cat.color} />
-                                                </View>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </ScrollView>
-                            )}
+                                                    <View
+                                                        style={[
+                                                            tw`w-12 h-12 rounded-2xl items-center justify-center border`,
+                                                            {
+                                                                backgroundColor: isSelected ? cat.color : `${cat.color}20`,
+                                                                borderColor: isSelected ? cat.color : 'transparent'
+                                                            }
+                                                        ]}
+                                                    >
+                                                        <IconComp size={19} color={isSelected ? theme.colors.white : cat.color} />
+                                                    </View>
+                                                    <Text
+                                                        numberOfLines={1}
+                                                        style={[
+                                                            tw`text-[10px] mt-1 font-semibold max-w-[66px]`,
+                                                            { color: isSelected ? accentColor : theme.colors.gray500 }
+                                                        ]}
+                                                    >
+                                                        {cat.name}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </ScrollView>
+                                )}
+                            </View>
 
-                            <Text style={tw`text-xs font-semibold text-gray-600 mb-2 ml-1`}>
-                                {selectedCategory ? `Selected: ${selectedCategory.name}` : 'Select a category'}
-                            </Text>
-
-                            {/* Date + Note compact row */}
-                            <View style={tw`flex-row mb-3`}>
+                            <View style={tw`mb-4`}>
+                                <Text style={tw`text-slate-700 text-sm font-bold mb-2`}>{t('date')}</Text>
                                 <TouchableOpacity
                                     onPress={() => setShowDatePicker(true)}
-                                    style={tw`flex-1 flex-row items-center border border-gray-200 rounded-2xl px-3 py-3 bg-gray-50 mr-2`}
+                                    style={tw`flex-row items-center border border-slate-200 rounded-2xl px-3.5 py-3 bg-slate-50`}
                                 >
-                                    <Calendar size={18} color={theme.colors.gray400} />
-                                    <Text style={tw`text-gray-700 text-xs font-semibold ml-2 flex-1`} numberOfLines={1}>{formatDate(date)}</Text>
+                                    <Calendar size={18} color={theme.colors.gray500} />
+                                    <Text style={tw`text-slate-700 text-sm font-semibold ml-2 flex-1`}>{formatDate(date)}</Text>
                                 </TouchableOpacity>
-                                <View style={tw`flex-1 flex-row items-center border border-gray-200 rounded-2xl px-3 py-3 bg-gray-50 ml-2`}>
-                                    <FileText size={18} color={theme.colors.gray400} />
+                            </View>
+
+                            <View style={tw`mb-4`}>
+                                <Text style={tw`text-slate-700 text-sm font-bold mb-2`}>{t('addNote')}</Text>
+                                <View style={tw`flex-row items-start border border-slate-200 rounded-2xl px-3.5 py-3 bg-slate-50`}>
+                                    <FileText size={18} color={theme.colors.gray500} style={tw`mt-0.5`} />
                                     <TextInput
                                         placeholder={t('addNote')}
                                         placeholderTextColor={theme.colors.gray400}
                                         value={note}
                                         onChangeText={setNote}
-                                        style={tw`flex-1 text-gray-800 font-medium text-xs ml-2`}
-                                        maxLength={40}
+                                        style={tw`flex-1 text-slate-800 font-medium text-sm ml-2`}
+                                        maxLength={80}
                                     />
                                 </View>
                             </View>
 
-                            <View>
-                                {/* Amount Input */}
-                                <View style={tw`mb-3`}>
-                                    <Text style={tw`text-gray-600 text-sm font-bold mb-2 ml-1`}>{t('enterAmount')}</Text>
-                                    <View style={tw`flex-row items-center border-2 border-gray-200 rounded-2xl px-4 py-2.5 bg-gray-50`}>
-                                        <Text style={tw`text-2xl font-bold text-gray-500 mr-2`}>{currencySymbol}</Text>
-                                        <TextInput
-                                            ref={amountInputRef}
-                                            value={amount}
-                                            onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
-                                            placeholder="0"
-                                            placeholderTextColor={theme.colors.gray400}
-                                            keyboardType="decimal-pad"
-                                            returnKeyType="done"
-                                            style={tw`flex-1 text-gray-900 text-3xl font-extrabold`}
-                                            maxLength={10}
-                                        />
-                                    </View>
+                            <View style={tw`mb-5`}>
+                                <Text style={tw`text-slate-700 text-sm font-bold mb-2`}>Quick Amount</Text>
+                                <View style={tw`flex-row`}>
+                                    {quickAmounts.map((quickValue) => {
+                                        const isActive = amount === quickValue;
+                                        return (
+                                            <TouchableOpacity
+                                                key={quickValue}
+                                                onPress={() => applyQuickAmount(quickValue)}
+                                                style={[
+                                                    tw`px-3 py-2 rounded-xl mr-2 border`,
+                                                    {
+                                                        borderColor: isActive ? accentColor : theme.colors.border,
+                                                        backgroundColor: isActive ? accentSoft : theme.colors.white
+                                                    }
+                                                ]}
+                                            >
+                                                <Text style={[tw`text-sm font-semibold`, { color: isActive ? accentColor : theme.colors.gray600 }]}>
+                                                    {currencySymbol}{quickValue}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
                                 </View>
-
-                                {/* Save Button */}
-                                <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    disabled={isSaving}
-                                    style={tw`rounded-2xl py-3.5 items-center shadow-lg ${isSaving ? 'opacity-70' : ''} ${type === 'expense' ? 'bg-teal-600' : 'bg-green-600'}`}
-                                    onPress={handleSave}
-                                >
-                                    {isSaving ? (
-                                        <ActivityIndicator color={theme.colors.white} />
-                                    ) : (
-                                        <View style={tw`flex-row items-center`}>
-                                            <CheckCircle size={20} color={theme.colors.white} style={tw`mr-2`} />
-                                            <Text style={tw`text-white font-bold text-lg tracking-wide`}>{t('saveTransaction')}</Text>
-                                        </View>
-                                    )}
-                                </TouchableOpacity>
                             </View>
+
+                            <View style={tw`mb-4`}>
+                                <Text style={tw`text-slate-700 text-sm font-bold mb-2`}>{t('enterAmount')}</Text>
+                                <View
+                                    style={[
+                                        tw`flex-row items-center border-2 rounded-2xl px-4 py-2.5 bg-slate-50`,
+                                        { borderColor: amount ? accentColor : theme.colors.border }
+                                    ]}
+                                >
+                                    <Text style={tw`text-2xl font-bold text-slate-500 mr-2`}>{currencySymbol}</Text>
+                                    <TextInput
+                                        ref={amountInputRef}
+                                        value={amount}
+                                        onChangeText={(text) => setAmount(sanitizeAmount(text))}
+                                        placeholder="0.00"
+                                        placeholderTextColor={theme.colors.gray400}
+                                        keyboardType="decimal-pad"
+                                        returnKeyType="done"
+                                        style={tw`flex-1 text-slate-900 text-3xl font-extrabold`}
+                                        maxLength={12}
+                                    />
+                                </View>
+                            </View>
+
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[tw`rounded-2xl py-4 items-center`, { backgroundColor: accentColor }]}
+                                onPress={handleSave}
+                            >
+                                <View style={tw`flex-row items-center`}>
+                                    <CheckCircle size={20} color={theme.colors.white} style={tw`mr-2`} />
+                                    <Text style={tw`text-white font-bold text-base tracking-wide`}>{t('saveTransaction')}</Text>
+                                </View>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                </KeyboardAvoidingView>
-            </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
-            {/* Date Picker Modal */}
             {showDatePicker && (
                 <DateTimePicker
                     value={date}
                     mode="date"
                     display="default"
                     maximumDate={new Date()}
-                    onChange={(event, selectedDate) => {
+                    onChange={(_, selectedDate) => {
                         setShowDatePicker(false);
-                        if (selectedDate) {
-                            setDate(selectedDate);
-                        }
+                        if (selectedDate) setDate(selectedDate);
                     }}
                 />
             )}

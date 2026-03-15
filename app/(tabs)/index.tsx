@@ -207,8 +207,8 @@ const HomeScreen = () => {
               style={tw`w-12 h-12 rounded-full bg-gray-300`}
             />
             <View>
-              <Text style={tw`text-white text-xl font-bold`}>{user?.name || 'Abid Hasan'}</Text>
-              <Text style={tw`text-white/70 text-sm`}>{user?.phone}</Text>
+              <Text style={tw`text-white text-xl font-bold`}>{user?.name || 'Guest'}</Text>
+              <Text style={tw`text-white/70 text-sm`}>{user?.phone || '000-000-0000'}</Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={tw`w-12 h-12 bg-white rounded-full justify-center items-center shadow-md`}>
