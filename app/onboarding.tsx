@@ -21,6 +21,7 @@ import {
   Dimensions,
   Easing,
   FlatList,
+  Image,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -123,6 +124,12 @@ const OnboardingScreen = () => {
   const isLast = currentIndex === slides.length - 1;
   const selectedPlan = PAYWALL_PLANS[billingCycle];
 
+  const renderCardImage = (source: any) => (
+    <View style={tw`w-full h-[170px] rounded-2xl mb-4 bg-white border border-white/20 items-center justify-center overflow-hidden`}>
+      <Image source={source} style={tw`w-[92%] h-[92%]`} resizeMode="contain" />
+    </View>
+  );
+
   React.useEffect(() => {
     const hintLoop = Animated.loop(
       Animated.sequence([
@@ -178,6 +185,7 @@ const OnboardingScreen = () => {
       return (
         <View style={tw`w-full h-full px-7 justify-center`}>
           <View style={tw`bg-white/15 border border-white/25 rounded-3xl p-5`}>
+            {renderCardImage(require('../assets/images/moneystress.png'))}
             <View style={tw`flex-row items-center mb-4`}>
               <View style={tw`w-10 h-10 rounded-xl bg-white/20 items-center justify-center mr-3`}>
                 <CircleDollarSign size={20} color={theme.colors.white} />
@@ -227,6 +235,7 @@ const OnboardingScreen = () => {
       return (
         <View style={tw`w-full h-full px-8 justify-center`}>
           <View style={tw`bg-white/15 border border-white/25 rounded-3xl p-6`}>
+            {renderCardImage(require('../assets/images/savings.png'))}
             <View style={tw`flex-row items-center mb-4`}>
               <Clock3 size={20} color={theme.colors.white} />
               <Text style={tw`text-white text-base font-bold ml-2`}>We have seen this pattern</Text>
@@ -246,6 +255,7 @@ const OnboardingScreen = () => {
       return (
         <View style={tw`w-full h-full px-8 justify-center`}>
           <View style={tw`bg-white/15 border border-white/25 rounded-3xl p-5`}>
+            {renderCardImage(require('../assets/images/track.png'))}
             {[
               { icon: Wallet, label: '1. Add income and expenses in seconds' },
               { icon: Target, label: '2. Set budget limits by category' },
@@ -270,6 +280,7 @@ const OnboardingScreen = () => {
             colors={['rgba(255,255,255,0.24)', 'rgba(255,255,255,0.12)']}
             style={tw`rounded-3xl p-5 border border-white/25`}
           >
+            {renderCardImage(require('../assets/images/improve.png'))}
             <View style={tw`flex-row items-center justify-between mb-4`}>
               <Text style={tw`text-white font-bold text-base`}>7-Day Improvement</Text>
               <View style={tw`px-2 py-1 rounded-full bg-green-500/20`}>
