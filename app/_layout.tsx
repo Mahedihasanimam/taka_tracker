@@ -58,11 +58,11 @@ function RootLayoutNav() {
             return;
           }
           if (latestSeen && (inOnboarding || isRootIndex)) {
-            router.replace('/auth/signIn');
+            router.replace('/(tabs)');
             return;
           }
         } else if (inOnboarding || isRootIndex) {
-          router.replace('/auth/signIn');
+          router.replace('/(tabs)');
           return;
         }
       } else if (isRootIndex || inAuthGroup || inOnboarding || !inTabsGroup) {

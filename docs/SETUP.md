@@ -56,7 +56,7 @@ npx expo start
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "MoneyMaster",
+    "scheme": "moneymaster",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",

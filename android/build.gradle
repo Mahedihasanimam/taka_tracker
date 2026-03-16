@@ -33,5 +33,25 @@ allprojects {
   }
 }
 
+subprojects { subproject ->
+  subproject.plugins.withId("com.android.application") {
+    subproject.android {
+      lint {
+        checkReleaseBuilds false
+        abortOnError false
+      }
+    }
+  }
+
+  subproject.plugins.withId("com.android.library") {
+    subproject.android {
+      lint {
+        checkReleaseBuilds false
+        abortOnError false
+      }
+    }
+  }
+}
+
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"

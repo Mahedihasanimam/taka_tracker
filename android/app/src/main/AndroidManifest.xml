@@ -27,10 +27,10 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="MoneyMaster"/>
+        <data android:scheme="moneymaster"/>
       </intent-filter>
     </activity>
-    <receiver android:name=".widget.BudgetStatusWidgetAndroid" android:exported="false" android:label="Budget Snapshot">
+    <receiver android:name=".widget.BudgetStatusWidgetAndroid" android:exported="true" android:label="Budget Snapshot">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
         <action android:name="com.mahedidev.Moneymaster.WIDGET_CLICK"/>

@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>MoneyMaster</string>
+          <string>moneymaster</string>
           <string>com.mahedidev.Moneymaster</string>
         </array>
       </dict>
