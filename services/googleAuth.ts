@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { getSupabaseClient } from '@/services/supabaseClient';
@@ -40,7 +41,11 @@ export const signInWithGoogleViaSupabase = async (): Promise<GoogleAuthResult> =
     };
   }
 
-  const redirectTo = Linking.createURL('auth/signIn');
+  const appScheme =
+    typeof Constants.expoConfig?.scheme === 'string' && Constants.expoConfig.scheme.length > 0
+      ? Constants.expoConfig.scheme
+      : 'MoneyMaster';
+  const redirectTo = Linking.createURL('auth/signIn', { scheme: appScheme });
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -99,4 +104,3 @@ export const signInWithGoogleViaSupabase = async (): Promise<GoogleAuthResult> =
     },
   };
 };
-
