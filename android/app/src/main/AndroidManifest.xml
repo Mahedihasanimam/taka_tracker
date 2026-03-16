@@ -30,7 +30,7 @@
         <data android:scheme="moneymaster"/>
       </intent-filter>
     </activity>
-    <receiver android:name=".widget.BudgetStatusWidgetAndroid" android:exported="true" android:label="Budget Snapshot">
+    <receiver android:name="com.mahedidev.Moneymaster.widget.BudgetStatusWidgetAndroid" android:enabled="true" android:exported="true" android:label="Budget Snapshot">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
         <action android:name="com.mahedidev.Moneymaster.WIDGET_CLICK"/>
