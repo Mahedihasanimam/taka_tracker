@@ -106,7 +106,11 @@ export default function CustomTabBar() {
 
     const goTo = (name: string) => {
         animateTab(name);
-        name === 'index' ? router.push('/') : router.push(`/${name}` as any);
+        if (name === 'index') {
+            router.push('/');
+            return;
+        }
+        router.push(`/${name}` as any);
     };
 
     const currentSegment = segments[segments.length - 1] || 'index';

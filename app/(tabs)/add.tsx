@@ -400,7 +400,7 @@ const AddTransactionScreen = () => {
 
                             <TouchableOpacity
                                 activeOpacity={0.85}
-                                style={[tw`rounded-2xl mb-6 py-4 items-center`, { backgroundColor: accentColor }]}
+                                style={[tw`rounded-2xl mb-12 py-4 items-center`, { backgroundColor: accentColor }]}
                                 onPress={handleSave}
                             >
                                 <View style={tw`flex-row items-center`}>

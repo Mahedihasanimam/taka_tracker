@@ -41,6 +41,8 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === 'auth';
     const inOnboarding = segments[0] === 'onboarding';
     const inTabsGroup = segments[0] === '(tabs)';
+    const inStandaloneAppScreen =
+      segments[0] === 'screens' || segments[0] === 'profile' || segments[0] === 'transaction';
     const isRootIndex = pathname === '/' || pathname === '';
     let active = true;
 
@@ -65,7 +67,7 @@ function RootLayoutNav() {
           router.replace('/(tabs)');
           return;
         }
-      } else if (isRootIndex || inAuthGroup || inOnboarding || !inTabsGroup) {
+      } else if (isRootIndex || inAuthGroup || inOnboarding || (!inTabsGroup && !inStandaloneAppScreen)) {
         router.replace('/(tabs)');
         return;
       }
@@ -81,6 +83,7 @@ function RootLayoutNav() {
     isAuthenticated,
     isLoading,
     onboardingChecked,
+    pathname,
     router,
     segments,
   ]);
