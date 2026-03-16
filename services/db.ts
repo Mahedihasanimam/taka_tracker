@@ -7,6 +7,7 @@ let db: SQLite.SQLiteDatabase | null = null;
 let dbInitPromise: Promise<boolean> | null = null;
 const DB_NAME = "takatrack.db";
 const DB_INIT_MAX_RETRIES = 2;
+const SUPABASE_REQUEST_TIMEOUT_MS = 8000;
 
 const DB_SCHEMA_STATEMENTS = [
   `PRAGMA journal_mode = WAL;`,
@@ -211,9 +212,13 @@ const supabaseRequest = async <T>(
     return { ok: false, status: 0, error: "Supabase not configured" };
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS);
+
   try {
     const response = await fetch(`${url}/rest/v1/${endpoint}`, {
       ...init,
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         apikey: anonKey,
@@ -244,11 +249,19 @@ const supabaseRequest = async <T>(
       error: response.ok ? undefined : text || response.statusText,
     };
   } catch (error) {
+    const message =
+      error instanceof Error && error.name === "AbortError"
+        ? `Request timed out after ${SUPABASE_REQUEST_TIMEOUT_MS}ms`
+        : error instanceof Error
+          ? error.message
+          : "Network error";
     return {
       ok: false,
       status: 0,
-      error: error instanceof Error ? error.message : "Network error",
+      error: message,
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

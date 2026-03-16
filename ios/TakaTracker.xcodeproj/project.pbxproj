@@ -14,6 +14,12 @@
 		7D9016CF4BC78FC669C80265 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1C6E5468E8F3EEB5E2A679 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		C4AD88D4E5394201817B4EF5 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A3B399B05554EFDA587E446 /* index.swift */; };
+		9746868AA77B4F188983F397 /* BudgetStatusWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4B3646926044F1EBF2A3D37 /* BudgetStatusWidget.swift */; };
+		9A8542A141F74B1895D0AE13 /* ExpoWidgetsTarget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3662C779DE734C819CEF13F8 /* ExpoWidgetsTarget.appex */; };
+		43F7C6D47CB34658B70D2F12 /* ExpoWidgetsTarget.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = 61E797A0ADBA492C9CCE98A1 /* ExpoWidgetsTarget.entitlements */; };
+		46563A0D668C46BBB1B19706 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5BA5A69BE6834B849F230C05 /* Info.plist */; };
+		7DBB5EA7D8334E8DBF1B2F95 /* ExpoWidgetsTarget.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = 4442F1AFF0F5450885BEB231 /* ExpoWidgetsTarget.entitlements */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +37,12 @@
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MoneyMaster/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MoneyMaster-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MoneyMaster-Bridging-Header.h"; path = "MoneyMaster/MoneyMaster-Bridging-Header.h"; sourceTree = "<group>"; };
 		948476E45FAD4FF8A1A4F1FA /* SplashScreen.storyboard */ = {isa = PBXFileReference; name = "SplashScreen.storyboard"; path = "TakaTracker/SplashScreen.storyboard"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		3662C779DE734C819CEF13F8 /* ExpoWidgetsTarget.appex */ = {isa = PBXFileReference; name = "ExpoWidgetsTarget.appex"; path = "ExpoWidgetsTarget.appex"; sourceTree = BUILT_PRODUCTS_DIR; fileEncoding = undefined; lastKnownFileType = undefined; explicitFileType = wrapper.app-extension; includeInIndex = 0; };
+		0A3B399B05554EFDA587E446 /* index.swift */ = {isa = PBXFileReference; name = "index.swift"; path = "/Users/mehedihasan/Projects/takatracker/ios/ExpoWidgetsTarget/index.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		E4B3646926044F1EBF2A3D37 /* BudgetStatusWidget.swift */ = {isa = PBXFileReference; name = "BudgetStatusWidget.swift"; path = "/Users/mehedihasan/Projects/takatracker/ios/ExpoWidgetsTarget/BudgetStatusWidget.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		61E797A0ADBA492C9CCE98A1 /* ExpoWidgetsTarget.entitlements */ = {isa = PBXFileReference; name = "ExpoWidgetsTarget.entitlements"; path = "/Users/mehedihasan/Projects/takatracker/ios/ExpoWidgetsTarget/ExpoWidgetsTarget.entitlements"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		5BA5A69BE6834B849F230C05 /* Info.plist */ = {isa = PBXFileReference; name = "Info.plist"; path = "/Users/mehedihasan/Projects/takatracker/ios/ExpoWidgetsTarget/Info.plist"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = text.plist.xml; explicitFileType = undefined; includeInIndex = 0; };
+		4442F1AFF0F5450885BEB231 /* ExpoWidgetsTarget.entitlements */ = {isa = PBXFileReference; name = "ExpoWidgetsTarget.entitlements"; path = "ExpoWidgetsTarget.entitlements"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,6 +51,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				11B4E93ED79FC9E4035DAB9B /* libPods-MoneyMaster.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EE6476E3CAF49CA9E36B2F7 /* Embed Foundation Extensions */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -111,6 +130,7 @@
 				6A772C8508D4169930ADB74E /* Pods */,
 				060F286CB5F74AB923DFB83E /* ExpoModulesProviders */,
 				948476E45FAD4FF8A1A4F1FA /* SplashScreen.storyboard */,
+				C2098E06D7214A7BBDCB0240 /* ExpoWidgetsTarget */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -121,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* MoneyMaster.app */,
+				3662C779DE734C819CEF13F8 /* ExpoWidgetsTarget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -132,6 +153,19 @@
 			);
 			name = Supporting;
 			path = MoneyMaster/Supporting;
+			sourceTree = "<group>";
+		};
+		C2098E06D7214A7BBDCB0240 /* ExpoWidgetsTarget */ = {
+			isa = PBXGroup;
+			children = (
+				61E797A0ADBA492C9CCE98A1 /* ExpoWidgetsTarget.entitlements */,
+				5BA5A69BE6834B849F230C05 /* Info.plist */,
+				0A3B399B05554EFDA587E446 /* index.swift */,
+				E4B3646926044F1EBF2A3D37 /* BudgetStatusWidget.swift */,
+				4442F1AFF0F5450885BEB231 /* ExpoWidgetsTarget.entitlements */,
+			);
+			name = ExpoWidgetsTarget;
+			path = ExpoWidgetsTarget;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -149,15 +183,33 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
 				5D46295E587D5E61FD07D1ED /* [CP] Embed Pods Frameworks */,
+				506830DA26BE425697252BB3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5B2DE2AEAF684C2D808B3DF7 /* PBXTargetDependency */,
 			);
 			name = MoneyMaster;
 			productName = MoneyMaster;
 			productReference = 13B07F961A680F5B00A75B9A /* MoneyMaster.app */;
 			productType = "com.apple.product-type.application";
+		};
+		5EBCDFBC0D0248DB866A05BB /* ExpoWidgetsTarget */ = {
+			isa = PBXNativeTarget;
+			name = ExpoWidgetsTarget;
+			productName = ExpoWidgetsTarget;
+			productReference = 3662C779DE734C819CEF13F8;
+			productType = "com.apple.product-type.app-extension";
+			buildConfigurationList = 61095585B4954C99A09B2A52;
+			buildPhases = (
+				D15BE8794C804B3C8A485646 /* Embed Foundation Extensions */,
+				9EE6476E3CAF49CA9E36B2F7 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
 		};
 /* End PBXNativeTarget section */
 
@@ -168,6 +220,9 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
+						LastSwiftMigration = 1250;
+					};
+					5EBCDFBC0D0248DB866A05BB = {
 						LastSwiftMigration = 1250;
 					};
 				};
@@ -186,6 +241,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* MoneyMaster */,
+				5EBCDFBC0D0248DB866A05BB /* ExpoWidgetsTarget */,
 			);
 		};
 /* End PBXProject section */
@@ -329,6 +385,15 @@
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				7D9016CF4BC78FC669C80265 /* ExpoModulesProvider.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D15BE8794C804B3C8A485646 /* Embed Foundation Extensions */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C4AD88D4E5394201817B4EF5 /* index.swift in Sources */,
+				9746868AA77B4F188983F397 /* BudgetStatusWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -525,6 +590,46 @@
 			};
 			name = Release;
 		};
+		D43F3DC87BCF4AD5A5BDA4B3 /* Debug */ = {
+			name = Debug;
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				INFOPLIST_FILE = ExpoWidgetsTarget/Info.plist;
+				CURRENT_PROJECT_VERSION = "1";
+				IPHONEOS_DEPLOYMENT_TARGET = "16.2";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.mahedidev.Moneymaster.ExpoWidgetsTarget";
+				GENERATE_INFOPLIST_FILE = "YES";
+				INFOPLIST_KEY_CFBundleDisplayName = ExpoWidgetsTarget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MARKETING_VERSION = "1.0.0";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				CODE_SIGN_ENTITLEMENTS = "ExpoWidgetsTarget/ExpoWidgetsTarget.entitlements";
+				APPLICATION_EXTENSION_API_ONLY = "YES";
+			};
+		};
+		173CC0D342AC4875BB1A4C8C /* Release */ = {
+			name = Release;
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				INFOPLIST_FILE = ExpoWidgetsTarget/Info.plist;
+				CURRENT_PROJECT_VERSION = "1";
+				IPHONEOS_DEPLOYMENT_TARGET = "16.2";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.mahedidev.Moneymaster.ExpoWidgetsTarget";
+				GENERATE_INFOPLIST_FILE = "YES";
+				INFOPLIST_KEY_CFBundleDisplayName = ExpoWidgetsTarget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MARKETING_VERSION = "1.0.0";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				CODE_SIGN_ENTITLEMENTS = "ExpoWidgetsTarget/ExpoWidgetsTarget.entitlements";
+				APPLICATION_EXTENSION_API_ONLY = "YES";
+			};
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -546,7 +651,48 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		61095585B4954C99A09B2A52 /* Build configuration list for PBXNativeTarget "ExpoWidgetsTarget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D43F3DC87BCF4AD5A5BDA4B3 /* Debug */,
+				173CC0D342AC4875BB1A4C8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin PBXTargetDependency section */
+		5B2DE2AEAF684C2D808B3DF7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5EBCDFBC0D0248DB866A05BB /* ExpoWidgetsTarget */;
+			targetProxy = B36E91B6326D4F6D91E478E4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXContainerItemProxy section */
+		B36E91B6326D4F6D91E478E4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5EBCDFBC0D0248DB866A05BB;
+			remoteInfo = ExpoWidgetsTarget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		506830DA26BE425697252BB3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9A8542A141F74B1895D0AE13 /* ExpoWidgetsTarget.appex in Embed Foundation Extensions */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			name = "Embed Foundation Extensions";
+			dstPath = "";
+			dstSubfolderSpec = 13;
+		};
+/* End PBXCopyFilesBuildPhase section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;
 }

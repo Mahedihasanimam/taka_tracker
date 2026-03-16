@@ -8,9 +8,11 @@ import {
     getBalance,
     getBudgets,
     getCategories,
+    getTransactions,
     getTransactionsByCategory,
     updateBudget
 } from '@/services/db';
+import { syncBudgetStatusWidget } from '@/services/widgetSync';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import {
@@ -124,10 +126,11 @@ const BudgetScreen = () => {
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [budgetData, categoryData, balanceData] = await Promise.all([
+            const [budgetData, categoryData, balanceData, transactionData] = await Promise.all([
                 getBudgets(user?.id || 0),
                 getCategories('expense', user?.id || 0),
-                getBalance(user?.id || 0)
+                getBalance(user?.id || 0),
+                getTransactions(user?.id || 0),
             ]);
 
             const cats = (categoryData || []) as Category[];
@@ -158,6 +161,28 @@ const BudgetScreen = () => {
             }
 
             setBudgets(budgetsWithSpent);
+            const totalBudgetLimit = budgetsWithSpent.reduce((sum, item) => sum + (Number(item.limit_amount) || 0), 0);
+            const totalBudgetSpent = budgetsWithSpent.reduce((sum, item) => sum + (Number(item.spent) || 0), 0);
+            const today = new Date().toDateString();
+            const todayTransactions = ((transactionData as any[]) || []).filter(
+                (item) => new Date(item.date).toDateString() === today
+            );
+            const todaySpent = todayTransactions
+                .filter((item) => item.type === 'expense')
+                .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            const todayIncome = todayTransactions
+                .filter((item) => item.type === 'income')
+                .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+            syncBudgetStatusWidget({
+                balanceAmount: (balanceData?.totalIncome || 0) - (balanceData?.totalExpense || 0),
+                todaySpent,
+                todayIncome,
+                transactionCount: todayTransactions.length,
+                totalSpent: totalBudgetSpent,
+                totalLimit: totalBudgetLimit,
+                formatAmount,
+            });
         } catch (error) {
             console.error('Failed to fetch budget data:', error);
             setBudgets([]);
@@ -167,7 +192,7 @@ const BudgetScreen = () => {
             setIsLoading(false);
             setRefreshing(false);
         }
-    }, [user?.id]);
+    }, [formatAmount, user?.id]);
 
     useFocusEffect(
         useCallback(() => {

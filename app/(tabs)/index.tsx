@@ -6,6 +6,7 @@ import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { getBalance, getBudgets, getCategories, getTransactions, getTransactionsByCategory } from '@/services/db';
+import { syncBudgetStatusWidget } from '@/services/widgetSync';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import {
@@ -86,6 +87,9 @@ const HomeScreen = () => {
       const todaySum = todayTransactions
         .filter((t: any) => t.type === 'expense')
         .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+      const todayIncomeSum = todayTransactions
+        .filter((t: any) => t.type === 'income')
+        .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
 
       let last7DaysSpent = 0;
       for (let i = 1; i <= 7; i++) {
@@ -112,6 +116,21 @@ const HomeScreen = () => {
       );
       setBudgetUsageMap(Object.fromEntries(usageEntries));
 
+      const totalBudgetLimit = ((budgetData as Budget[]) || []).reduce(
+        (sum, item) => sum + (Number(item.limit_amount) || 0),
+        0
+      );
+      const totalBudgetSpent = usageEntries.reduce((sum, [, usage]) => sum + usage.spent, 0);
+      syncBudgetStatusWidget({
+        balanceAmount: balanceData.totalIncome - balanceData.totalExpense,
+        todaySpent: todaySum,
+        todayIncome: todayIncomeSum,
+        transactionCount: todayTransactions.length,
+        totalSpent: totalBudgetSpent,
+        totalLimit: totalBudgetLimit,
+        formatAmount,
+      });
+
       // Weekly Data for Chart
       const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
       const weeklySpending = [];
@@ -129,7 +148,7 @@ const HomeScreen = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [user?.id]);
+  }, [formatAmount, user?.id]);
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 

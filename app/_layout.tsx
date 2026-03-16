@@ -40,6 +40,8 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === 'auth';
     const inOnboarding = segments[0] === 'onboarding';
+    const inTabsGroup = segments[0] === '(tabs)';
+    const isRootIndex = pathname === '/' || pathname === '';
     let active = true;
 
     const resolveRoute = async () => {
@@ -55,16 +57,17 @@ function RootLayoutNav() {
             router.replace('/onboarding');
             return;
           }
-          if (latestSeen && inOnboarding) {
-            router.replace('/(tabs)');
+          if (latestSeen && (inOnboarding || isRootIndex)) {
+            router.replace('/auth/signIn');
             return;
           }
-        } else if (inOnboarding) {
-          router.replace('/(tabs)');
+        } else if (inOnboarding || isRootIndex) {
+          router.replace('/auth/signIn');
           return;
         }
-      } else if (isAuthenticated && (inAuthGroup || inOnboarding)) {
+      } else if (isRootIndex || inAuthGroup || inOnboarding || !inTabsGroup) {
         router.replace('/(tabs)');
+        return;
       }
     };
 

@@ -1,4 +1,5 @@
 import { deleteAuthToken, User, validateToken } from '@/services/db';
+import { clearBudgetStatusWidget } from '@/services/widgetSync';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -65,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(null);
         setUser(null);
         setAvatarUri(null);
+        clearBudgetStatusWidget();
     };
 
     const login = async (userData: User, authToken: string) => {
