@@ -133,6 +133,19 @@ export const translations = {
     phoneCannotChange: "Phone number cannot be changed",
     saveChanges: "Save Changes",
     profileUpdateSuccess: "Profile updated successfully!",
+    upgradeToPro: "Upgrade to Pro",
+    proSummary:
+      "Unlock premium themes, unlimited exports, and smarter automation.",
+    youArePro: "You're on Pro",
+    goProCta: "Unlock Pro",
+    themeSectionTitle: "Themes",
+    themeSectionSubtitle: "Choose a vibe for your dashboard",
+    themePremiumHint: "Premium themes require Pro access.",
+    freeTier: "Free",
+    themeAppliedTitle: "Theme updated",
+    themeAppliedMessage: "Theme applied:",
+    premiumThemeLocked: "Premium theme. Upgrade to unlock.",
+    unlockProSuccess: "Welcome to Pro! Premium themes activated.",
 
     // Profile Edit & Change Password
     selectPhotoOption: "How would you like to select your photo?",
@@ -184,7 +197,6 @@ export const translations = {
     createExpense: "Create Expense",
     createIncome: "Create Income",
     createCategory: "Create Category",
-    createBudget: "Create Budget",
     export: "Export",
     recentActivity: "Recent Activity",
     noRecentActivity: "No recent activity",
@@ -320,7 +332,7 @@ export const translations = {
     salary: "Salary",
     gift: "Gift",
     others: "Others",
-  }
+  },
 };
 
 export type TranslationKeys = keyof typeof translations.en;

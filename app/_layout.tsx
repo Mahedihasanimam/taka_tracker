@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { SuccessModalProvider } from '@/context/SuccessModalContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 import { initDB } from '@/services/db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -136,9 +137,9 @@ function AppSafeAreaShell() {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
-    NavigationBar.setPositionAsync('absolute').catch(() => {});
-    NavigationBar.setBackgroundColorAsync('transparent').catch(() => {});
-    NavigationBar.setButtonStyleAsync('light').catch(() => {});
+    NavigationBar.setPositionAsync('absolute').catch(() => { });
+    NavigationBar.setBackgroundColorAsync('transparent').catch(() => { });
+    NavigationBar.setButtonStyleAsync('light').catch(() => { });
   }, []);
 
   return (
@@ -191,11 +192,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Apply a consistent, readable font stack globally.
-    Text.defaultProps = Text.defaultProps || {};
-    Text.defaultProps.style = [{ fontFamily: typography.body }, Text.defaultProps.style];
+    const PatchedText = Text as typeof Text & { defaultProps?: { style?: unknown } };
+    PatchedText.defaultProps = PatchedText.defaultProps || {};
+    PatchedText.defaultProps.style = [{ fontFamily: typography.body }, PatchedText.defaultProps.style];
 
-    TextInput.defaultProps = TextInput.defaultProps || {};
-    TextInput.defaultProps.style = [{ fontFamily: typography.body }, TextInput.defaultProps.style];
+    const PatchedTextInput = TextInput as typeof TextInput & { defaultProps?: { style?: unknown } };
+    PatchedTextInput.defaultProps = PatchedTextInput.defaultProps || {};
+    PatchedTextInput.defaultProps.style = [{ fontFamily: typography.body }, PatchedTextInput.defaultProps.style];
   }, []);
 
   if (!dbReady || !splashDone) {
@@ -212,15 +215,17 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <LanguageProvider>
-        <CurrencyProvider>
-          <SuccessModalProvider>
-            <AuthProvider>
-              <AppSafeAreaShell />
-            </AuthProvider>
-          </SuccessModalProvider>
-        </CurrencyProvider>
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <CurrencyProvider>
+            <SuccessModalProvider>
+              <AuthProvider>
+                <AppSafeAreaShell />
+              </AuthProvider>
+            </SuccessModalProvider>
+          </CurrencyProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

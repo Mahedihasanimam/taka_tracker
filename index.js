@@ -1,8 +1,11 @@
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
+import "./polyfills";
 
-if (Platform.OS === 'android') {
-  const { ensureAndroidWidgetTaskRegistered } = require('./widgets/androidBudgetWidget');
+if (Platform.OS === "android") {
+  const {
+    ensureAndroidWidgetTaskRegistered,
+  } = require("./widgets/androidBudgetWidget");
   ensureAndroidWidgetTaskRegistered();
 }
 
-import 'expo-router/entry';
+import "expo-router/entry";

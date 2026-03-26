@@ -82,6 +82,16 @@ export const backupUserDataToSupabase = async (userId: number) => {
 
   try {
     const payload = await getUserBackupPayload(userId);
+    const hasTransactions = (payload.transactions?.length || 0) > 0;
+    const hasBudgets = (payload.budgets?.length || 0) > 0;
+
+    if (!hasTransactions && !hasBudgets) {
+      return {
+        success: false,
+        message:
+          "Nothing to backup yet. Add a transaction or budget before running backup.",
+      };
+    }
     await AsyncStorage.setItem(
       getLocalBackupKey(userId),
       JSON.stringify(payload),

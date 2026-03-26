@@ -296,7 +296,7 @@ const AnalyticsScreen = () => {
       <StatusBar barStyle="light-content" />
 
       <LinearGradient
-        colors={['#102A43', '#0F766E', '#4E9F98']}
+        colors={theme.gradients.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[tw`absolute`, { width: 900, height: 900, left: -250, top: -720, borderRadius: 9999 }]}
@@ -459,59 +459,59 @@ const AnalyticsScreen = () => {
               </Text>
             </View>
 
-          <View style={tw`bg-white rounded-3xl p-5 shadow-xl mb-4 border border-slate-100`}>
-            <Text style={tw`text-slate-800 text-lg font-bold mb-4`}>
-              {categoryFilter === CATEGORY_ALL ? 'Income vs Expense' : `${categoryFilter} (Filtered)`}
-            </Text>
-            <BarChart
-              data={[
-                { value: Math.round(totals.income), label: 'Income', frontColor: '#16A34A' },
-                { value: Math.round(totals.expense), label: 'Expense', frontColor: '#EF4444' },
-              ]}
-              barWidth={44}
-              hideRules
-              yAxisColor="transparent"
-              xAxisColor="transparent"
-              yAxisTextStyle={{ color: '#64748B', fontSize: 11 }}
-              xAxisLabelTextStyle={{ color: '#475569', fontSize: 12, fontWeight: '600' }}
-              initialSpacing={40}
-              spacing={46}
-              noOfSections={4}
-              maxValue={Math.max(200, Math.round(totals.income), Math.round(totals.expense))}
-            />
-          </View>
-
-          <View style={tw`bg-white rounded-3xl p-5 shadow-xl border border-slate-100`}>
-            <Text style={tw`text-slate-800 text-lg font-bold mb-4`}>Top Expense Segments</Text>
-
-            <View style={tw`items-center mb-2`}>
-              <PieChart
-                donut
-                radius={86}
-                innerRadius={54}
-                innerCircleColor="#fff"
-                data={
-                  categoryBreakdown.length > 0
-                    ? categoryBreakdown.map((item) => ({ value: item.value, color: item.color }))
-                    : [{ value: 1, color: '#CBD5E1' }]
-                }
+            <View style={tw`bg-white rounded-3xl p-5 shadow-xl mb-4 border border-slate-100`}>
+              <Text style={tw`text-slate-800 text-lg font-bold mb-4`}>
+                {categoryFilter === CATEGORY_ALL ? 'Income vs Expense' : `${categoryFilter} (Filtered)`}
+              </Text>
+              <BarChart
+                data={[
+                  { value: Math.round(totals.income), label: 'Income', frontColor: '#16A34A' },
+                  { value: Math.round(totals.expense), label: 'Expense', frontColor: '#EF4444' },
+                ]}
+                barWidth={44}
+                hideRules
+                yAxisColor="transparent"
+                xAxisColor="transparent"
+                yAxisTextStyle={{ color: '#64748B', fontSize: 11 }}
+                xAxisLabelTextStyle={{ color: '#475569', fontSize: 12, fontWeight: '600' }}
+                initialSpacing={40}
+                spacing={46}
+                noOfSections={4}
+                maxValue={Math.max(200, Math.round(totals.income), Math.round(totals.expense))}
               />
             </View>
 
-            {categoryBreakdown.length === 0 ? (
-              <Text style={tw`text-slate-500 text-center py-3`}>No expense data for this period.</Text>
-            ) : (
-              categoryBreakdown.map((item) => (
-                <View key={item.name} style={tw`flex-row items-center justify-between py-2 border-b border-slate-100 last:border-b-0`}>
-                  <View style={tw`flex-row items-center`}>
-                    <View style={[tw`w-3 h-3 rounded-full mr-2`, { backgroundColor: item.color }]} />
-                    <Text style={tw`text-slate-700 font-medium`}>{item.name}</Text>
+            <View style={tw`bg-white rounded-3xl p-5 shadow-xl border border-slate-100`}>
+              <Text style={tw`text-slate-800 text-lg font-bold mb-4`}>Top Expense Segments</Text>
+
+              <View style={tw`items-center mb-2`}>
+                <PieChart
+                  donut
+                  radius={86}
+                  innerRadius={54}
+                  innerCircleColor="#fff"
+                  data={
+                    categoryBreakdown.length > 0
+                      ? categoryBreakdown.map((item) => ({ value: item.value, color: item.color }))
+                      : [{ value: 1, color: '#CBD5E1' }]
+                  }
+                />
+              </View>
+
+              {categoryBreakdown.length === 0 ? (
+                <Text style={tw`text-slate-500 text-center py-3`}>No expense data for this period.</Text>
+              ) : (
+                categoryBreakdown.map((item) => (
+                  <View key={item.name} style={tw`flex-row items-center justify-between py-2 border-b border-slate-100 last:border-b-0`}>
+                    <View style={tw`flex-row items-center`}>
+                      <View style={[tw`w-3 h-3 rounded-full mr-2`, { backgroundColor: item.color }]} />
+                      <Text style={tw`text-slate-700 font-medium`}>{item.name}</Text>
+                    </View>
+                    <Text style={tw`text-slate-900 font-bold`}>{formatAmount(Math.round(item.value))}</Text>
                   </View>
-                  <Text style={tw`text-slate-900 font-bold`}>{formatAmount(Math.round(item.value))}</Text>
-                </View>
-              ))
-            )}
-          </View>
+                ))
+              )}
+            </View>
           </ScrollView>
         </TouchableOpacity>
       </View>

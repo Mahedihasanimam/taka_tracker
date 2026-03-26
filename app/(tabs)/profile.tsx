@@ -1,8 +1,12 @@
+import { BillingCycle } from '@/components/onboarding/PaywallCard';
+import ThemePaywallModal from '@/components/ThemePaywallModal';
+import { PAYWALL_PLANS } from '@/constants/paywallPlans';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
+import { useThemePreferences } from '@/context/ThemeContext';
 import { backupUserDataToSupabase, importBackupFromJsonFile, restoreLatestUserBackupFromSupabase } from '@/services/backup';
 import { resetUserData } from '@/services/db';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +14,7 @@ import { useRouter } from 'expo-router';
 import {
     Bell,
     ChevronRight,
+    Crown,
     Database,
     Edit3,
     FileUp,
@@ -18,12 +23,14 @@ import {
     Lock,
     LogIn,
     LogOut,
+    Palette,
     RefreshCcw,
     RotateCcw,
     ShieldCheck,
     Smartphone,
+    Sparkles,
     Upload,
-    User
+    User,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -33,7 +40,7 @@ import {
     Switch,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import tw from 'twrnc';
 
@@ -42,9 +49,9 @@ const ProfileScreen = () => {
     const { currency } = useCurrency();
     const { showSuccess } = useSuccessModal();
     const { user, avatarUri, logout, isAuthenticated } = useAuth();
+    const { activeTheme, isPro, unlockPro } = useThemePreferences();
     const router = useRouter();
 
-    // Toggles State
     const [isNotifEnabled, setIsNotifEnabled] = useState(true);
     const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -52,6 +59,11 @@ const ProfileScreen = () => {
     const [isRestoring, setIsRestoring] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
+    const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
+    const [isPaywallVisible, setIsPaywallVisible] = useState(false);
+    const [isUnlockingPro, setIsUnlockingPro] = useState(false);
+
+    const selectedPlan = PAYWALL_PLANS[billingCycle];
 
     const formatMemberSince = (dateString?: string) => {
         if (!dateString) return 'N/A';
@@ -74,7 +86,7 @@ const ProfileScreen = () => {
             [
                 { text: t('cancel'), style: 'cancel' },
                 { text: 'Login', onPress: () => router.push('/auth/signIn') },
-            ]
+            ],
         );
     };
 
@@ -130,7 +142,7 @@ const ProfileScreen = () => {
                         }
                     },
                 },
-            ]
+            ],
         );
     };
 
@@ -164,7 +176,7 @@ const ProfileScreen = () => {
                         }
                     },
                 },
-            ]
+            ],
         );
     };
 
@@ -189,15 +201,46 @@ const ProfileScreen = () => {
         }
     };
 
+    const openPaywall = () => {
+        if (isPro) {
+            showSuccess({
+                title: t('youArePro'),
+                message: t('themePremiumHint'),
+            });
+            return;
+        }
+        setIsPaywallVisible(true);
+    };
+
+    const closePaywall = () => {
+        setIsPaywallVisible(false);
+    };
+
+    const handleUnlockPro = async () => {
+        if (isPro) {
+            closePaywall();
+            return;
+        }
+
+        setIsUnlockingPro(true);
+        try {
+            await unlockPro();
+            showSuccess({ title: t('success'), message: t('unlockProSuccess') });
+        } catch (error) {
+            console.error('Pro upgrade failed', error);
+            Alert.alert(t('Opps'), t('somethingWrong'));
+        } finally {
+            setIsUnlockingPro(false);
+            closePaywall();
+        }
+    };
+
     const handleLogout = () => {
         Alert.alert(
             t('logoutConfirmTitle'),
             t('logoutConfirmMessage'),
             [
-                {
-                    text: t('cancel'),
-                    style: 'cancel',
-                },
+                { text: t('cancel'), style: 'cancel' },
                 {
                     text: t('logout'),
                     style: 'destructive',
@@ -212,7 +255,7 @@ const ProfileScreen = () => {
                         }
                     },
                 },
-            ]
+            ],
         );
     };
 
@@ -290,6 +333,12 @@ const ProfileScreen = () => {
                 <Text style={tw`text-white/80 text-sm font-medium`}>
                     {formatPhone(user?.phone)}
                 </Text>
+                <View style={tw`flex-row items-center mt-3 px-4 py-1.5 rounded-full bg-white/15`}>
+                    <Palette size={14} color={theme.colors.white} />
+                    <Text style={tw`text-white text-xs font-semibold ml-2`}>
+                        {`${t('themeSectionTitle')}: ${activeTheme.name}`}
+                    </Text>
+                </View>
             </LinearGradient>
 
             <ScrollView
@@ -326,6 +375,83 @@ const ProfileScreen = () => {
                         <Text style={tw`text-white font-bold text-base ml-2`}>Login to sync your data</Text>
                     </TouchableOpacity>
                 )}
+
+                <LinearGradient
+                    colors={activeTheme.previewGradient}
+                    style={tw`rounded-3xl p-5 mb-6 shadow-lg`}
+                >
+                    <View style={tw`flex-row items-start justify-between`}>
+                        <View style={tw`flex-1 pr-3`}>
+                            <View style={tw`flex-row items-center mb-2`}>
+                                <Crown size={18} color={theme.colors.white} />
+                                <Text style={tw`text-white font-bold text-base ml-2`}>
+                                    {t('upgradeToPro')}
+                                </Text>
+                            </View>
+                            <Text style={tw`text-white/90 text-sm leading-5`}>
+                                {isPro ? t('youArePro') : t('proSummary')}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={tw`px-4 py-2 rounded-full bg-white/20 border border-white/30`}
+                            activeOpacity={0.85}
+                            onPress={() => openPaywall()}
+                        >
+                            <Text style={tw`text-white font-semibold text-xs uppercase tracking-wide`}>
+                                {isPro ? t('themeSectionTitle') : t('upgradeToPro')}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={tw`flex-row items-center mt-4`}>
+                        <Sparkles size={16} color={theme.colors.accent} />
+                        <Text style={tw`text-white/80 text-xs font-semibold ml-2`}>
+                            {selectedPlan.selectedSummary} · {selectedPlan.billingNote}
+                        </Text>
+                    </View>
+                </LinearGradient>
+
+                <View style={tw`bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 mb-6`}>
+                    <View style={tw`flex-row items-center justify-between mb-4`}>
+                        <View style={tw`flex-1 pr-3`}>
+                            <Text style={tw`text-gray-800 text-base font-extrabold`}>
+                                {t('themeSectionTitle')}
+                            </Text>
+                            <Text style={tw`text-gray-500 text-xs mt-1`}>
+                                {t('themeSectionSubtitle')}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={[tw`px-4 py-2 rounded-full border`, { borderColor: theme.colors.border }]}
+                            onPress={() => router.push('/screens/themeManager')}
+                            activeOpacity={0.85}
+                        >
+                            <Text style={tw`text-xs font-semibold text-gray-700`}>Manage</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <LinearGradient
+                        colors={activeTheme.previewGradient}
+                        style={tw`rounded-3xl p-5 shadow-lg`}
+                    >
+                        <View style={tw`flex-row items-center justify-between`}>
+                            <View>
+                                <Text style={tw`text-white font-bold text-base`}>
+                                    {activeTheme.name}
+                                </Text>
+                                <Text style={tw`text-white/80 text-xs mt-1`}>
+                                    {t('themePremiumHint')}
+                                </Text>
+                            </View>
+                            <Palette size={18} color={theme.colors.white} />
+                        </View>
+
+
+                    </LinearGradient>
+
+                    <Text style={tw`text-gray-400 text-[11px] mt-3 text-center`}>
+                        Explore detailed previews and premium palettes inside the theme manager.
+                    </Text>
+                </View>
 
                 <View style={tw`bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 mb-6`}>
                     <Text style={tw`text-gray-400 text-xs font-bold uppercase mb-2 ml-1`}>{t('general')}</Text>
@@ -456,6 +582,24 @@ const ProfileScreen = () => {
                 </View>
 
             </ScrollView>
+
+            <ThemePaywallModal
+                visible={isPaywallVisible}
+                billingCycle={billingCycle}
+                onChangeBillingCycle={setBillingCycle}
+                plans={PAYWALL_PLANS}
+                selectedPlan={selectedPlan}
+                isUnlocking={isUnlockingPro}
+                isPro={isPro}
+                onUnlock={handleUnlockPro}
+                onClose={closePaywall}
+                previewGradient={activeTheme.previewGradient}
+                headline={t('upgradeToPro')}
+                summary={t('proSummary')}
+                loadingLabel={t('loading')}
+                ctaLabel={t('goProCta')}
+                proLabel={t('youArePro')}
+            />
         </View>
     );
 };
