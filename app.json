@@ -4,10 +4,10 @@
     "slug": "MoneyMaster",
     "version": "1.0.0",
     "orientation": "portrait",
+    "jsEngine": "hermes",
     "icon": "./assets/images/androidicon.png",
     "scheme": "moneymaster",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mahedidev.Moneymaster"
@@ -17,7 +17,6 @@
         "foregroundImage": "./assets/images/androidicon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.mahedidev.Moneymaster"
     },
     "web": {

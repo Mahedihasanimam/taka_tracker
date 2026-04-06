@@ -37,12 +37,5 @@
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_budgetstatuswidgetandroid"/>
     </receiver>
-    <receiver android:name=".widget.BudgetStatusWidgetAndroid" android:exported="false" android:label="Budget Snapshot">
-      <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.mahedidev.Moneymaster.WIDGET_CLICK"/>
-      </intent-filter>
-      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_budgetstatuswidgetandroid"/>
-    </receiver>
   </application>
 </manifest>
