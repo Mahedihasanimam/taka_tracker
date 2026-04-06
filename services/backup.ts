@@ -69,6 +69,15 @@ const isValidBackupPayload = (data: unknown): data is UserBackupPayload => {
   );
 };
 
+const hasMeaningfulBackupData = (payload: UserBackupPayload) => {
+  const totalItems =
+    (payload.transactions?.length || 0) +
+    (payload.categories?.length || 0) +
+    (payload.budgets?.length || 0);
+
+  return totalItems > 0;
+};
+
 export const backupUserDataToSupabase = async (userId: number) => {
   const { url, anonKey } = getSupabaseConfig();
 
@@ -82,14 +91,11 @@ export const backupUserDataToSupabase = async (userId: number) => {
 
   try {
     const payload = await getUserBackupPayload(userId);
-    const hasTransactions = (payload.transactions?.length || 0) > 0;
-    const hasBudgets = (payload.budgets?.length || 0) > 0;
-
-    if (!hasTransactions && !hasBudgets) {
+    if (!hasMeaningfulBackupData(payload)) {
       return {
         success: false,
         message:
-          "Nothing to backup yet. Add a transaction or budget before running backup.",
+          "Nothing to backup yet. Add a transaction, budget, or custom category before running backup.",
       };
     }
     await AsyncStorage.setItem(
@@ -156,6 +162,13 @@ const backupUserDataLocally = async (
     }
 
     const backup = payload ?? (await getUserBackupPayload(userId));
+    if (!hasMeaningfulBackupData(backup)) {
+      return {
+        success: false,
+        message:
+          "Nothing to backup yet. Add a transaction, budget, or custom category before running backup.",
+      };
+    }
     await AsyncStorage.setItem(
       getLocalBackupKey(userId),
       JSON.stringify(backup),

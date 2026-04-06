@@ -92,7 +92,7 @@ export default function CustomTabBar() {
                 ...itemAnims.slice(0, quickActions.length).map(anim => Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }))
             ]).start();
         }
-    }, [showCreateModal]);
+    }, [itemAnims, overlayOpacity, panelTranslateX, quickActions.length, showCreateModal]);
 
     const animateTab = useCallback((tabName: string) => {
         const scaleAnim = tabAnimations[tabName as keyof typeof tabAnimations] || new Animated.Value(1);
@@ -108,7 +108,7 @@ export default function CustomTabBar() {
                 Animated.spring(bounceAnim, { toValue: 0, friction: 3, useNativeDriver: true }),
             ]),
         ]).start();
-    }, []);
+    }, [tabAnimations, tabBounce]);
 
     const goTo = (name: string) => {
         animateTab(name);
@@ -180,8 +180,7 @@ export default function CustomTabBar() {
                     onPressIn={handleVoicePressIn}
                     onPressOut={handleVoicePressOut}
                     onPress={() => {
-                        console.log('Voice Input Triggered!');
-                        // Trigger your voice logic here
+                        router.push('/voice-add');
                     }}
                 >
                     <Animated.View style={{ transform: [{ scale: fabScale }] }}>
@@ -246,4 +245,3 @@ export default function CustomTabBar() {
         </View>
     );
 }
-

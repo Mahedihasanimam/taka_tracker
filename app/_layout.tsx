@@ -119,6 +119,7 @@ function RootLayoutNav() {
         <Stack.Screen name="profile/edit" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="profile/changePassword" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="transaction/add" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="voice-add" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="screens/categories" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="screens/export" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="screens/currency" options={{ animation: 'slide_from_right' }} />

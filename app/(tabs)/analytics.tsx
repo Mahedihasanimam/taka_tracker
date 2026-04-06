@@ -11,6 +11,7 @@ import {
   Dimensions,
   RefreshControl,
   ScrollView,
+  Share,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -32,6 +33,11 @@ type Bucket = {
   label: string;
   income: number;
   expense: number;
+};
+
+type PeriodInsight = {
+  title: string;
+  message: string;
 };
 
 const PERIODS: { key: PeriodKey; label: string }[] = [
@@ -58,6 +64,34 @@ const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(),
 
 const formatBucketKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const getPeriodRange = (period: PeriodKey, offset = 0) => {
+  const now = new Date();
+
+  if (period === 'year') {
+    return {
+      start: new Date(now.getFullYear() + offset, 0, 1),
+      end: new Date(now.getFullYear() + offset, 11, 31, 23, 59, 59, 999),
+    };
+  }
+
+  if (period === 'month') {
+    const target = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    return {
+      start: new Date(target.getFullYear(), target.getMonth(), 1),
+      end: new Date(target.getFullYear(), target.getMonth() + 1, 0, 23, 59, 59, 999),
+    };
+  }
+
+  const end = startOfDay(now);
+  end.setDate(end.getDate() + offset * 7);
+  const start = new Date(end);
+  start.setDate(end.getDate() - 6);
+  return {
+    start,
+    end: new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999),
+  };
+};
 
 const groupForPeriod = (transactions: Txn[], period: PeriodKey): Bucket[] => {
   const now = new Date();
@@ -247,6 +281,61 @@ const AnalyticsScreen = () => {
       }));
   }, [filteredTransactions, period]);
 
+  const smartInsight = useMemo<PeriodInsight>(() => {
+    const { start: currentStart, end: currentEnd } = getPeriodRange(period, 0);
+    const { start: previousStart, end: previousEnd } = getPeriodRange(period, -1);
+
+    const sumExpenses = (start: Date, end: Date) =>
+      filteredTransactions.reduce((total, txn) => {
+        if (txn.type !== 'expense') return total;
+        const txnDate = parseDate(txn.date);
+        if (!txnDate) return total;
+        return txnDate >= start && txnDate <= end ? total + (Number(txn.amount) || 0) : total;
+      }, 0);
+
+    const currentExpense = sumExpenses(currentStart, currentEnd);
+    const previousExpense = sumExpenses(previousStart, previousEnd);
+
+    if (currentExpense <= 0 && previousExpense <= 0) {
+      return {
+        title: 'Smart insight',
+        message: 'Add a few expenses and this screen will explain your spending trend automatically.',
+      };
+    }
+
+    if (previousExpense <= 0) {
+      return {
+        title: 'Smart insight',
+        message: `You spent ${formatAmount(Math.round(currentExpense))} this ${period}. This is your first full ${period} with trackable expense data.`,
+      };
+    }
+
+    const percentDelta = Math.round(((currentExpense - previousExpense) / previousExpense) * 100);
+    const direction = percentDelta >= 0 ? 'more' : 'less';
+    const absoluteDelta = Math.abs(percentDelta);
+
+    const categoryLeader = categoryBreakdown[0];
+    const categoryContext = categoryLeader
+      ? ` ${categoryLeader.name} is leading this period.`
+      : '';
+
+    return {
+      title: 'Smart insight',
+      message: `You spent ${absoluteDelta}% ${direction} than the previous ${period}.${categoryContext}`,
+    };
+  }, [categoryBreakdown, filteredTransactions, formatAmount, period]);
+
+  const handleShareInsight = useCallback(async () => {
+    try {
+      await Share.share({
+        title: 'Share insight',
+        message: `${smartInsight.message}\nIncome: ${formatAmount(Math.round(totals.income))}\nExpense: ${formatAmount(Math.round(totals.expense))}\nTracked with TakaTrack`,
+      });
+    } catch (error) {
+      console.error('Failed to share analytics insight:', error);
+    }
+  }, [formatAmount, smartInsight.message, totals.expense, totals.income]);
+
   const baseSpacing = period === 'year' ? 16 : period === 'month' ? 10 : 36;
   const chartSpacing = Math.max(8, Math.round(baseSpacing * zoomScale));
   const chartMinWidth = Dimensions.get('window').width - 64;
@@ -396,6 +485,25 @@ const AnalyticsScreen = () => {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} />}
           >
             <View style={tw`bg-white rounded-3xl p-5 shadow-xl mb-4 border border-slate-100`}>
+              <View style={tw`bg-slate-900 rounded-2xl px-4 py-4 mb-5`}>
+                <View style={tw`flex-row items-center justify-between mb-2`}>
+                  <Text style={tw`text-white text-base font-bold`}>{smartInsight.title}</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleShareInsight}
+                    style={tw`px-3 py-1.5 rounded-full bg-white/15`}
+                  >
+                    <Text style={tw`text-white text-[11px] font-semibold uppercase tracking-wide`}>Share</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={tw`text-white/85 text-sm leading-5`}>
+                  {smartInsight.message}
+                </Text>
+                <Text style={tw`text-white/60 text-[11px] mt-2`}>
+                  AI-style summary based on your current and previous {period} totals.
+                </Text>
+              </View>
+
               <View style={tw`flex-row items-center justify-between mb-4`}>
                 <Text style={tw`text-slate-800 text-lg font-bold`}>Expense Trend</Text>
                 <View style={tw`flex-row items-center bg-teal-50 px-3 py-1 rounded-full`}>

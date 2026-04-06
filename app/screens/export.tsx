@@ -4,7 +4,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
 import { getTransactions, TransactionRecord } from '@/services/db';
-import { exportTransactionsToFile, filterTransactionsByRange } from '@/services/export';
+import { exportTransactionsToFile, filterTransactionsByRange, shareReportSummary } from '@/services/export';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
@@ -15,6 +15,7 @@ import {
     FileSpreadsheet,
     FileText,
     Image as ImageIcon,
+    Share2,
     ShieldCheck
 } from 'lucide-react-native';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -42,6 +43,7 @@ const ExportScreen = () => {
     const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
     const [includeReceipts, setIncludeReceipts] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [isSharingReport, setIsSharingReport] = useState(false);
     const dataScopeUserId = user?.id || 0;
 
     const loadTransactions = useCallback(async () => {
@@ -72,6 +74,27 @@ const ExportScreen = () => {
         return `${Math.max(5, base * 1.5).toFixed(0)} KB`;
     }, [filteredTransactions.length, format]);
 
+    const reportInsight = useMemo(() => {
+        if (!filteredTransactions.length) return 'No report insight yet.';
+
+        const expenseTransactions = filteredTransactions.filter((item) => item.type === 'expense');
+        const totalExpense = expenseTransactions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const avgExpense = expenseTransactions.length ? totalExpense / expenseTransactions.length : 0;
+        const groupedCategories = expenseTransactions.reduce<Record<string, number>>((acc, item) => {
+            const key = item.category || 'Other';
+            acc[key] = (acc[key] || 0) + (Number(item.amount) || 0);
+            return acc;
+        }, {});
+
+        const topCategoryEntry = Object.entries(groupedCategories).sort((a, b) => b[1] - a[1])[0];
+
+        if (topCategoryEntry) {
+            return `${topCategoryEntry[0]} leads your spending at ${Math.round((topCategoryEntry[1] / Math.max(totalExpense, 1)) * 100)}% of this report.`;
+        }
+
+        return `Average spend per expense entry is ${avgExpense.toFixed(0)} ${currency}.`;
+    }, [currency, filteredTransactions]);
+
     const handleExport = async () => {
         if (!filteredTransactions.length) {
             Alert.alert(t('Opps'), t('noDataToExport'));
@@ -98,6 +121,34 @@ const ExportScreen = () => {
             }
         } finally {
             setIsExporting(false);
+        }
+    };
+
+    const handleShareReport = async () => {
+        if (!filteredTransactions.length) {
+            Alert.alert(t('Opps'), t('noDataToExport'));
+            return;
+        }
+
+        setIsSharingReport(true);
+        try {
+            const result = await shareReportSummary({
+                transactions: filteredTransactions,
+                range,
+                currency,
+                insight: reportInsight,
+            });
+
+            if (result.success) {
+                showSuccess({
+                    title: t('success'),
+                    message: result.message,
+                });
+            } else {
+                Alert.alert(t('Opps'), result.message);
+            }
+        } finally {
+            setIsSharingReport(false);
         }
     };
 
@@ -213,6 +264,16 @@ const ExportScreen = () => {
                             />
                         </View>
 
+                        <View style={tw`bg-slate-50 rounded-2xl p-4 mb-5 border border-slate-100`}>
+                            <View style={tw`flex-row items-center justify-between mb-2`}>
+                                <Text style={tw`text-gray-900 font-bold text-sm`}>Shareable report</Text>
+                                <Share2 size={16} color={theme.colors.primary} />
+                            </View>
+                            <Text style={tw`text-gray-600 text-xs leading-5`}>
+                                {reportInsight}
+                            </Text>
+                        </View>
+
                         <TouchableOpacity
                             onPress={handleExport}
                             disabled={isExporting}
@@ -229,6 +290,22 @@ const ExportScreen = () => {
                             )}
                             <Text style={tw`text-white font-bold text-lg tracking-wide`}>
                                 {isExporting ? t('exporting') : t('exportBtn')}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={handleShareReport}
+                            disabled={isSharingReport}
+                            activeOpacity={0.8}
+                            style={tw`mt-3 rounded-2xl py-4 border border-slate-200 bg-white flex-row justify-center items-center ${isSharingReport ? 'opacity-70' : ''}`}
+                        >
+                            {isSharingReport ? (
+                                <ActivityIndicator color={theme.colors.primary} size="small" style={tw`mr-2`} />
+                            ) : (
+                                <Share2 size={18} color={theme.colors.primary} style={tw`mr-2`} />
+                            )}
+                            <Text style={tw`text-slate-800 font-bold text-base`}>
+                                Share to social media
                             </Text>
                         </TouchableOpacity>
 

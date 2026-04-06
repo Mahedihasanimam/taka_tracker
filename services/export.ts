@@ -4,6 +4,7 @@ import { CurrencyCode, formatCurrency } from "@/utils/currency";
 import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { Share } from "react-native";
 
 type ExportFormat = "csv" | "pdf";
 type ExportRange = "7days" | "30days" | "month" | "all";
@@ -37,6 +38,13 @@ export const filterTransactionsByRange = (
     const date = sanitizeDate(transaction.date);
     return date ? date >= startDate : false;
   });
+};
+
+const formatRangeLabel = (range: ExportRange) => {
+  if (range === "7days") return "Last 7 days";
+  if (range === "30days") return "Last 30 days";
+  if (range === "month") return "This month";
+  return "All time";
 };
 
 const csvEscape = (value: string | number | null | undefined): string => {
@@ -195,6 +203,84 @@ export const exportTransactionsToFile = async ({
     return {
       success: false,
       message: error instanceof Error ? error.message : "Export failed.",
+    };
+  }
+};
+
+export const shareReportSummary = async ({
+  transactions,
+  range,
+  currency = "USD",
+  insight,
+}: {
+  transactions: TransactionRecord[];
+  range: ExportRange;
+  currency?: CurrencyCode;
+  insight?: string;
+}): Promise<{ success: boolean; message: string }> => {
+  try {
+    if (!transactions.length) {
+      return {
+        success: false,
+        message: "No data to share.",
+      };
+    }
+
+    const totals = transactions.reduce(
+      (acc, transaction) => {
+        const amount = Number(transaction.amount) || 0;
+        if (transaction.type === "income") acc.totalIncome += amount;
+        if (transaction.type === "expense") acc.totalExpense += amount;
+        return acc;
+      },
+      { totalIncome: 0, totalExpense: 0 },
+    );
+
+    const balance = totals.totalIncome - totals.totalExpense;
+    const topCategory = transactions
+      .filter((transaction) => transaction.type === "expense")
+      .reduce<Record<string, number>>((acc, transaction) => {
+        const key = transaction.category || "Other";
+        acc[key] = (acc[key] || 0) + (Number(transaction.amount) || 0);
+        return acc;
+      }, {});
+
+    const topExpenseCategory =
+      Object.entries(topCategory).sort((a, b) => b[1] - a[1])[0] || null;
+
+    const lines = [
+      `My TakaTrack report for ${formatRangeLabel(range)}`,
+      `Income: ${formatCurrency(totals.totalIncome, currency)}`,
+      `Expense: ${formatCurrency(totals.totalExpense, currency)}`,
+      `Net: ${formatCurrency(balance, currency)}`,
+      `Transactions: ${transactions.length}`,
+    ];
+
+    if (topExpenseCategory) {
+      lines.push(
+        `Top spend: ${topExpenseCategory[0]} (${formatCurrency(topExpenseCategory[1], currency)})`,
+      );
+    }
+
+    if (insight) {
+      lines.push(`Insight: ${insight}`);
+    }
+
+    lines.push("Tracked with TakaTrack");
+
+    await Share.share({
+      message: lines.join("\n"),
+      title: "Share report",
+    });
+
+    return {
+      success: true,
+      message: "Report summary ready to share.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Share failed.",
     };
   }
 };

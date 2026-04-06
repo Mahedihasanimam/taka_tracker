@@ -105,6 +105,7 @@ const AddTransactionScreen = () => {
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
     const [expenseCategories, setExpenseCategories] = useState<Category[]>(defaultExpenseCategories);
     const [incomeCategories, setIncomeCategories] = useState<Category[]>(defaultIncomeCategories);
@@ -165,6 +166,61 @@ const AddTransactionScreen = () => {
         });
     }, []);
 
+    const isToday = useCallback((value: Date) => {
+        const today = new Date();
+        return value.toDateString() === today.toDateString();
+    }, []);
+
+    const isYesterday = useCallback((value: Date) => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return value.toDateString() === yesterday.toDateString();
+    }, []);
+
+    const persistTransaction = useCallback(async (transactionAmount: string, overrides?: { closeAfterSave?: boolean }) => {
+        if (!transactionAmount || parseFloat(transactionAmount) <= 0) {
+            Alert.alert(t('Opps'), t('enterValidAmount'));
+            return false;
+        }
+        if (!selectedCategory) {
+            Alert.alert(t('Opps'), t('selectCategory'));
+            return false;
+        }
+        if (isSaving) {
+            return false;
+        }
+
+        setIsSaving(true);
+        try {
+            await addTransaction(
+                user?.id || 0,
+                parseFloat(transactionAmount),
+                type,
+                selectedCategory.name,
+                date.toISOString(),
+                note.trim(),
+                selectedCategory.icon,
+                selectedCategory.color
+            );
+
+            setAmount('');
+            setNote('');
+            setDate(new Date());
+
+            if (overrides?.closeAfterSave !== false) {
+                router.replace('/(tabs)/transactions');
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Failed to save transaction:', error);
+            Alert.alert(t('Opps'), t('somethingWrong'));
+            return false;
+        } finally {
+            setIsSaving(false);
+        }
+    }, [date, isSaving, note, router, selectedCategory, t, type, user?.id]);
+
     const sanitizeAmount = (value: string) => {
         const cleaned = value.replace(/[^0-9.]/g, '');
         const [whole, ...decimalParts] = cleaned.split('.');
@@ -177,31 +233,26 @@ const AddTransactionScreen = () => {
         focusAmountInput();
     };
 
+    const handleQuickAmountPress = async (quickValue: string) => {
+        const canInstantSave =
+            type === 'expense' &&
+            !!selectedCategory &&
+            !note.trim() &&
+            isToday(date);
+
+        if (canInstantSave) {
+            setAmount(quickValue);
+            await persistTransaction(quickValue);
+            return;
+        }
+
+        applyQuickAmount(quickValue);
+    };
+
     const quickAmounts = type === 'expense' ? ['100', '500', '1000'] : ['1000', '5000', '10000'];
 
     const handleSave = async () => {
-        if (!amount || parseFloat(amount) <= 0) {
-            Alert.alert(t('Opps'), t('enterValidAmount'));
-            return;
-        }
-        if (!selectedCategory) {
-            Alert.alert(t('Opps'), t('selectCategory'));
-            return;
-        }
-
-        router.replace('/(tabs)/transactions');
-        addTransaction(
-            user?.id || 0,
-            parseFloat(amount),
-            type,
-            selectedCategory.name,
-            date.toISOString(),
-            note.trim(),
-            selectedCategory.icon,
-            selectedCategory.color
-        ).catch((error) => {
-            console.error('Failed to save transaction:', error);
-        });
+        await persistTransaction(amount);
     };
 
     const formatDate = (d: Date) => {
@@ -323,15 +374,56 @@ const AddTransactionScreen = () => {
                                 )}
                             </View>
 
+                            {type === 'expense' && (
+                                <View style={tw`mb-4 rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3`}>
+                                    <Text style={tw`text-amber-900 text-sm font-bold mb-1`}>5-sec quick expense</Text>
+                                    <Text style={tw`text-amber-800 text-xs leading-5`}>
+                                        Pick a category, tap an amount chip, and the expense saves instantly when note is empty and date is today.
+                                    </Text>
+                                </View>
+                            )}
+
                             <View style={tw`mb-4`}>
                                 <Text style={tw`text-slate-700 text-sm font-bold mb-2`}>{t('date')}</Text>
-                                <TouchableOpacity
-                                    onPress={() => setShowDatePicker(true)}
-                                    style={tw`flex-row items-center border border-slate-200 rounded-2xl px-3.5 py-3 bg-slate-50`}
-                                >
-                                    <Calendar size={18} color={theme.colors.gray500} />
-                                    <Text style={tw`text-slate-700 text-sm font-semibold ml-2 flex-1`}>{formatDate(date)}</Text>
-                                </TouchableOpacity>
+                                <View style={tw`flex-row items-center`}>
+                                    <TouchableOpacity
+                                        onPress={() => setDate(new Date())}
+                                        style={[
+                                            tw`px-3 py-2 rounded-xl mr-2 border`,
+                                            isToday(date)
+                                                ? { backgroundColor: accentSoft, borderColor: accentColor }
+                                                : { backgroundColor: theme.colors.white, borderColor: theme.colors.border }
+                                        ]}
+                                    >
+                                        <Text style={[tw`text-xs font-semibold`, { color: isToday(date) ? accentColor : theme.colors.gray600 }]}>
+                                            {t('today')}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            const yesterday = new Date();
+                                            yesterday.setDate(yesterday.getDate() - 1);
+                                            setDate(yesterday);
+                                        }}
+                                        style={[
+                                            tw`px-3 py-2 rounded-xl mr-2 border`,
+                                            isYesterday(date)
+                                                ? { backgroundColor: accentSoft, borderColor: accentColor }
+                                                : { backgroundColor: theme.colors.white, borderColor: theme.colors.border }
+                                        ]}
+                                    >
+                                        <Text style={[tw`text-xs font-semibold`, { color: isYesterday(date) ? accentColor : theme.colors.gray600 }]}>
+                                            {t('yesterday')}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setShowDatePicker(true)}
+                                        style={tw`flex-row items-center border border-slate-200 rounded-2xl px-3.5 py-3 bg-slate-50 flex-1`}
+                                    >
+                                        <Calendar size={18} color={theme.colors.gray500} />
+                                        <Text style={tw`text-slate-700 text-sm font-semibold ml-2 flex-1`}>{formatDate(date)}</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             <View style={tw`mb-4`}>
@@ -357,7 +449,7 @@ const AddTransactionScreen = () => {
                                         return (
                                             <TouchableOpacity
                                                 key={quickValue}
-                                                onPress={() => applyQuickAmount(quickValue)}
+                                                onPress={() => handleQuickAmountPress(quickValue)}
                                                 style={[
                                                     tw`px-3 py-2 rounded-xl mr-2 border`,
                                                     {
@@ -400,12 +492,19 @@ const AddTransactionScreen = () => {
 
                             <TouchableOpacity
                                 activeOpacity={0.85}
-                                style={[tw`rounded-2xl mb-12 py-4 items-center`, { backgroundColor: accentColor }]}
+                                disabled={isSaving}
+                                style={[tw`rounded-2xl mb-12 py-4 items-center ${isSaving ? 'opacity-70' : ''}`, { backgroundColor: accentColor }]}
                                 onPress={handleSave}
                             >
                                 <View style={tw`flex-row items-center`}>
-                                    <CheckCircle size={20} color={theme.colors.white} style={tw`mr-2`} />
-                                    <Text style={tw`text-white font-bold text-base tracking-wide`}>{t('saveTransaction')}</Text>
+                                    {isSaving ? (
+                                        <ActivityIndicator color={theme.colors.white} style={tw`mr-2`} />
+                                    ) : (
+                                        <CheckCircle size={20} color={theme.colors.white} style={tw`mr-2`} />
+                                    )}
+                                    <Text style={tw`text-white font-bold text-base tracking-wide`}>
+                                        {isSaving ? t('loading') : t('saveTransaction')}
+                                    </Text>
                                 </View>
                             </TouchableOpacity>
                         </View>

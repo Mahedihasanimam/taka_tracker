@@ -27,6 +27,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for voice expense entry.",
+          "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to convert your speech into transactions."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/logo.png",
