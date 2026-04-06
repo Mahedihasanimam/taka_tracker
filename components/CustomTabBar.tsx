@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useSegments } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Modal, Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import tw from 'twrnc';
 
 const TAB_COLORS = {
@@ -25,8 +25,7 @@ export default function CustomTabBar() {
 
     // Panel animations
     const overlayOpacity = useRef(new Animated.Value(0)).current;
-    const panelTranslateX = useRef(new Animated.Value(40)).current; // Panel slides from right
-    const fabRotation = useRef(new Animated.Value(0)).current;
+    const panelTranslateX = useRef(new Animated.Value(40)).current;
 
     const quickActions = useMemo(() => [
         { key: 'expense', label: t('createExpense'), icon: 'arrow-down-circle' as const, color: theme.colors.expense, bg: theme.colors.redSoft, onPress: () => router.push({ pathname: '/add', params: { type: 'expense' } }) },
@@ -36,40 +35,48 @@ export default function CustomTabBar() {
         { key: 'currency', label: 'Currency', icon: 'globe-outline' as const, color: theme.colors.primary, bg: theme.colors.teal50, onPress: () => router.push('/screens/currency') },
     ], [router, t]);
 
-    // 1. Animation values for each individual list item
+    // Fast Refresh Safeguard
     const itemAnims = useRef(quickActions.map(() => new Animated.Value(0))).current;
+    if (itemAnims.length < quickActions.length) {
+        const diff = quickActions.length - itemAnims.length;
+        for (let i = 0; i < diff; i++) {
+            itemAnims.push(new Animated.Value(0));
+        }
+    }
 
-    // Tab bar interaction refs
+    // Tab bar interaction refs (Set to 'create' instead of 'voice')
     const tabAnimations = useRef({
         index: new Animated.Value(1),
         transactions: new Animated.Value(1),
         analytics: new Animated.Value(1),
-        profile: new Animated.Value(1),
+        create: new Animated.Value(1),
     }).current;
 
     const tabBounce = useRef({
         index: new Animated.Value(0),
         transactions: new Animated.Value(0),
         analytics: new Animated.Value(0),
-        profile: new Animated.Value(0),
+        create: new Animated.Value(0),
     }).current;
 
+    // Fast Refresh Safeguard
+    if (!tabAnimations.create) tabAnimations.create = new Animated.Value(1);
+    if (!tabBounce.create) tabBounce.create = new Animated.Value(0);
+
+    // The 4 main tabs on the bottom bar
     const tabs = [
-        { name: 'index', label: t('tabHome'), icon: 'home' as const },
-        { name: 'transactions', label: t('tabTransactions'), icon: 'list' as const },
+        { name: 'index', label: t('tabHome') || 'Home', icon: 'home' as const },
+        { name: 'transactions', label: t('tabTransactions') || 'History', icon: 'list' as const },
         { name: 'analytics', label: 'Analytics', icon: 'pie-chart' as const },
-        { name: 'profile', label: t('tabProfile'), icon: 'person' as const },
+        { name: 'create', label: t('quickCreate') || 'Create', icon: 'add-circle' as const },
     ];
 
     useEffect(() => {
         if (showCreateModal) {
-            // OPEN ANIMATION
             Animated.parallel([
                 Animated.timing(overlayOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
                 Animated.spring(panelTranslateX, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-                Animated.timing(fabRotation, { toValue: 1, duration: 300, easing: Easing.bezier(0.4, 0, 0.2, 1), useNativeDriver: true }),
-                // STAGGERED ITEMS: Each item slides from right (X: 50 -> 0)
-                Animated.stagger(100, itemAnims.map(anim =>
+                Animated.stagger(100, itemAnims.slice(0, quickActions.length).map(anim =>
                     Animated.spring(anim, {
                         toValue: 1,
                         friction: 7,
@@ -79,19 +86,18 @@ export default function CustomTabBar() {
                 ))
             ]).start();
         } else {
-            // CLOSE ANIMATION
             Animated.parallel([
                 Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
                 Animated.timing(panelTranslateX, { toValue: 40, duration: 200, useNativeDriver: true }),
-                Animated.timing(fabRotation, { toValue: 0, duration: 250, useNativeDriver: true }),
-                ...itemAnims.map(anim => Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }))
+                ...itemAnims.slice(0, quickActions.length).map(anim => Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }))
             ]).start();
         }
     }, [showCreateModal]);
 
     const animateTab = useCallback((tabName: string) => {
-        const scaleAnim = tabAnimations[tabName as keyof typeof tabAnimations];
-        const bounceAnim = tabBounce[tabName as keyof typeof tabBounce];
+        const scaleAnim = tabAnimations[tabName as keyof typeof tabAnimations] || new Animated.Value(1);
+        const bounceAnim = tabBounce[tabName as keyof typeof tabBounce] || new Animated.Value(0);
+
         Animated.parallel([
             Animated.sequence([
                 Animated.timing(scaleAnim, { toValue: 1.2, duration: 100, useNativeDriver: true }),
@@ -106,6 +112,13 @@ export default function CustomTabBar() {
 
     const goTo = (name: string) => {
         animateTab(name);
+
+        // Intercept Create click to open the modal
+        if (name === 'create') {
+            setShowCreateModal(true);
+            return;
+        }
+
         if (name === 'index') {
             router.push('/');
             return;
@@ -114,7 +127,23 @@ export default function CustomTabBar() {
     };
 
     const currentSegment = segments[segments.length - 1] || 'index';
-    const isActive = (name: string) => currentSegment === name || (name === 'index' && currentSegment === '(tabs)');
+
+    // Highlight the create tab if the modal is open
+    const isActive = (name: string) => {
+        if (name === 'create') return showCreateModal;
+        return currentSegment === name || (name === 'index' && currentSegment === '(tabs)');
+    };
+
+    // FAB animation for tapping
+    const fabScale = useRef(new Animated.Value(1)).current;
+
+    const handleVoicePressIn = () => {
+        Animated.spring(fabScale, { toValue: 0.9, useNativeDriver: true }).start();
+    };
+
+    const handleVoicePressOut = () => {
+        Animated.spring(fabScale, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+    };
 
     return (
         <View style={tw`absolute bottom-0 w-full`}>
@@ -125,11 +154,17 @@ export default function CustomTabBar() {
             >
                 {tabs.map((tab, idx) => (
                     <React.Fragment key={tab.name}>
+                        {/* Center Gap for the FAB */}
                         {idx === 2 && <View style={tw`w-20`} />}
+
                         <TouchableOpacity onPress={() => goTo(tab.name)} style={tw`items-center justify-center flex-1`}>
-                            <Animated.View style={{ transform: [{ scale: tabAnimations[tab.name as keyof typeof tabAnimations] }, { translateY: tabBounce[tab.name as keyof typeof tabBounce] }] }}>
+                            <Animated.View style={{ transform: [{ scale: tabAnimations[tab.name as keyof typeof tabAnimations] || 1 }, { translateY: tabBounce[tab.name as keyof typeof tabBounce] || 0 }] }}>
                                 <View style={[tw`p-2 rounded-xl`, isActive(tab.name) && { backgroundColor: TAB_COLORS.activeBg }]}>
-                                    <Ionicons name={isActive(tab.name) ? tab.icon : (`${tab.icon}-outline` as any)} size={24} color={isActive(tab.name) ? TAB_COLORS.active : TAB_COLORS.inactive} />
+                                    <Ionicons
+                                        name={isActive(tab.name) ? tab.icon : (`${tab.icon}-outline` as any)}
+                                        size={24}
+                                        color={isActive(tab.name) ? TAB_COLORS.active : TAB_COLORS.inactive}
+                                    />
                                 </View>
                             </Animated.View>
                             <Text style={[tw`text-[10px] mt-1 font-semibold`, { color: isActive(tab.name) ? TAB_COLORS.active : TAB_COLORS.inactive }]}>{tab.label}</Text>
@@ -138,15 +173,22 @@ export default function CustomTabBar() {
                 ))}
             </LinearGradient>
 
-            {/* FAB */}
+            {/* CENTRAL FAB - Triggers Voice Action */}
             <View style={[tw`absolute -top-7 items-center`, { left: '50%', transform: [{ translateX: -32 }] }]}>
-                <View style={[tw`w-20 h-10 absolute -top-1 rounded-full`, { backgroundColor: theme.colors.white }]} />
-                <Pressable onPress={() => setShowCreateModal(!showCreateModal)}>
-                    <LinearGradient colors={TAB_COLORS.fabGradient} style={[tw`w-16 h-16 rounded-full items-center justify-center border-4 shadow-lg`, { borderColor: theme.colors.white }]}>
-                        <Animated.View style={{ transform: [{ rotate: fabRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] }) }] }}>
-                            <Ionicons name="add" size={36} color={theme.colors.white} />
-                        </Animated.View>
-                    </LinearGradient>
+                <View style={[tw`w-20 h-10 absolute -top-1 rounded-full`]} />
+                <Pressable
+                    onPressIn={handleVoicePressIn}
+                    onPressOut={handleVoicePressOut}
+                    onPress={() => {
+                        console.log('Voice Input Triggered!');
+                        // Trigger your voice logic here
+                    }}
+                >
+                    <Animated.View style={{ transform: [{ scale: fabScale }] }}>
+                        <LinearGradient colors={['#EF4444', '#DC2626']} style={[tw`w-16 h-16 rounded-full items-center justify-center border-4 shadow-lg`, { borderColor: theme.colors.white }]}>
+                            <Ionicons name="mic" size={32} color={theme.colors.white} />
+                        </LinearGradient>
+                    </Animated.View>
                 </Pressable>
             </View>
 
@@ -166,7 +208,7 @@ export default function CustomTabBar() {
                         ]}
                     >
                         <View style={tw`flex-row items-center justify-between mb-4`}>
-                            <Text style={[tw`text-lg font-bold`, { color: TAB_COLORS.active }]}>{t('quickCreate')}</Text>
+                            <Text style={[tw`text-lg font-bold`, { color: TAB_COLORS.active }]}>{t('quickCreate') || 'Quick Create'}</Text>
                             <TouchableOpacity onPress={() => setShowCreateModal(false)} style={tw`w-8 h-8 rounded-full items-center justify-center bg-gray-100`}>
                                 <Ionicons name="close" size={18} color={TAB_COLORS.inactive} />
                             </TouchableOpacity>
@@ -181,7 +223,7 @@ export default function CustomTabBar() {
                                         {
                                             translateX: itemAnims[index].interpolate({
                                                 inputRange: [0, 1],
-                                                outputRange: [60, 0] // SLIDES FROM RIGHT (60px away)
+                                                outputRange: [60, 0] // SLIDES FROM RIGHT
                                             })
                                         }
                                     ]
@@ -204,3 +246,4 @@ export default function CustomTabBar() {
         </View>
     );
 }
+

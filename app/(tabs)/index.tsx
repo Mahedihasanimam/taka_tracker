@@ -205,7 +205,7 @@ const HomeScreen = () => {
     ];
 
   return (
-    <View style={tw`flex-1 bg-[#F1F1F1]`}>
+    <View style={tw`flex-1 bg-white`}>
       <StatusBar barStyle="light-content" />
 
       {/* Decorative Background Circle */}
@@ -221,10 +221,12 @@ const HomeScreen = () => {
         {/* Header Section */}
         <View style={tw`px-5  flex-row justify-between items-center pb-3 mt-1`}>
           <View style={tw`flex-row items-center gap-3 mt-6`}>
-            <Image
-              source={avatarUri ? { uri: avatarUri } : require('@/assets/images/avatar.png')}
-              style={tw`w-12 h-12 rounded-full bg-gray-300`}
-            />
+            <TouchableOpacity onPress={() => router.push('/(tabs)/profile')} style={tw`w-12 h-12 rounded-full overflow-hidden bg-gray-300`}>
+              <Image
+                source={avatarUri ? { uri: avatarUri } : require('@/assets/images/avatar.png')}
+                style={tw`w-12 h-12 rounded-full bg-gray-300`}
+              />
+            </TouchableOpacity>
             <View>
               <Text style={tw`text-white text-xl font-bold`}>{user?.name || 'Guest'}</Text>
               <Text style={tw`text-white/70 text-sm`}>{user?.phone || '000-000-0000'}</Text>
