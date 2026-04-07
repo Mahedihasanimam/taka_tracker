@@ -8,7 +8,7 @@ import { parseVoiceTransaction } from '@/services/voiceTransaction';
 import { router, useFocusEffect } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { ArrowLeft, Check, Mic, MicOff, RotateCcw } from 'lucide-react-native';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import tw from 'twrnc';
 
@@ -53,6 +53,11 @@ export default function VoiceAddScreen() {
     const [isSaving, setIsSaving] = useState(false);
     const [expenseCategories, setExpenseCategories] = useState<Category[]>(fallbackExpenseCategories);
     const [incomeCategories, setIncomeCategories] = useState<Category[]>(fallbackIncomeCategories);
+    const isStartingRecognitionRef = useRef(false);
+    const isRecognizingRef = useRef(false);
+    const hasAutoStartedRef = useRef(false);
+    const spokenTextRef = useRef('');
+    const contextualStringsRef = useRef<string[]>([]);
 
     useFocusEffect(
         useCallback(() => {
@@ -109,11 +114,15 @@ export default function VoiceAddScreen() {
     }, []);
 
     useSpeechRecognitionEvent('start', () => {
+        isStartingRecognitionRef.current = false;
+        isRecognizingRef.current = true;
         setErrorMessage('');
         setIsRecognizing(true);
     });
 
     useSpeechRecognitionEvent('end', () => {
+        isStartingRecognitionRef.current = false;
+        isRecognizingRef.current = false;
         setIsRecognizing(false);
     });
 
@@ -141,9 +150,16 @@ export default function VoiceAddScreen() {
     });
 
     useSpeechRecognitionEvent('error', (event: any) => {
+        isStartingRecognitionRef.current = false;
+        isRecognizingRef.current = false;
         setIsRecognizing(false);
         const code = event?.error;
         const fallbackTranscript = (liveTranscript || transcript).trim();
+
+        if (code === 'aborted') {
+            setErrorMessage('');
+            return;
+        }
 
         if ((code === 'no-speech' || code === 'speech-timeout') && fallbackTranscript) {
             setTranscript(fallbackTranscript);
@@ -171,6 +187,11 @@ export default function VoiceAddScreen() {
             return;
         }
 
+        if (code === 'busy') {
+            setErrorMessage('Voice recognition is already running. Wait a moment and try again.');
+            return;
+        }
+
         setErrorMessage(event?.message || 'Voice input failed. Please try again.');
     });
 
@@ -183,6 +204,7 @@ export default function VoiceAddScreen() {
     });
 
     const spokenText = transcript || liveTranscript;
+    spokenTextRef.current = spokenText;
 
     const parsed = useMemo(() => parseVoiceTransaction({
         transcript: spokenText,
@@ -194,6 +216,7 @@ export default function VoiceAddScreen() {
         () => [...expenseCategories, ...incomeCategories].map((item) => item.name).slice(0, 20),
         [expenseCategories, incomeCategories]
     );
+    contextualStringsRef.current = contextualStrings;
 
     const currentStep = !spokenText ? 1 : 2;
 
@@ -202,9 +225,16 @@ export default function VoiceAddScreen() {
         setLiveTranscript('');
         setErrorMessage('');
         setIsRecognizing(false);
+        isRecognizingRef.current = false;
     }, []);
 
     const handleStartListening = useCallback(async () => {
+        if (isStartingRecognitionRef.current || isRecognizingRef.current) {
+            return;
+        }
+
+        isStartingRecognitionRef.current = true;
+
         try {
             const available = ExpoSpeechRecognitionModule.isRecognitionAvailable();
             if (!available) {
@@ -214,6 +244,7 @@ export default function VoiceAddScreen() {
                         ? 'Voice recognition is unavailable on this device. Enable Google voice typing, then try again.'
                         : 'Voice recognition is unavailable on this device. Enable Siri & Dictation, then try again.'
                 );
+                isStartingRecognitionRef.current = false;
                 return;
             }
 
@@ -224,6 +255,7 @@ export default function VoiceAddScreen() {
                         ? 'Microphone and speech permission are required for voice add.'
                         : 'Voice permission is blocked for this app. Enable microphone and speech access in system settings.'
                 );
+                isStartingRecognitionRef.current = false;
                 return;
             }
 
@@ -234,22 +266,22 @@ export default function VoiceAddScreen() {
                 continuous: false,
                 maxAlternatives: 1,
                 addsPunctuation: true,
-                contextualStrings,
+                contextualStrings: contextualStringsRef.current,
                 iosVoiceProcessingEnabled: true,
                 volumeChangeEventOptions: {
                     enabled: true,
                     intervalMillis: 120,
                 },
                 androidIntentOptions: {
-                    EXTRA_LANGUAGE_MODEL: 'web_search',
-                    EXTRA_ENABLE_BIASING_DEVICE_CONTEXT: true,
+                    EXTRA_LANGUAGE_MODEL: 'free_form',
                 },
             });
         } catch (error) {
             console.error('Failed to start speech recognition:', error);
             setErrorMessage('Unable to start voice recognition on this device.');
+            isStartingRecognitionRef.current = false;
         }
-    }, [contextualStrings, resetVoiceState]);
+    }, [resetVoiceState]);
 
     const handleStopListening = useCallback(() => {
         try {
@@ -258,6 +290,35 @@ export default function VoiceAddScreen() {
             console.error('Failed to stop speech recognition:', error);
         }
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (isCheckingAvailability || !isRecognitionAvailable) {
+                hasAutoStartedRef.current = false;
+                return;
+            }
+
+            if (spokenTextRef.current.trim() || hasAutoStartedRef.current) {
+                return;
+            }
+
+            hasAutoStartedRef.current = true;
+            const timer = setTimeout(() => {
+                handleStartListening();
+            }, 250);
+
+            return () => {
+                clearTimeout(timer);
+                hasAutoStartedRef.current = false;
+                isStartingRecognitionRef.current = false;
+                try {
+                    ExpoSpeechRecognitionModule.abort();
+                } catch {
+                    // noop
+                }
+            };
+        }, [handleStartListening, isCheckingAvailability, isRecognitionAvailable])
+    );
 
     const handleConfirm = useCallback(async () => {
         if (!parsed.amount || parsed.amount <= 0) {
