@@ -49,6 +49,10 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your microphone for voice expense entry.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to convert your speech into transactions.</string>
     <key>NSSupportsLiveActivities</key>
     <true/>
     <key>NSSupportsLiveActivitiesFrequentUpdates</key>

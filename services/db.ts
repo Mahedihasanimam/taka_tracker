@@ -482,6 +482,46 @@ const syncLocalUser = async (user: User): Promise<void> => {
   });
 };
 
+const migrateAnonymousDataToUser = async (userId: number): Promise<void> => {
+  const database = await ensureDB();
+
+  await database.withTransactionAsync(async () => {
+    await database.runAsync(
+      `UPDATE transactions SET user_id = ? WHERE user_id IS NULL OR user_id = 0`,
+      [userId],
+    );
+    await database.runAsync(
+      `UPDATE budgets SET user_id = ? WHERE user_id IS NULL OR user_id = 0`,
+      [userId],
+    );
+
+    const anonymousCategories = await database.getAllAsync<{
+      id: number;
+      name: string;
+      type: string;
+    }>(
+      `SELECT id, name, type FROM categories WHERE user_id IS NULL OR user_id = 0`,
+    );
+
+    for (const category of anonymousCategories) {
+      const existingCategory = await database.getFirstAsync<{ id: number }>(
+        `SELECT id FROM categories WHERE user_id = ? AND name = ? AND type = ? LIMIT 1`,
+        [userId, category.name, category.type],
+      );
+
+      if (existingCategory) {
+        await database.runAsync(`DELETE FROM categories WHERE id = ?`, [category.id]);
+        continue;
+      }
+
+      await database.runAsync(`UPDATE categories SET user_id = ? WHERE id = ?`, [
+        userId,
+        category.id,
+      ]);
+    }
+  });
+};
+
 const createAuthTokenLocal = async (
   userId: number,
 ): Promise<{ token: string; expiresAt: string } | null> => {
@@ -517,7 +557,12 @@ const validateTokenLocal = async (
   const user = await database.getFirstAsync<User>(`SELECT * FROM users WHERE id = ?`, [
     tokenData.user_id,
   ]);
-  return user ? { valid: true, user } : { valid: false };
+  if (!user) {
+    return { valid: false };
+  }
+
+  await migrateAnonymousDataToUser(user.id);
+  return { valid: true, user };
 };
 
 const deleteAuthTokenLocal = async (token: string): Promise<boolean> => {
@@ -582,6 +627,7 @@ const loginUserLocal = async (
     return { success: false, message: "Invalid phone or password" };
   }
 
+  await migrateAnonymousDataToUser(user.id);
   const tokenData = await createAuthTokenLocal(user.id);
   if (!tokenData) {
     return { success: true, message: "Login successful", user };
@@ -747,7 +793,12 @@ export const validateToken = async (
         }
 
         const user = await getUserById(tokenData.user_id);
-        return user ? { valid: true, user } : { valid: false };
+        if (!user) {
+          return { valid: false };
+        }
+
+        await migrateAnonymousDataToUser(user.id);
+        return { valid: true, user };
       }
 
       if (response.status > 0 && !shouldFallbackToLocalAuth(response.status, response.error)) {
@@ -868,6 +919,7 @@ export const loginUser = async (
       if (response.ok && response.data?.length) {
         const user = toUser(response.data[0]);
         await syncLocalUser(user);
+        await migrateAnonymousDataToUser(user.id);
         const tokenData = await createAuthToken(user.id);
 
         if (tokenData) {
@@ -974,6 +1026,7 @@ export const loginWithGoogleIdentity = async (
 
       if (user) {
         await syncLocalUser(user);
+        await migrateAnonymousDataToUser(user.id);
         const tokenData = await createAuthToken(user.id);
         if (!tokenData) {
           return {
@@ -1010,6 +1063,7 @@ export const loginWithGoogleIdentity = async (
       return { success: false, message: "Google login failed." };
     }
 
+    await migrateAnonymousDataToUser(user.id);
     const tokenData = await createAuthTokenLocal(user.id);
     if (!tokenData) {
       return { success: false, message: "Google login failed: unable to create session token." };

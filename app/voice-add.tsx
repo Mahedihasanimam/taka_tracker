@@ -9,7 +9,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { ArrowLeft, Check, Mic, MicOff, RotateCcw } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import tw from 'twrnc';
 
 type Category = {
@@ -157,6 +157,20 @@ export default function VoiceAddScreen() {
             return;
         }
 
+        if (code === 'service-not-allowed') {
+            setErrorMessage(
+                Platform.OS === 'android'
+                    ? 'No speech recognition service is available. Install or enable Google voice typing on this device.'
+                    : 'Speech recognition is disabled on this device. Enable Siri & Dictation, then try again.'
+            );
+            return;
+        }
+
+        if (code === 'not-allowed') {
+            setErrorMessage('Microphone or speech permission was denied. Enable it in system settings and try again.');
+            return;
+        }
+
         setErrorMessage(event?.message || 'Voice input failed. Please try again.');
     });
 
@@ -192,9 +206,24 @@ export default function VoiceAddScreen() {
 
     const handleStartListening = useCallback(async () => {
         try {
+            const available = ExpoSpeechRecognitionModule.isRecognitionAvailable();
+            if (!available) {
+                setIsRecognitionAvailable(false);
+                setErrorMessage(
+                    Platform.OS === 'android'
+                        ? 'Voice recognition is unavailable on this device. Enable Google voice typing, then try again.'
+                        : 'Voice recognition is unavailable on this device. Enable Siri & Dictation, then try again.'
+                );
+                return;
+            }
+
             const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
             if (!permission.granted) {
-                setErrorMessage('Microphone and speech permission are required for voice add.');
+                setErrorMessage(
+                    permission.canAskAgain
+                        ? 'Microphone and speech permission are required for voice add.'
+                        : 'Voice permission is blocked for this app. Enable microphone and speech access in system settings.'
+                );
                 return;
             }
 
@@ -202,7 +231,7 @@ export default function VoiceAddScreen() {
             ExpoSpeechRecognitionModule.start({
                 lang: 'en-US',
                 interimResults: true,
-                continuous: true,
+                continuous: false,
                 maxAlternatives: 1,
                 addsPunctuation: true,
                 contextualStrings,
@@ -211,7 +240,6 @@ export default function VoiceAddScreen() {
                     enabled: true,
                     intervalMillis: 120,
                 },
-                androidIntent: 'android.speech.action.WEB_SEARCH',
                 androidIntentOptions: {
                     EXTRA_LANGUAGE_MODEL: 'web_search',
                     EXTRA_ENABLE_BIASING_DEVICE_CONTEXT: true,
