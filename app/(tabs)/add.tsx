@@ -2,7 +2,7 @@ import { theme } from "@/constants/theme";
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { addTransaction, getCategories } from '@/services/db';
+import { addTransaction, getCategories, updateTransaction } from '@/services/db';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -34,7 +34,7 @@ import {
     Wifi,
     Zap
 } from 'lucide-react-native';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -94,7 +94,16 @@ const AddTransactionScreen = () => {
     const { currencySymbol } = useCurrency();
     const { user } = useAuth();
     const router = useRouter();
-    const params = useLocalSearchParams<{ type?: string }>();
+    const params = useLocalSearchParams<{
+        type?: string | string[];
+        transactionId?: string | string[];
+        amount?: string | string[];
+        category?: string | string[];
+        note?: string | string[];
+        date?: string | string[];
+        icon?: string | string[];
+        color?: string | string[];
+    }>();
     const scrollRef = useRef<ScrollView>(null);
     const amountInputRef = useRef<TextInput>(null);
 
@@ -109,6 +118,21 @@ const AddTransactionScreen = () => {
 
     const [expenseCategories, setExpenseCategories] = useState<Category[]>(defaultExpenseCategories);
     const [incomeCategories, setIncomeCategories] = useState<Category[]>(defaultIncomeCategories);
+
+    const getParamValue = useCallback((value?: string | string[]) => {
+        if (Array.isArray(value)) return value[0] || '';
+        return value || '';
+    }, []);
+
+    const editTransactionId = Number(getParamValue(params.transactionId));
+    const isEditMode = Number.isFinite(editTransactionId) && editTransactionId > 0;
+    const editTypeParam = getParamValue(params.type);
+    const editAmountParam = getParamValue(params.amount);
+    const editCategoryParam = getParamValue(params.category);
+    const editNoteParam = getParamValue(params.note);
+    const editDateParam = getParamValue(params.date);
+    const editIconParam = getParamValue(params.icon);
+    const editColorParam = getParamValue(params.color);
 
     const fetchCategories = useCallback(async () => {
         setIsLoadingCategories(true);
@@ -130,18 +154,57 @@ const AddTransactionScreen = () => {
     useFocusEffect(
         useCallback(() => {
             fetchCategories();
-            setAmount('');
-            setSelectedCategory(null);
-            setNote('');
-            setDate(new Date());
 
-            if (params.type === 'income' || params.type === 'expense') {
-                setType(params.type);
+            if (editTypeParam === 'income' || editTypeParam === 'expense') {
+                setType(editTypeParam);
             } else {
                 setType('expense');
             }
-        }, [fetchCategories, params.type])
+
+            if (isEditMode) {
+                setAmount(editAmountParam);
+                setNote(editNoteParam);
+
+                const parsedDate = editDateParam ? new Date(editDateParam) : new Date();
+                setDate(Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate);
+
+                setSelectedCategory(
+                    editCategoryParam
+                        ? {
+                            id: `edit-${editCategoryParam}`,
+                            name: editCategoryParam,
+                            icon: editIconParam || 'MoreHorizontal',
+                            color: editColorParam || theme.colors.mutedText,
+                            type: (editTypeParam === 'income' || editTypeParam === 'expense') ? editTypeParam : 'expense',
+                        }
+                        : null
+                );
+            } else {
+                setAmount('');
+                setSelectedCategory(null);
+                setNote('');
+                setDate(new Date());
+            }
+        }, [
+            editAmountParam,
+            editCategoryParam,
+            editColorParam,
+            editDateParam,
+            editIconParam,
+            editNoteParam,
+            editTypeParam,
+            fetchCategories,
+            isEditMode,
+        ])
     );
+
+    useEffect(() => {
+        if (!isEditMode || !editCategoryParam) return;
+        const matched = currentCategories.find((cat) => cat.name === editCategoryParam);
+        if (matched) {
+            setSelectedCategory(matched);
+        }
+    }, [currentCategories, editCategoryParam, isEditMode]);
 
     const currentCategories = type === 'expense' ? expenseCategories : incomeCategories;
     const visibleCategories = useMemo(() => currentCategories.slice(0, 12), [currentCategories]);
@@ -192,16 +255,29 @@ const AddTransactionScreen = () => {
 
         setIsSaving(true);
         try {
-            await addTransaction(
-                user?.id || 0,
-                parseFloat(transactionAmount),
-                type,
-                selectedCategory.name,
-                date.toISOString(),
-                note.trim(),
-                selectedCategory.icon,
-                selectedCategory.color
-            );
+            if (isEditMode) {
+                await updateTransaction(
+                    editTransactionId,
+                    parseFloat(transactionAmount),
+                    type,
+                    selectedCategory.name,
+                    date.toISOString(),
+                    note.trim(),
+                    selectedCategory.icon,
+                    selectedCategory.color
+                );
+            } else {
+                await addTransaction(
+                    user?.id || 0,
+                    parseFloat(transactionAmount),
+                    type,
+                    selectedCategory.name,
+                    date.toISOString(),
+                    note.trim(),
+                    selectedCategory.icon,
+                    selectedCategory.color
+                );
+            }
 
             setAmount('');
             setNote('');
@@ -219,7 +295,7 @@ const AddTransactionScreen = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [date, isSaving, note, router, selectedCategory, t, type, user?.id]);
+    }, [date, editTransactionId, isEditMode, isSaving, note, router, selectedCategory, t, type, user?.id]);
 
     const sanitizeAmount = (value: string) => {
         const cleaned = value.replace(/[^0-9.]/g, '');
@@ -291,7 +367,7 @@ const AddTransactionScreen = () => {
                             <TouchableOpacity onPress={() => router.back()} style={tw`w-10 h-10 rounded-full bg-white/20 items-center justify-center`}>
                                 <ArrowLeft size={20} color={theme.colors.white} />
                             </TouchableOpacity>
-                            <Text style={tw`text-white text-lg font-extrabold`}>{t('addTransaction')}</Text>
+                            <Text style={tw`text-white text-lg font-extrabold`}>{isEditMode ? t('editTransaction') : t('addTransaction')}</Text>
                             <View style={tw`w-10`} />
                         </View>
 
@@ -503,7 +579,7 @@ const AddTransactionScreen = () => {
                                         <CheckCircle size={20} color={theme.colors.white} style={tw`mr-2`} />
                                     )}
                                     <Text style={tw`text-white font-bold text-base tracking-wide`}>
-                                        {isSaving ? t('loading') : t('saveTransaction')}
+                                        {isSaving ? t('loading') : isEditMode ? 'Update Transaction' : t('saveTransaction')}
                                     </Text>
                                 </View>
                             </TouchableOpacity>

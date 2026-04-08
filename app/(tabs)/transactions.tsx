@@ -293,6 +293,12 @@ const TransactionsScreen = () => {
 
     // Handle delete
     const handleDelete = (transaction: any) => {
+        const transactionId = Number(transaction?.id);
+        if (!Number.isFinite(transactionId)) {
+            Alert.alert(t('Opps'), t('somethingWrong'));
+            return;
+        }
+
         Alert.alert(
             t('deleteTransaction'),
             t('deleteTransactionConfirm'),
@@ -303,10 +309,12 @@ const TransactionsScreen = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await deleteTransaction(transaction.id);
-                            fetchData();
+                            await deleteTransaction(transactionId);
+                            setTransactions((prev) => prev.filter((item) => Number(item.id) !== transactionId));
+                            setSelectedTransaction(null);
                             setShowActionModal(false);
-                        } catch (error) {
+                            fetchData();
+                        } catch {
                             Alert.alert(t('Opps'), t('somethingWrong'));
                         }
                     }
@@ -314,6 +322,24 @@ const TransactionsScreen = () => {
             ]
         );
     };
+
+    const handleEdit = useCallback((transaction: any) => {
+        if (!transaction) return;
+        setShowActionModal(false);
+        router.push({
+            pathname: '/add',
+            params: {
+                transactionId: String(transaction.id),
+                type: String(transaction.type || 'expense'),
+                amount: String(transaction.amount ?? ''),
+                category: String(transaction.category || ''),
+                note: String(transaction.note || ''),
+                date: String(transaction.date || ''),
+                icon: String(transaction.icon || ''),
+                color: String(transaction.color || ''),
+            },
+        });
+    }, [router]);
 
     // Handle long press
     const handleLongPress = (transaction: any) => {
@@ -674,8 +700,7 @@ const TransactionsScreen = () => {
 
                             <TouchableOpacity
                                 onPress={() => {
-                                    setShowActionModal(false);
-                                    router.push('/add');
+                                    handleEdit(selectedTransaction);
                                 }}
                                 style={tw`flex-row items-center p-4 bg-gray-50 rounded-xl mb-3`}
                             >
