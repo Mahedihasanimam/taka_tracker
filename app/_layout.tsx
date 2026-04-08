@@ -43,7 +43,7 @@ function RootLayoutNav() {
     const inOnboarding = segments[0] === 'onboarding';
     const inTabsGroup = segments[0] === '(tabs)';
     const inStandaloneAppScreen =
-      segments[0] === 'screens' || segments[0] === 'profile' || segments[0] === 'transaction';
+      segments[0] === 'screens' || segments[0] === 'profile' || segments[0] === 'transaction' || segments[0] === 'voice-add';
     const isRootIndex = pathname === '/' || pathname === '';
     let active = true;
 

@@ -12,6 +12,7 @@ type ParsedVoiceTransaction = {
   amount: number | null;
   type: "expense" | "income";
   category: CategoryLike | null;
+  transactionDateIso: string | null;
   note: string;
   confidenceLabel: "high" | "medium" | "low";
 };
@@ -63,29 +64,45 @@ const EXPENSE_KEYWORDS = [
 ];
 
 const CATEGORY_ALIASES: Record<string, string[]> = {
-  "food & dining": ["food", "dining", "restaurant", "lunch", "dinner", "breakfast", "meal"],
-  "groceries": ["grocery", "groceries", "super shop", "market"],
-  "transport": ["transport", "bus", "rickshaw", "uber", "taxi", "fare", "commute"],
-  "shopping": ["shopping", "cloth", "clothes", "mall", "purchase"],
-  "rent": ["rent", "house rent", "flat rent"],
-  "utilities": ["utility", "utilities", "electricity", "gas", "water"],
-  "bills": ["bill", "bills", "electric bill", "gas bill"],
-  "internet": ["internet", "wifi", "broadband"],
-  "mobile": ["mobile", "phone", "recharge", "top up"],
-  "healthcare": ["doctor", "medicine", "hospital", "health", "healthcare"],
-  "education": ["school", "college", "book", "course", "education", "tuition"],
-  "entertainment": ["movie", "game", "entertainment", "netflix"],
-  "fitness": ["gym", "fitness", "workout"],
-  "travel": ["travel", "trip", "flight", "train", "hotel"],
-  "salary": ["salary", "paycheck", "wage"],
-  "freelance": ["freelance", "client", "project payment"],
-  "business": ["business", "sale", "shop income"],
-  "bonus": ["bonus", "incentive"],
-  "investment": ["investment", "interest", "dividend"],
+  "food & dining": [
+    "food",
+    "dining",
+    "restaurant",
+    "lunch",
+    "dinner",
+    "breakfast",
+    "meal",
+  ],
+  groceries: ["grocery", "groceries", "super shop", "market"],
+  transport: [
+    "transport",
+    "bus",
+    "rickshaw",
+    "uber",
+    "taxi",
+    "fare",
+    "commute",
+  ],
+  shopping: ["shopping", "cloth", "clothes", "mall", "purchase"],
+  rent: ["rent", "house rent", "flat rent"],
+  utilities: ["utility", "utilities", "electricity", "gas", "water"],
+  bills: ["bill", "bills", "electric bill", "gas bill"],
+  internet: ["internet", "wifi", "broadband"],
+  mobile: ["mobile", "phone", "recharge", "top up"],
+  healthcare: ["doctor", "medicine", "hospital", "health", "healthcare"],
+  education: ["school", "college", "book", "course", "education", "tuition"],
+  entertainment: ["movie", "game", "entertainment", "netflix"],
+  fitness: ["gym", "fitness", "workout"],
+  travel: ["travel", "trip", "flight", "train", "hotel"],
+  salary: ["salary", "paycheck", "wage"],
+  freelance: ["freelance", "client", "project payment"],
+  business: ["business", "sale", "shop income"],
+  bonus: ["bonus", "incentive"],
+  investment: ["investment", "interest", "dividend"],
   "rental income": ["rent received", "rental income", "tenant payment"],
-  "refund": ["refund", "cashback", "returned money"],
+  refund: ["refund", "cashback", "returned money"],
   "other income": ["income", "received money", "deposit"],
-  "other": ["other", "misc", "miscellaneous"],
+  other: ["other", "misc", "miscellaneous"],
 };
 
 const SMALL_NUMBERS: Record<string, number> = {
@@ -123,6 +140,33 @@ const MULTIPLIERS: Record<string, number> = {
   hundred: 100,
   thousand: 1000,
   lakh: 100000,
+};
+
+const MONTH_INDEX: Record<string, number> = {
+  january: 0,
+  jan: 0,
+  february: 1,
+  feb: 1,
+  march: 2,
+  mar: 2,
+  april: 3,
+  apr: 3,
+  may: 4,
+  june: 5,
+  jun: 5,
+  july: 6,
+  jul: 6,
+  august: 7,
+  aug: 7,
+  september: 8,
+  sep: 8,
+  sept: 8,
+  october: 9,
+  oct: 9,
+  november: 10,
+  nov: 10,
+  december: 11,
+  dec: 11,
 };
 
 const normalizeText = (value: string) =>
@@ -168,6 +212,91 @@ const parseWordAmount = (normalized: string) => {
 
   const amount = total + current;
   return amount > 0 ? amount : null;
+};
+
+const buildSafeDate = (
+  year: number,
+  monthIndex: number,
+  day: number,
+): Date | null => {
+  const date = new Date(year, monthIndex, day);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== monthIndex ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  date.setHours(12, 0, 0, 0);
+  return date;
+};
+
+const parseMentionedDate = (transcript: string): string | null => {
+  const raw = transcript.toLowerCase().trim();
+  if (!raw) return null;
+
+  const now = new Date();
+
+  if (/(^|\s)today(\s|$)/.test(raw)) {
+    const today = new Date(now);
+    today.setHours(12, 0, 0, 0);
+    return today.toISOString();
+  }
+
+  if (/(^|\s)yesterday(\s|$)/.test(raw)) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(12, 0, 0, 0);
+    return yesterday.toISOString();
+  }
+
+  const isoMatch = raw.match(/\b(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\b/);
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const monthIndex = Number(isoMatch[2]) - 1;
+    const day = Number(isoMatch[3]);
+    const parsed = buildSafeDate(year, monthIndex, day);
+    if (parsed) return parsed.toISOString();
+  }
+
+  const dmyMatch = raw.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+  if (dmyMatch) {
+    const day = Number(dmyMatch[1]);
+    const monthIndex = Number(dmyMatch[2]) - 1;
+    let year = now.getFullYear();
+    if (dmyMatch[3]) {
+      const yearRaw = Number(dmyMatch[3]);
+      year = dmyMatch[3].length === 2 ? 2000 + yearRaw : yearRaw;
+    }
+    const parsed = buildSafeDate(year, monthIndex, day);
+    if (parsed) return parsed.toISOString();
+  }
+
+  const dayMonthYear = raw.match(
+    /\b(?:on\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)(?:\s+(\d{4}))?\b/,
+  );
+  if (dayMonthYear) {
+    const day = Number(dayMonthYear[1]);
+    const monthIndex = MONTH_INDEX[dayMonthYear[2]];
+    const year = dayMonthYear[3] ? Number(dayMonthYear[3]) : now.getFullYear();
+    const parsed = buildSafeDate(year, monthIndex, day);
+    if (parsed) return parsed.toISOString();
+  }
+
+  const monthDayYear = raw.match(
+    /\b(?:on\s+)?(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/,
+  );
+  if (monthDayYear) {
+    const monthIndex = MONTH_INDEX[monthDayYear[1]];
+    const day = Number(monthDayYear[2]);
+    const year = monthDayYear[3] ? Number(monthDayYear[3]) : now.getFullYear();
+    const parsed = buildSafeDate(year, monthIndex, day);
+    if (parsed) return parsed.toISOString();
+  }
+
+  return null;
 };
 
 const detectType = (normalized: string): "expense" | "income" => {
@@ -217,15 +346,18 @@ const matchCategory = (
   type: "expense" | "income",
   categories: CategoryLike[],
 ) => {
-  const scoped = categories.filter(
-    (category) => (category.type as "expense" | "income" | undefined) !== undefined
+  const scoped = categories.filter((category) =>
+    (category.type as "expense" | "income" | undefined) !== undefined
       ? category.type === type
       : true,
   );
   if (!scoped.length) return pickFallbackCategory([], type);
 
   const ranked = scoped
-    .map((category) => ({ category, score: scoreCategory(normalized, category) }))
+    .map((category) => ({
+      category,
+      score: scoreCategory(normalized, category),
+    }))
     .sort((left, right) => right.score - left.score);
 
   if (ranked[0] && ranked[0].score > 0) {
@@ -247,13 +379,19 @@ export const parseVoiceTransaction = ({
   const normalized = normalizeText(transcript);
   const type = detectType(normalized);
   const amount = parseDigitAmount(normalized) ?? parseWordAmount(normalized);
+  const transactionDateIso = parseMentionedDate(transcript);
   const category =
     type === "income"
       ? matchCategory(normalized, type, incomeCategories)
       : matchCategory(normalized, type, expenseCategories);
 
   let confidenceLabel: ParsedVoiceTransaction["confidenceLabel"] = "low";
-  if (amount && category && normalizeText(category.name) !== "other" && normalizeText(category.name) !== "other income") {
+  if (
+    amount &&
+    category &&
+    normalizeText(category.name) !== "other" &&
+    normalizeText(category.name) !== "other income"
+  ) {
     confidenceLabel = "high";
   } else if (amount) {
     confidenceLabel = "medium";
@@ -263,6 +401,7 @@ export const parseVoiceTransaction = ({
     amount,
     type,
     category,
+    transactionDateIso,
     note: transcript.trim(),
     confidenceLabel,
   };

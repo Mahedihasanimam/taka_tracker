@@ -5,11 +5,12 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useSuccessModal } from '@/context/SuccessModalContext';
 import { addTransaction, getCategories } from '@/services/db';
 import { parseVoiceTransaction } from '@/services/voiceTransaction';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, useFocusEffect } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { ArrowLeft, Check, Mic, MicOff, RotateCcw } from 'lucide-react-native';
+import { ArrowLeft, Check, RotateCcw } from 'lucide-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import tw from 'twrnc';
 
 type Category = {
@@ -51,13 +52,40 @@ export default function VoiceAddScreen() {
     const [isCheckingAvailability, setIsCheckingAvailability] = useState(true);
     const [isRecognitionAvailable, setIsRecognitionAvailable] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
     const [expenseCategories, setExpenseCategories] = useState<Category[]>(fallbackExpenseCategories);
     const [incomeCategories, setIncomeCategories] = useState<Category[]>(fallbackIncomeCategories);
     const isStartingRecognitionRef = useRef(false);
     const isRecognizingRef = useRef(false);
     const hasAutoStartedRef = useRef(false);
+    const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const initializedTranscriptRef = useRef('');
     const spokenTextRef = useRef('');
+    const transcriptRef = useRef('');
+    const liveTranscriptRef = useRef('');
     const contextualStringsRef = useRef<string[]>([]);
+
+    const clearAutoStopTimer = useCallback(() => {
+        if (autoStopTimerRef.current) {
+            clearTimeout(autoStopTimerRef.current);
+            autoStopTimerRef.current = null;
+        }
+    }, []);
+
+    const scheduleAutoStop = useCallback(() => {
+        clearAutoStopTimer();
+        autoStopTimerRef.current = setTimeout(() => {
+            if (!isRecognizingRef.current) return;
+            try {
+                ExpoSpeechRecognitionModule.stop();
+            } catch (error) {
+                console.error('Failed to auto-stop speech recognition:', error);
+            }
+        }, 1000);
+    }, [clearAutoStopTimer]);
 
     useFocusEffect(
         useCallback(() => {
@@ -105,13 +133,14 @@ export default function VoiceAddScreen() {
 
         return () => {
             active = false;
+            clearAutoStopTimer();
             try {
                 ExpoSpeechRecognitionModule.abort();
             } catch {
                 // noop
             }
         };
-    }, []);
+    }, [clearAutoStopTimer]);
 
     useSpeechRecognitionEvent('start', () => {
         isStartingRecognitionRef.current = false;
@@ -124,14 +153,24 @@ export default function VoiceAddScreen() {
         isStartingRecognitionRef.current = false;
         isRecognizingRef.current = false;
         setIsRecognizing(false);
+        clearAutoStopTimer();
+
+        // Some platforms emit only interim text; promote it when recognition ends.
+        const finalFallback = (transcriptRef.current || liveTranscriptRef.current).trim();
+        if (finalFallback) {
+            setTranscript(finalFallback);
+            transcriptRef.current = finalFallback;
+        }
     });
 
     useSpeechRecognitionEvent('speechstart', () => {
         setErrorMessage('');
+        clearAutoStopTimer();
     });
 
     useSpeechRecognitionEvent('soundstart', () => {
         setErrorMessage('');
+        clearAutoStopTimer();
     });
 
     useSpeechRecognitionEvent('result', (event: any) => {
@@ -143,9 +182,11 @@ export default function VoiceAddScreen() {
 
         if (!nextTranscript) return;
         setLiveTranscript(nextTranscript);
-        setTranscript(nextTranscript);
+        liveTranscriptRef.current = nextTranscript;
+        scheduleAutoStop();
         if (event?.isFinal || event?.results?.[0]?.isFinal) {
             setTranscript(nextTranscript);
+            transcriptRef.current = nextTranscript;
         }
     });
 
@@ -153,8 +194,9 @@ export default function VoiceAddScreen() {
         isStartingRecognitionRef.current = false;
         isRecognizingRef.current = false;
         setIsRecognizing(false);
+        clearAutoStopTimer();
         const code = event?.error;
-        const fallbackTranscript = (liveTranscript || transcript).trim();
+        const fallbackTranscript = (liveTranscriptRef.current || transcriptRef.current).trim();
 
         if (code === 'aborted') {
             setErrorMessage('');
@@ -164,6 +206,8 @@ export default function VoiceAddScreen() {
         if ((code === 'no-speech' || code === 'speech-timeout') && fallbackTranscript) {
             setTranscript(fallbackTranscript);
             setLiveTranscript(fallbackTranscript);
+            transcriptRef.current = fallbackTranscript;
+            liveTranscriptRef.current = fallbackTranscript;
             setErrorMessage('');
             return;
         }
@@ -203,7 +247,7 @@ export default function VoiceAddScreen() {
         setErrorMessage('I could not understand that. Try again with amount and category.');
     });
 
-    const spokenText = transcript || liveTranscript;
+    const spokenText = transcript.trim();
     spokenTextRef.current = spokenText;
 
     const parsed = useMemo(() => parseVoiceTransaction({
@@ -219,13 +263,64 @@ export default function VoiceAddScreen() {
     contextualStringsRef.current = contextualStrings;
 
     const currentStep = !spokenText ? 1 : 2;
+    const shouldShowError = Boolean(spokenText.trim()) || !isRecognizing;
+    const categoryOptions = parsed.type === 'income' ? incomeCategories : expenseCategories;
+
+    useEffect(() => {
+        if (!spokenText) {
+            initializedTranscriptRef.current = '';
+            setSelectedCategory(null);
+            setSelectedDate(new Date());
+            setShowCategoryPicker(false);
+            setShowDatePicker(false);
+            return;
+        }
+
+        if (initializedTranscriptRef.current === spokenText) {
+            return;
+        }
+
+        initializedTranscriptRef.current = spokenText;
+        const matchedCategory = categoryOptions.find((item) => item.name === parsed.category?.name);
+        setSelectedCategory(matchedCategory || parsed.category || null);
+
+        if (parsed.transactionDateIso) {
+            const parsedDate = new Date(parsed.transactionDateIso);
+            setSelectedDate(Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate);
+        } else {
+            setSelectedDate(new Date());
+        }
+    }, [categoryOptions, parsed.category, parsed.transactionDateIso, spokenText]);
+
+    const formatSelectedDate = useCallback((value: Date) => {
+        return value.toDateString();
+    }, []);
+
+    const handleDateChange = useCallback((_: any, nextDate?: Date) => {
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
+
+        if (nextDate) {
+            setSelectedDate(nextDate);
+        }
+    }, []);
+
+    const handleCategorySelect = useCallback((category: Category) => {
+        setSelectedCategory(category);
+        setShowCategoryPicker(false);
+    }, []);
 
     const resetVoiceState = useCallback(() => {
         setTranscript('');
         setLiveTranscript('');
         setErrorMessage('');
         setIsRecognizing(false);
+        setShowCategoryPicker(false);
+        setShowDatePicker(false);
         isRecognizingRef.current = false;
+        transcriptRef.current = '';
+        liveTranscriptRef.current = '';
     }, []);
 
     const handleStartListening = useCallback(async () => {
@@ -263,7 +358,7 @@ export default function VoiceAddScreen() {
             ExpoSpeechRecognitionModule.start({
                 lang: 'en-US',
                 interimResults: true,
-                continuous: false,
+                continuous: true,
                 maxAlternatives: 1,
                 addsPunctuation: true,
                 contextualStrings: contextualStringsRef.current,
@@ -282,14 +377,6 @@ export default function VoiceAddScreen() {
             isStartingRecognitionRef.current = false;
         }
     }, [resetVoiceState]);
-
-    const handleStopListening = useCallback(() => {
-        try {
-            ExpoSpeechRecognitionModule.stop();
-        } catch (error) {
-            console.error('Failed to stop speech recognition:', error);
-        }
-    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -311,13 +398,14 @@ export default function VoiceAddScreen() {
                 clearTimeout(timer);
                 hasAutoStartedRef.current = false;
                 isStartingRecognitionRef.current = false;
+                clearAutoStopTimer();
                 try {
                     ExpoSpeechRecognitionModule.abort();
                 } catch {
                     // noop
                 }
             };
-        }, [handleStartListening, isCheckingAvailability, isRecognitionAvailable])
+        }, [clearAutoStopTimer, handleStartListening, isCheckingAvailability, isRecognitionAvailable])
     );
 
     const handleConfirm = useCallback(async () => {
@@ -326,7 +414,7 @@ export default function VoiceAddScreen() {
             return;
         }
 
-        if (!parsed.category) {
+        if (!selectedCategory) {
             Alert.alert(t('Opps'), 'Please say a category like groceries, rent, salary, or transport.');
             return;
         }
@@ -337,11 +425,11 @@ export default function VoiceAddScreen() {
                 user?.id || 0,
                 parsed.amount,
                 parsed.type,
-                parsed.category.name,
-                new Date().toISOString(),
+                selectedCategory.name,
+                selectedDate.toISOString(),
                 parsed.note,
-                parsed.category.icon,
-                parsed.category.color,
+                selectedCategory.icon,
+                selectedCategory.color,
             );
 
             showSuccess({
@@ -355,13 +443,13 @@ export default function VoiceAddScreen() {
         } finally {
             setIsSaving(false);
         }
-    }, [parsed.amount, parsed.category, parsed.note, parsed.type, showSuccess, t, user?.id]);
+    }, [parsed.amount, parsed.note, parsed.type, selectedCategory, selectedDate, showSuccess, t, user?.id]);
 
     return (
         <View style={[tw`flex-1`, { backgroundColor: '#F4FBF9' }]}>
             <StatusBar backgroundColor="#F4FBF9" barStyle="dark-content" />
 
-            <View style={tw`px-6 pt-14 pb-4  flex-row items-center justify-between`}>
+            <View style={tw`px-6 pt-14 pb-4 flex-row items-center justify-between`}>
                 <TouchableOpacity
                     onPress={() => router.back()}
                     style={tw`w-11 h-11 rounded-full items-center justify-center bg-white`}
@@ -384,18 +472,16 @@ export default function VoiceAddScreen() {
                             <TouchableOpacity
                                 activeOpacity={0.9}
                                 disabled={isCheckingAvailability || !isRecognitionAvailable}
-                                onPress={isRecognizing ? handleStopListening : handleStartListening}
+                                onPress={handleStartListening}
                                 style={[
                                     tw`w-40 h-40 rounded-full items-center justify-center`,
-                                    { backgroundColor: isRecognizing ? '#DDF7F0' : '#FFFFFF' }
+                                    { backgroundColor: isRecognizing ? '#DDF7F0' : '#FFFFFF' },
                                 ]}
                             >
                                 {isCheckingAvailability ? (
                                     <ActivityIndicator color={theme.colors.primary} />
-                                ) : isRecognizing ? (
-                                    <MicOff size={58} color={theme.colors.primary} />
                                 ) : (
-                                    <Mic size={58} color={theme.colors.primary} />
+                                    <Image source={require('@/assets/images/animatedvoice.gif')} />
                                 )}
                             </TouchableOpacity>
 
@@ -404,9 +490,18 @@ export default function VoiceAddScreen() {
                             </Text>
                             <Text style={tw`text-slate-500 text-center text-sm leading-6 mt-3 max-w-[270px]`}>
                                 {isRecognizing
-                                    ? 'Speak now. Tap the mic again when you finish.'
+                                    ? 'Speak naturally. I will auto-stop one second after you pause.'
                                     : 'Say something like spent 500 on groceries or received 20000 salary.'}
                             </Text>
+
+                            <View style={tw`w-full bg-white rounded-[28px] px-5 py-6 mt-8 min-h-[160px] justify-center`}>
+                                <Text style={tw`text-slate-400 text-xs font-bold uppercase tracking-[2px] mb-4 text-center`}>
+                                    {isRecognizing ? 'Live Voice Text' : 'Voice Text'}
+                                </Text>
+                                <Text style={tw`text-slate-900 text-center text-3xl font-extrabold leading-[42px]`}>
+                                    {liveTranscript || transcript || (isRecognizing ? 'Start speaking...' : 'Your voice text will appear here')}
+                                </Text>
+                            </View>
                         </>
                     ) : (
                         <>
@@ -417,7 +512,7 @@ export default function VoiceAddScreen() {
                                 {spokenText}
                             </Text>
 
-                            <View style={tw`w-full bg-white rounded-[28px] p-5 mt-10`}>
+                            <View style={tw`w-full bg-white rounded-[28px] p-5 mt-6`}>
                                 <Text style={tw`text-slate-400 text-xs font-bold uppercase tracking-[2px] mb-4`}>
                                     Confirm Preview
                                 </Text>
@@ -439,15 +534,75 @@ export default function VoiceAddScreen() {
 
                                 <View>
                                     <Text style={tw`text-slate-400 text-xs mb-1`}>Category</Text>
-                                    <Text style={tw`text-slate-900 text-lg font-bold`}>
-                                        {parsed.category?.name || 'Not detected'}
-                                    </Text>
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
+                                        onPress={() => setShowCategoryPicker((prev) => !prev)}
+                                    >
+                                        <Text style={tw`text-slate-900 text-lg font-bold`}>
+                                            {selectedCategory?.name || 'Not detected'}
+                                        </Text>
+                                        <Text style={tw`text-slate-500 text-xs mt-1`}>
+                                            Tap to change category
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    {showCategoryPicker ? (
+                                        <View style={tw`flex-row flex-wrap mt-3`}>
+                                            {categoryOptions.slice(0, 12).map((item) => {
+                                                const isSelected = selectedCategory?.name === item.name;
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={String(item.id || item.name)}
+                                                        onPress={() => handleCategorySelect(item)}
+                                                        style={[
+                                                            tw`px-3 py-2 rounded-full mr-2 mb-2`,
+                                                            { backgroundColor: isSelected ? item.color : '#F1F5F9' },
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            style={[
+                                                                tw`text-xs font-bold`,
+                                                                { color: isSelected ? '#FFFFFF' : '#0F172A' },
+                                                            ]}
+                                                        >
+                                                            {item.name}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </View>
+                                    ) : null}
+                                </View>
+
+                                <View style={tw`mt-4`}>
+                                    <Text style={tw`text-slate-400 text-xs mb-1`}>Date</Text>
+                                    <TouchableOpacity
+                                        onPress={() => setShowDatePicker(true)}
+                                        activeOpacity={0.85}
+                                    >
+                                        <Text style={tw`text-slate-900 text-lg font-bold`}>
+                                            {formatSelectedDate(selectedDate)}
+                                        </Text>
+                                        <Text style={tw`text-slate-500 text-xs mt-1`}>
+                                            Tap to change date
+                                        </Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
+
+                            {showDatePicker ? (
+                                <DateTimePicker
+                                    value={selectedDate}
+                                    mode="date"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    maximumDate={new Date()}
+                                    onChange={handleDateChange}
+                                />
+                            ) : null}
                         </>
                     )}
 
-                    {errorMessage ? (
+                    {errorMessage && shouldShowError ? (
                         <Text style={tw`text-red-600 text-center text-sm mt-6 max-w-[300px]`}>
                             {errorMessage}
                         </Text>
@@ -463,7 +618,7 @@ export default function VoiceAddScreen() {
                                 onPress={handleConfirm}
                                 style={[
                                     tw`rounded-2xl py-4 items-center flex-row justify-center mb-3`,
-                                    { backgroundColor: theme.colors.primary }
+                                    { backgroundColor: theme.colors.primary },
                                 ]}
                             >
                                 {isSaving ? (
